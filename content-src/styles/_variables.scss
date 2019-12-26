@@ -130,6 +130,8 @@ $context-menu-item-padding: 3px 12px;
 $error-fallback-font-size: 12px;
 $error-fallback-line-height: 1.5;
 
+// Since Fx 82, see https://bugzil.la/1654258
+$b4fx82-image-path: 'resource://activity-stream/data/content/assets/';
 $image-path: 'chrome://activity-stream/content/data/content/assets/';
 
 $snippets-container-height: 120px;
