@@ -10,3 +10,5 @@ mococn-menu-unpin = 删除
 mococn-section-menu-less-rows = 减少行数
 mococn-section-menu-more-rows = 增加行数
 
+mococn-section-header-topstories = 新闻推荐
+
