@@ -3,8 +3,8 @@
 
 import {actionCreators as ac, actionTypes as at} from "common/Actions.jsm";
 import {FormattedMessage, injectIntl} from "react-intl";
+import {IS_MOCOCN_NEWTAB, IS_NEWTAB} from "content-src/lib/constants";
 import {connect} from "react-redux";
-import {IS_NEWTAB} from "content-src/lib/constants";
 import React from "react";
 
 export class _Search extends React.PureComponent {
@@ -71,14 +71,14 @@ export class _Search extends React.PureComponent {
       // can add the appropriate telemetry probes for search. Without the correct
       // name, certain tests like browser_UsageTelemetry_content.js will fail
       // (See github ticket #2348 for more details)
-      const healthReportKey = IS_NEWTAB ? "newtab" : "abouthome";
+      const healthReportKey = IS_MOCOCN_NEWTAB || IS_NEWTAB ? "newtab" : "abouthome";
 
       // The "searchSource" needs to be "newtab" or "homepage" and is sent with
       // the search data and acts as context for the search request (See
       // nsISearchEngine.getSubmission). It is necessary so that search engine
       // plugins can correctly atribute referrals. (See github ticket #3321 for
       // more details)
-      const searchSource = IS_NEWTAB ? "newtab" : "homepage";
+      const searchSource = IS_MOCOCN_NEWTAB || IS_NEWTAB ? "newtab" : "homepage";
 
       // gContentSearchController needs to exist as a global so that tests for
       // the existing about:home can find it; and so it allows these tests to pass.
