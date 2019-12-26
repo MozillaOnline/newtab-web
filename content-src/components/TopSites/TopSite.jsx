@@ -176,6 +176,7 @@ export class TopSiteLink extends React.PureComponent {
     const { defaultStyle, link, newNewtabExperienceEnabled } = this.props;
 
     const { tippyTopIcon, faviconSize } = link;
+    let iconWrapperClass = "icon-wrapper";
     let imageClassName;
     let imageStyle;
     let showSmallFavicon = false;
@@ -189,6 +190,7 @@ export class TopSiteLink extends React.PureComponent {
       // force no styles (letter fallback) even if the link has imagery
       smallFaviconFallback = false;
       if (newNewtabExperienceEnabled) {
+        iconWrapperClass = `${iconWrapperClass} letter-fallback`;
         selectedColor = this.generateColor();
       }
     } else if (link.searchTopSite) {
@@ -205,6 +207,7 @@ export class TopSiteLink extends React.PureComponent {
       const spocImgURL =
         link.type === SPOC_TYPE ? link.customScreenshotURL : "";
 
+      iconWrapperClass = "";
       imageClassName = "top-site-icon rich-icon";
       imageStyle = {
         backgroundColor: link.backgroundColor,
@@ -240,6 +243,12 @@ export class TopSiteLink extends React.PureComponent {
         showSmallFavicon = true;
         smallFaviconFallback = true;
       }
+
+      if (selectedColor) {
+        iconWrapperClass = `${iconWrapperClass} letter-fallback`;
+      } else if (hasScreenshotImage) {
+        iconWrapperClass = "";
+      }
     }
 
     return {
@@ -248,6 +257,7 @@ export class TopSiteLink extends React.PureComponent {
       smallFaviconStyle,
       imageStyle,
       imageClassName,
+      iconWrapperClass,
       selectedColor,
     };
   }
@@ -274,6 +284,7 @@ export class TopSiteLink extends React.PureComponent {
       smallFaviconStyle,
       imageStyle,
       imageClassName,
+      iconWrapperClass,
       selectedColor,
     } = this.calculateStyle();
 
@@ -310,11 +321,7 @@ export class TopSiteLink extends React.PureComponent {
             {(newNewtabExperienceEnabled && (
               <div className="tile" aria-hidden={true}>
                 <div
-                  className={
-                    selectedColor
-                      ? "icon-wrapper letter-fallback"
-                      : "icon-wrapper"
-                  }
+                  className={iconWrapperClass}
                   data-fallback={letterFallback}
                   style={
                     selectedColor ? { backgroundColor: selectedColor } : {}
@@ -733,6 +740,9 @@ export class TopSiteList extends React.PureComponent {
     // Make a copy of the sites to truncate or extend to desired length
     let topSites = this.props.TopSites.rows.slice();
     topSites.length = this.props.TopSitesRows * TOP_SITES_MAX_SITES_PER_ROW;
+    if (this.props.mococnWideLayout) {
+      topSites.length /= 2;
+    }
     return topSites;
   }
 
@@ -811,7 +821,7 @@ export class TopSiteList extends React.PureComponent {
 
     // On narrow viewports, we only show 6 sites per row. We'll mark the rest as
     // .hide-for-narrow to hide in CSS via @media query.
-    const maxNarrowVisibleIndex = props.TopSitesRows * 6;
+    const maxNarrowVisibleIndex = props.TopSitesRows * (props.mococnWideLayout ? 3 : 6);
 
     for (let i = 0, l = topSites.length; i < l; i++) {
       const link =
@@ -825,6 +835,11 @@ export class TopSiteList extends React.PureComponent {
       };
       if (i >= maxNarrowVisibleIndex) {
         slotProps.className = "hide-for-narrow";
+      }
+      if (props.mococnWideLayout) {
+        slotProps.className = slotProps.className
+          ? `${slotProps.className} mococn-wide`
+          : "mococn-wide";
       }
       topSitesUI.push(
         !link ? (
