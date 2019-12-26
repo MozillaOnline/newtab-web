@@ -127,8 +127,12 @@ export class _TopSites extends React.PureComponent {
     const {props} = this;
     const {editForm, showSearchShortcutsForm} = props.TopSites;
     const extraMenuOptions = ["AddTopSite"];
+    const mococnNumRows = {max: 3, min: 1, pref: "topSitesRows", val: props.TopSitesRows};
     if (props.Prefs.values["improvesearch.topSiteSearchShortcuts"]) {
       extraMenuOptions.push("AddSearchShortcut");
+    }
+    if (IS_MOCOCN_NEWTAB) {
+      extraMenuOptions.length = 0;
     }
 
     return (<ComponentPerfTimer id="topsites" initialized={props.TopSites.initialized} dispatch={props.dispatch}>
@@ -144,6 +148,7 @@ export class _TopSites extends React.PureComponent {
         isFixed={props.isFixed}
         isFirst={props.isFirst}
         isLast={props.isLast}
+        mococnNumRows={mococnNumRows}
         dispatch={props.dispatch}>
         <TopSiteList TopSites={props.TopSites} TopSitesRows={props.TopSitesRows} dispatch={props.dispatch} intl={props.intl} mococnWideLayout={this.mococnWideLayout} topSiteIconType={topSiteIconType} />
         <div className="edit-topsites-wrapper">
