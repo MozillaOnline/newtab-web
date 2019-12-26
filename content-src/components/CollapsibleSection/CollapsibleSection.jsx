@@ -136,6 +136,7 @@ export class _CollapsibleSection extends React.PureComponent {
 
   render() {
     const isCollapsible = this.props.collapsed !== undefined;
+    const mococnClassName = isCollapsible ? "click-target" : "";
     const {enableAnimation, isAnimating, maxHeight, menuButtonHover, showContextMenu} = this.state;
     const {id, eventSource, collapsed, learnMore, title, extraMenuOptions, showPrefName, privacyNoticeURL, dispatch, isFixed, isFirst, isLast, isWebExtension} = this.props;
     const active = menuButtonHover || showContextMenu;
@@ -153,15 +154,15 @@ export class _CollapsibleSection extends React.PureComponent {
         <div className="section-top-bar">
           <h3 className="section-title">
             <span className="click-target-container">
-              <span className="click-target" onClick={this.onHeaderClick}>
+              <span className={mococnClassName} onClick={this.onHeaderClick}>
                 {this.renderIcon()}
                 {getFormattedMessage(title)}
               </span>
-              <span className="click-target" onClick={this.onHeaderClick}>
+              <span className={mococnClassName} onClick={this.onHeaderClick}>
                 {isCollapsible && <span className={`collapsible-arrow icon ${collapsed ? "icon-arrowhead-forward-small" : "icon-arrowhead-down-small"}`} />}
               </span>
               <span className="learn-more-link-wrapper">
-                {learnMore &&
+                {learnMore && learnMore.link && learnMore.link.id &&
                   <span className="learn-more-link">
                     <a href={learnMore.link.href}>
                       <FormattedMessage id={learnMore.link.id} />
