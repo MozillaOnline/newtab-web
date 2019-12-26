@@ -1,3 +1,4 @@
+export const IS_MOCOCN_NEWTAB = global.document && global.document.location.origin === "https://newtab.firefoxchina.cn";
 export const IS_NEWTAB = global.document && global.document.documentURI === "about:newtab";
 export const NEWTAB_DARK_THEME = {
   "ntp_background": {
