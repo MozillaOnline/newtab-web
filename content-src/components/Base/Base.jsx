@@ -9,6 +9,7 @@ import { ConfirmDialog } from "content-src/components/ConfirmDialog/ConfirmDialo
 import { connect } from "react-redux";
 import { DiscoveryStreamBase } from "content-src/components/DiscoveryStreamBase/DiscoveryStreamBase";
 import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { CustomizeMenu } from "content-src/components/CustomizeMenu/CustomizeMenu";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
@@ -132,7 +133,15 @@ export class BaseContent extends React.PureComponent {
   }
 
   openPreferences() {
-    this.props.dispatch(ac.OnlyToMain({ type: at.SETTINGS_OPEN }));
+    // Open option of current extension instead of about:preferences
+    if (IS_MOCOCN_NEWTAB) {
+      this.props.dispatch(ac.OnlyToMain({
+        type: at.OPEN_WEBEXT_SETTINGS,
+        data: "china-newtab@mozillaonline.com",
+      }));
+    } else {
+      this.props.dispatch(ac.OnlyToMain({ type: at.SETTINGS_OPEN }));
+    }
     this.props.dispatch(ac.UserEvent({ event: "OPEN_NEWTAB_PREFS" }));
   }
 
@@ -232,7 +241,9 @@ export class BaseContent extends React.PureComponent {
             showing={showCustomizationMenu}
           />
         ) : (
-          <PrefsButton onClick={this.openPreferences} icon={prefsButtonIcon} />
+          !IS_MOCOCN_NEWTAB && (
+            <PrefsButton onClick={this.openPreferences} icon={prefsButtonIcon} />
+          )
         )}
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions*/}
         <div className={outerClassName} onClick={this.closeCustomizationMenu}>
