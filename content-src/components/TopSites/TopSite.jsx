@@ -6,12 +6,14 @@ import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
 import {
   MIN_CORNER_FAVICON_SIZE,
   MIN_RICH_FAVICON_SIZE,
+  MOCOCN_TOP_SITES_CONTEXT_MENU_OPTIONS,
   TOP_SITES_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SPOC_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SPONSORED_POSITION_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SOURCE,
 } from "./TopSitesConstants";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
 import { ImpressionStats } from "../DiscoveryStreamImpressionStats/ImpressionStats";
 import React from "react";
@@ -560,7 +562,9 @@ export class TopSite extends React.PureComponent {
     const isContextMenuOpen = props.activeIndex === props.index;
     const title = link.label || link.hostname;
     let menuOptions;
-    if (link.sponsored_position) {
+    if (IS_MOCOCN_NEWTAB) {
+      menuOptions = MOCOCN_TOP_SITES_CONTEXT_MENU_OPTIONS;
+    } else if (link.sponsored_position) {
       menuOptions = TOP_SITES_SPONSORED_POSITION_CONTEXT_MENU_OPTIONS;
     } else if (link.searchTopSite) {
       menuOptions = TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS;
