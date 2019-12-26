@@ -1,3 +1,10 @@
+import "content-src/styles/activity-stream-mac.scss";
+import "content-src/styles/mococn.scss";
+
+import "gecko-dev/contentSearchUI";
+import "gecko-dev/contentTheme";
+import "prerendered/locales/zh-CN/activity-stream-strings.js";
+
 import {actionCreators as ac, actionTypes as at} from "common/Actions.jsm";
 import {Base} from "content-src/components/Base/Base";
 import {DetectUserSessionStart} from "content-src/lib/detect-user-session-start";
@@ -25,3 +32,13 @@ ReactDOM.hydrate(<Provider store={store}>
     locale={global.document.documentElement.lang}
     strings={global.gActivityStreamStrings} />
 </Provider>, document.getElementById("root"));
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").then(registration => {
+      global.console.log("SW registered: ", registration);
+    }).catch(registrationError => {
+      global.console.log("SW registration failed: ", registrationError);
+    });
+  });
+}
