@@ -3,3 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 ## Strings added for MoCoCN customization
+
+mococn-menu-dismiss = Dismiss
+mococn-menu-unpin = Delete
