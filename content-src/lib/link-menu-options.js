@@ -100,6 +100,24 @@ export const LinkMenuOptions = {
     }),
     userEvent: "BLOCK",
   }),
+  MoCoCNBlockUrl: (site, index, eventSource) => {
+    let option = LinkMenuOptions.BlockUrl(site, index, eventSource);
+    option.string_id = "mococn-menu-dismiss";
+
+    // Compat fix for Fx 74 and earlier, see https://bugzil.la/1617280,1618944
+    if (!site.hasDSCollectionDismissConfig) {
+      option.action = ac.AlsoToMain({
+        type: at.BLOCK_URL,
+        data: {
+          url: site.open_url || site.url,
+          pocket_id: site.pocket_id,
+          ...(site.flight_id ? { flight_id: site.flight_id } : {}),
+        }
+      });
+    }
+
+    return option;
+  },
 
   // This is an option for web extentions which will result in remove items from
   // memory and notify the web extenion, rather than using the built-in block list.
@@ -209,6 +227,12 @@ export const LinkMenuOptions = {
     }),
     userEvent: "UNPIN",
   }),
+  MoCoCNUnpinTopSite: site => {
+    let option = LinkMenuOptions.UnpinTopSite(site);
+    option.id = "mococn-menu-unpin";
+    option.icon = "delete";
+    return option;
+  },
   SaveToPocket: (site, index, eventSource) => ({
     id: "newtab-menu-save-to-pocket",
     icon: "pocket-save",
