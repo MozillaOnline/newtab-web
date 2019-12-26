@@ -1,3 +1,9 @@
+.top-site-outer {
+  .icon.icon-pin-small {
+    display: none;
+  }
+}
+
 @supports not ((user-select: auto) and selector(input::file-selector-button)) {
   .top-site-outer {
     .edit-button {
