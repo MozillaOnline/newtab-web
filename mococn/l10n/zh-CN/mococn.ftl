@@ -8,3 +8,5 @@ mococn-custom-topstories-subtitle =
 
 mococn-menu-dismiss = 不感兴趣
 mococn-menu-unpin = 删除
+
+mococn-section-header-topstories = 新闻推荐
