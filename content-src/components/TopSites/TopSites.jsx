@@ -3,7 +3,11 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
-import { MIN_RICH_FAVICON_SIZE, TOP_SITES_SOURCE } from "./TopSitesConstants";
+import {
+  MIN_RICH_FAVICON_SIZE,
+  MOCOCN_MAX_TOP_SITES_FOR_WIDE_LAYOUT,
+  TOP_SITES_SOURCE,
+} from "./TopSitesConstants";
 import { CollapsibleSection } from "content-src/components/CollapsibleSection/CollapsibleSection";
 import { ComponentPerfTimer } from "content-src/components/ComponentPerfTimer/ComponentPerfTimer";
 import { connect } from "react-redux";
@@ -52,6 +56,11 @@ function countTopSitesIconsTypes(topSites) {
 }
 
 export class _TopSites extends React.PureComponent {
+  get mococnWideLayout() {
+    return IS_MOCOCN_NEWTAB &&
+      this.props.TopSites.rows.length <= MOCOCN_MAX_TOP_SITES_FOR_WIDE_LAYOUT;
+  }
+
   constructor(props) {
     super(props);
     this.onEditFormClose = this.onEditFormClose.bind(this);
@@ -93,6 +102,10 @@ export class _TopSites extends React.PureComponent {
     // $break-point-widest = 1072px (from _variables.scss)
     if (!global.matchMedia(`(min-width: 1072px)`).matches) {
       sitesPerRow -= 2;
+    }
+
+    if (this.mococnWideLayout) {
+      sitesPerRow /= 2;
     }
     return this.props.TopSites.rows.slice(
       0,
@@ -164,6 +177,7 @@ export class _TopSites extends React.PureComponent {
             TopSites={props.TopSites}
             TopSitesRows={props.TopSitesRows}
             dispatch={props.dispatch}
+            mococnWideLayout={this.mococnWideLayout}
             topSiteIconType={topSiteIconType}
             colors={colors}
           />
@@ -179,6 +193,7 @@ export class _TopSites extends React.PureComponent {
                     site={props.TopSites.rows[editForm.index]}
                     onClose={this.onEditFormClose}
                     dispatch={this.props.dispatch}
+                    mococnWideLayout={this.mococnWideLayout}
                     {...editForm}
                   />
                 </ModalOverlayWrapper>
