@@ -182,6 +182,11 @@ export const TopSites = connect(state => {
   let topSites = state.TopSites;
 
   if (IS_MOCOCN_NEWTAB) {
+    // Make it harder to collapse this section
+    if (topSites.pref) {
+      topSites.pref.collapsed = topSites.pref.collapsed || undefined;
+    }
+
     // Keep pinned sites only
     let pinnedOnlyRows = [];
     topSites.rows.forEach((site, index) => {
