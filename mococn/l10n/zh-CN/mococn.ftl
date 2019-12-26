@@ -4,5 +4,7 @@
 
 ## Strings added for MoCoCN customization
 mococn-custom-topstories-title = 新闻推荐
-mococn-custom-topstories-subtitle = 
+mococn-custom-topstories-subtitle =
 
+mococn-menu-dismiss = 不感兴趣
+mococn-menu-unpin = 删除

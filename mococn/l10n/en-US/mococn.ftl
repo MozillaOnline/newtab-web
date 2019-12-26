@@ -4,5 +4,7 @@
 
 ## Strings added for MoCoCN customization
 mococn-custom-topstories-title = Recommended news
-mococn-custom-topstories-subtitle = 
+mococn-custom-topstories-subtitle =
 
+mococn-menu-dismiss = Dismiss
+mococn-menu-unpin = Delete
