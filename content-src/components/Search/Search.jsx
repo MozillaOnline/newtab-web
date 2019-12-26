@@ -140,7 +140,10 @@ export class _Search extends React.PureComponent {
           </div>
         )}
         {!this.props.handoffEnabled && (
-          <div className="search-inner-wrapper">
+          <div
+            className="search-inner-wrapper"
+            ref={this.onMoCoCNTargetMount}
+          >
             <input
               id="newtab-search-text"
               data-l10n-id="newtab-search-box-search-the-web-input"
