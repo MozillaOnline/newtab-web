@@ -1,0 +1,66 @@
+$vanilla-card-title-font-size: 12px;
+$vanilla-card-title-line-height: $vanilla-card-title-font-size + 1;
+$vanilla-card-title-max-height: $vanilla-card-title-font-size + 5;
+$vanilla-card-title-padding-bottom: 4px; // which equals to $vanilla-card-title-max-height - $vanilla-card-title-line-height;
+
+$mococn-card-preview-image-height-compact: 122px;
+$mococn-card-preview-image-height-compact-diff: $mococn-card-preview-image-height-compact - $card-preview-image-height-compact;
+$mococn-card-title-font-size: 14px;
+$mococn-card-title-font-weight: normal;
+$mococn-card-title-line-height: 21px;
+$mococn-card-title-max-height: $mococn-card-title-line-height * 2 + $vanilla-card-title-padding-bottom;
+$mococn-card-title-max-height-diff: $mococn-card-title-max-height - $vanilla-card-title-max-height;
+
+$mococn-card-height-compact: $card-height-compact + $mococn-card-preview-image-height-compact-diff + $mococn-card-title-max-height-diff;
+
+.compact-cards {
+  $card-detail-vertical-spacing: 12px;
+
+  .card-outer {
+    height: $mococn-card-height-compact;
+
+    .card-preview-image-outer {
+      height: $mococn-card-preview-image-height-compact;
+    }
+
+    .card-text {
+      .card-title,
+      &:not(.no-description) .card-title {
+        font-size: $mococn-card-title-font-size;
+        font-weight: $mococn-card-title-font-weight;
+        line-height: $mococn-card-title-line-height;
+        max-height: $mococn-card-title-max-height;
+        white-space: normal;
+      }
+    }
+
+    .card-host-name {
+      font-size: 12px;
+      line-height: 12px;
+    }
+
+    .card-context {
+      $icon-size: 16px;
+      $container-size: 32px;
+
+      display: none;
+
+      clip-path: inset(-1px -1px ($container-size - $icon-size - $card-detail-vertical-spacing));
+      width: auto;
+      padding: 5px ($container-size - $icon-size) / 2;
+      top: $mococn-card-preview-image-height-compact - $icon-size;
+
+      &::after {
+        width: calc(100% + 2px);
+      }
+
+      .card-context-icon {
+        display: none;
+      }
+
+      .card-context-label {
+        display: block;
+      }
+    }
+  }
+}
