@@ -8,3 +8,5 @@ mococn-custom-topstories-subtitle =
 
 mococn-menu-dismiss = Dismiss
 mococn-menu-unpin = Delete
+
+mococn-section-header-topstories = 📰 More
