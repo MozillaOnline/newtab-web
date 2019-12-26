@@ -233,9 +233,25 @@ export class _TopSites extends React.PureComponent {
   }
 }
 
-export const TopSites = connect((state, props) => ({
+export const TopSites = connect((state, props) => {
   // For SPOC Experiment only, take TopSites from DiscoveryStream TopSites that takes in SPOC Data
-  TopSites: props.TopSitesWithSpoc || state.TopSites,
-  Prefs: state.Prefs,
-  TopSitesRows: state.Prefs.values.topSitesRows,
-}))(_TopSites);
+  let topSites = props.TopSitesWithSpoc || state.TopSites;
+
+  if (IS_MOCOCN_NEWTAB) {
+    // Keep pinned sites only
+    let pinnedOnlyRows = [];
+    topSites.rows.forEach((site, index) => {
+      if (site && site.isPinned && !site.searchTopSite) {
+        pinnedOnlyRows[index] = site;
+      }
+    });
+
+    topSites.rows = pinnedOnlyRows;
+  }
+
+  return {
+    TopSites: topSites,
+    Prefs: state.Prefs,
+    TopSitesRows: state.Prefs.values.topSitesRows,
+  };
+})(_TopSites);
