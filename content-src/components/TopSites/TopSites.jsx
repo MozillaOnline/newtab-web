@@ -10,6 +10,7 @@ import { MIN_RICH_FAVICON_SIZE, TOP_SITES_SOURCE } from "./TopSitesConstants";
 import { CollapsibleSection } from "content-src/components/CollapsibleSection/CollapsibleSection";
 import { ComponentPerfTimer } from "content-src/components/ComponentPerfTimer/ComponentPerfTimer";
 import { connect } from "react-redux";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { ModalOverlayWrapper } from "../../asrouter/components/ModalOverlay/ModalOverlay";
 import React from "react";
 import { SearchShortcutsForm } from "./SearchShortcutsForm";
@@ -208,8 +209,24 @@ export class _TopSites extends React.PureComponent {
   }
 }
 
-export const TopSites = connect((state, props) => ({
-  TopSites: state.TopSites,
-  Prefs: state.Prefs,
-  TopSitesRows: state.Prefs.values.topSitesRows,
-}))(_TopSites);
+export const TopSites = connect((state, props) => {
+  let topSites = state.TopSites;
+
+  if (IS_MOCOCN_NEWTAB) {
+    // Keep pinned sites only
+    let pinnedOnlyRows = [];
+    topSites.rows.forEach((site, index) => {
+      if (site && site.isPinned && !site.searchTopSite) {
+        pinnedOnlyRows[index] = site;
+      }
+    });
+
+    topSites.rows = pinnedOnlyRows;
+  }
+
+  return {
+    TopSites: topSites,
+    Prefs: state.Prefs,
+    TopSitesRows: state.Prefs.values.topSitesRows,
+  };
+})(_TopSites);
