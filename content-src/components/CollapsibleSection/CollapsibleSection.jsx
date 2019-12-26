@@ -173,6 +173,7 @@ export class CollapsibleSection extends React.PureComponent {
 
   render() {
     const isCollapsible = this.props.collapsed !== undefined;
+    const mococnClassName = isCollapsible ? "click-target" : "";
     const {
       enableAnimation,
       isAnimating,
@@ -216,7 +217,7 @@ export class CollapsibleSection extends React.PureComponent {
             <span className="click-target-container">
               {/* Click-targets that toggle a collapsible section should have an aria-expanded attribute; see bug 1553234 */}
               <span
-                className="click-target"
+                className={mococnClassName}
                 role="button"
                 tabIndex="0"
                 onKeyPress={this.onKeyPress}
@@ -240,7 +241,7 @@ export class CollapsibleSection extends React.PureComponent {
                 )}
               </span>
               <span className="learn-more-link-wrapper">
-                {learnMore && (
+                {learnMore && learnMore.link && learnMore.link.id && (
                   <span className="learn-more-link">
                     <FluentOrText message={learnMore.link.message}>
                       <a href={learnMore.link.href} />
