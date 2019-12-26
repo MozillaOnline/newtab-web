@@ -117,7 +117,7 @@ export class _Search extends React.PureComponent {
         </div>
       }
       {!this.props.handoffEnabled &&
-      <div className="search-inner-wrapper">
+      <div className="search-inner-wrapper" ref={this.props.onMoCoCNTargetMount}>
         <label htmlFor="newtab-search-text" className="search-label">
           <span className="sr-only"><FormattedMessage id="search_web_placeholder" /></span>
         </label>
