@@ -5,6 +5,8 @@ export const TOP_SITES_CONTEXT_MENU_OPTIONS = ["CheckPinTopSite", "EditTopSite",
 export const TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS = ["CheckPinTopSite", "Separator", "BlockUrl"];
 
 export const MOCOCN_MAX_TOP_SITES_FOR_WIDE_LAYOUT = 12;
+export const MOCOCN_TOP_SITES_CONTEXT_MENU_OPTIONS = ["MoCoCNUnpinTopSite", "EditTopSite",
+  "Separator", "OpenInNewWindow", "OpenInPrivateWindow"];
 // minimum size necessary to show a rich icon instead of a screenshot
 export const MIN_RICH_FAVICON_SIZE = 96;
 // minimum size necessary to show any icon in the top left corner with a screenshot

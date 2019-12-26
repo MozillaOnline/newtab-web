@@ -3,10 +3,12 @@ import {FormattedMessage, injectIntl} from "react-intl";
 import {
   MIN_CORNER_FAVICON_SIZE,
   MIN_RICH_FAVICON_SIZE,
+  MOCOCN_TOP_SITES_CONTEXT_MENU_OPTIONS,
   TOP_SITES_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SOURCE,
 } from "./TopSitesConstants";
+import {IS_MOCOCN_NEWTAB} from "content-src/lib/constants";
 import {LinkMenu} from "content-src/components/LinkMenu/LinkMenu";
 import React from "react";
 import {ScreenshotUtils} from "content-src/lib/screenshot-utils";
@@ -277,6 +279,8 @@ export class TopSite extends React.PureComponent {
   render() {
     const {props} = this;
     const {link} = props;
+    const contextMenuOptions = IS_MOCOCN_NEWTAB ?
+      MOCOCN_TOP_SITES_CONTEXT_MENU_OPTIONS : TOP_SITES_CONTEXT_MENU_OPTIONS;
     const isContextMenuOpen = this.state.showContextMenu && props.activeIndex === props.index;
     const title = link.label || link.hostname;
     return (<TopSiteLink {...props} onClick={this.onLinkClick} onDragEvent={this.props.onDragEvent} className={`${props.className || ""}${isContextMenuOpen ? " active" : ""}`} title={title}>
@@ -291,7 +295,7 @@ export class TopSite extends React.PureComponent {
               dispatch={props.dispatch}
               index={props.index}
               onUpdate={this.onMenuUpdate}
-              options={link.searchTopSite ? TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS : TOP_SITES_CONTEXT_MENU_OPTIONS}
+              options={link.searchTopSite ? TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS : contextMenuOptions}
               site={link}
               siteInfo={this._getTelemetryInfo()}
               source={TOP_SITES_SOURCE} />
