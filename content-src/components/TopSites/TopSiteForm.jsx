@@ -203,7 +203,7 @@ export class TopSiteForm extends React.PureComponent {
     const onSubmit = previewMode ? this.onPreviewButtonClick : this.onDoneButtonClick;
     return (
       <form className="topsite-form" onSubmit={onSubmit}>
-        <div className="form-input-container">
+        <div className={`form-input-container${this.props.mococnWideLayout ? " mococn-wide" : ""}`}>
           <h3 className="section-title">
             <FormattedMessage id={showAsAdd ? "topsites_form_add_header" : "topsites_form_edit_header"} />
           </h3>
@@ -227,6 +227,7 @@ export class TopSiteForm extends React.PureComponent {
               {this._renderCustomScreenshotInput()}
             </div>
             <TopSiteLink link={previewLink}
+              className={this.props.mococnWideLayout ? "mococn-wide" : ""}
               defaultStyle={requestFailed}
               title={this.state.label} />
           </div>

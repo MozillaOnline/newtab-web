@@ -416,6 +416,9 @@ export class _TopSiteList extends React.PureComponent {
     // Make a copy of the sites to truncate or extend to desired length
     let topSites = this.props.TopSites.rows.slice();
     topSites.length = this.props.TopSitesRows * TOP_SITES_MAX_SITES_PER_ROW;
+    if (this.props.mococnWideLayout) {
+      topSites.length /= 2;
+    }
     return topSites;
   }
 
@@ -482,7 +485,7 @@ export class _TopSiteList extends React.PureComponent {
 
     // On narrow viewports, we only show 6 sites per row. We'll mark the rest as
     // .hide-for-narrow to hide in CSS via @media query.
-    const maxNarrowVisibleIndex = props.TopSitesRows * 6;
+    const maxNarrowVisibleIndex = props.TopSitesRows * (props.mococnWideLayout ? 3 : 6);
 
     for (let i = 0, l = topSites.length; i < l; i++) {
       const link = topSites[i] && Object.assign({}, topSites[i], {iconType: this.props.topSiteIconType(topSites[i])});
@@ -492,6 +495,9 @@ export class _TopSiteList extends React.PureComponent {
       };
       if (i >= maxNarrowVisibleIndex) {
         slotProps.className = "hide-for-narrow";
+      }
+      if (props.mococnWideLayout) {
+        slotProps.className = slotProps.className ? `${slotProps.className} mococn-wide` : "mococn-wide";
       }
       topSitesUI.push(!link ? (
         <TopSitePlaceholder
