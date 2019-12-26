@@ -6,3 +6,5 @@
 mococn-custom-topstories-title = 阅读更多
 mococn-custom-topstories-subtitle =
 
+mococn-menu-dismiss = 不感兴趣
+mococn-menu-unpin = 删除

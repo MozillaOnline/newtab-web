@@ -23,12 +23,17 @@ export class _LinkMenu extends React.PureComponent {
     const { props } = this;
     const {
       site,
+      // Compat fix for Fx 74 and earlier, see https://bugzil.la/1617280,1618944
+      hasDSCollectionDismissConfig,
       index,
       source,
       isPrivateBrowsingEnabled,
       siteInfo,
       platform,
     } = props;
+
+    // Compat fix for Fx 74 and earlier, see https://bugzil.la/1617280,1618944
+    Object.assign(site, { hasDSCollectionDismissConfig });
 
     // Handle special case of default site
     const propOptions =
@@ -102,6 +107,9 @@ export class _LinkMenu extends React.PureComponent {
 }
 
 const getState = state => ({
+  // Compat fix for Fx 74 and earlier, see https://bugzil.la/1617280,1618944
+  hasDSCollectionDismissConfig: state.Prefs.values
+    .hasOwnProperty("discoverystream.isCollectionDismissible"),
   isPrivateBrowsingEnabled: state.Prefs.values.isPrivateBrowsingEnabled,
   platform: state.Prefs.values.platform,
 });

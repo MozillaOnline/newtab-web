@@ -6,3 +6,5 @@
 mococn-custom-topstories-title = More Readings
 mococn-custom-topstories-subtitle =
 
+mococn-menu-dismiss = Dismiss
+mococn-menu-unpin = Delete
