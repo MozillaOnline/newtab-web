@@ -109,6 +109,10 @@ export class BaseContent extends React.PureComponent {
     this.onWindowScroll = debounce(this.onWindowScroll.bind(this), 5);
     this.setPref = this.setPref.bind(this);
     this.state = { fixedSearch: false, customizeMenuVisible: false };
+
+    this.state.mococnShowLogo = false;
+    this.onIntersectionChange = this.onIntersectionChange.bind(this);
+    this.onTargetMount = this.onTargetMount.bind(this);
   }
 
   componentDidMount() {
@@ -119,6 +123,32 @@ export class BaseContent extends React.PureComponent {
   componentWillUnmount() {
     global.removeEventListener("scroll", this.onWindowScroll);
     global.removeEventListener("keydown", this.handleOnKeyDown);
+  }
+
+  onIntersectionChange(entries, observer) {
+    const [entry] = entries;
+    const mococnShowLogo = entry.intersectionRatio === 1.0;
+    this.setState({mococnShowLogo});
+  }
+
+  // Target `.search-inner-wrapper` since `padding-top` of `.search-wrapper` may change
+  onTargetMount(target) {
+    if (!IS_MOCOCN_NEWTAB) {
+      return;
+    }
+
+    if (!this.intersectionObserver) {
+      this.intersectionObserver = new global.IntersectionObserver(this.onIntersectionChange, {
+        rootMargin: "-211px 0px 0px",
+        threshold: 1.0,
+      });
+    }
+
+    if (target) {
+      this.intersectionObserver.observe(target);
+    } else {
+      this.intersectionObserver.disconnect();
+    }
   }
 
   onWindowScroll() {
@@ -229,10 +259,13 @@ export class BaseContent extends React.PureComponent {
             {prefs.showSearch && (
               <div className="non-collapsible-section">
                 <ErrorBoundary>
-                  <Search
+                  <Search                    
                     showLogo={
-                      noSectionsEnabled || prefs["logowordmark.alwaysVisible"]
+                      noSectionsEnabled ||
+                      prefs["logowordmark.alwaysVisible"] ||
+                      this.state.mococnShowLogo
                     }
+                    onMoCoCNTargetMount={this.onTargetMount}
                     handoffEnabled={searchHandoffEnabled}
                     {...props.Search}
                   />
