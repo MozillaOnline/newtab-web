@@ -6,6 +6,7 @@ import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
 import {
   MIN_CORNER_FAVICON_SIZE,
   MIN_RICH_FAVICON_SIZE,
+  MOCOCN_MAX_TOP_SITES_FOR_WIDE_LAYOUT,
   TOP_SITES_SOURCE,
 } from "./TopSitesConstants";
 import { CollapsibleSection } from "content-src/components/CollapsibleSection/CollapsibleSection";
@@ -60,6 +61,11 @@ function countTopSitesIconsTypes(topSites) {
 }
 
 export class _TopSites extends React.PureComponent {
+  get mococnWideLayout() {
+    return IS_MOCOCN_NEWTAB &&
+      this.props.TopSites.rows.length <= MOCOCN_MAX_TOP_SITES_FOR_WIDE_LAYOUT;
+  }
+
   constructor(props) {
     super(props);
     this.onEditFormClose = this.onEditFormClose.bind(this);
@@ -101,6 +107,10 @@ export class _TopSites extends React.PureComponent {
     // $break-point-widest = 1072px (from _variables.scss)
     if (!global.matchMedia(`(min-width: 1072px)`).matches) {
       sitesPerRow -= 2;
+    }
+
+    if (this.mococnWideLayout) {
+      sitesPerRow /= 2;
     }
     return this.props.TopSites.rows.slice(
       0,
@@ -189,6 +199,7 @@ export class _TopSites extends React.PureComponent {
             TopSites={props.TopSites}
             TopSitesRows={props.TopSitesRows}
             dispatch={props.dispatch}
+            mococnWideLayout={this.mococnWideLayout}
             topSiteIconType={topSiteIconType}
             newNewtabExperienceEnabled={newNewtabExperienceEnabled}
             colors={colors}
@@ -205,6 +216,7 @@ export class _TopSites extends React.PureComponent {
                     site={props.TopSites.rows[editForm.index]}
                     onClose={this.onEditFormClose}
                     dispatch={this.props.dispatch}
+                    mococnWideLayout={this.mococnWideLayout}
                     {...editForm}
                     newNewtabExperienceEnabled={newNewtabExperienceEnabled}
                     customizationMenuEnabled={customizationMenuEnabled}
@@ -246,6 +258,23 @@ export const TopSites = connect((state, props) => {
         pinnedOnlyRows[index] = site;
       }
     });
+
+    // Prefer screenshot to large favicon for mococn-wide layout
+    const {
+      newNewtabExperienceEnabled,
+    } = state.Prefs.values.featureConfig;
+    if (
+      !newNewtabExperienceEnabled &&
+      pinnedOnlyRows.length <= MOCOCN_MAX_TOP_SITES_FOR_WIDE_LAYOUT
+    ) {
+      pinnedOnlyRows = pinnedOnlyRows.map((site, index) => {
+        if (site.faviconSize >= MIN_RICH_FAVICON_SIZE) {
+          site.faviconSize = MIN_CORNER_FAVICON_SIZE;
+          // Should trigger capturing of an extra screenshot here
+        }
+        return site;
+      });
+    }
 
     topSites.rows = pinnedOnlyRows;
   }
