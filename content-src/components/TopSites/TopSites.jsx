@@ -150,6 +150,7 @@ export class _TopSites extends React.PureComponent {
     const { props } = this;
     const { editForm, showSearchShortcutsForm } = props.TopSites;
     const extraMenuOptions = ["AddTopSite"];
+    const mococnNumRows = {max: 3, min: 1, pref: "topSitesRows", val: props.TopSitesRows};
     const {
       customizationMenuEnabled,
       newNewtabExperienceEnabled,
@@ -158,6 +159,9 @@ export class _TopSites extends React.PureComponent {
 
     if (props.Prefs.values["improvesearch.topSiteSearchShortcuts"]) {
       extraMenuOptions.push("AddSearchShortcut");
+    }
+    if (IS_MOCOCN_NEWTAB) {
+      extraMenuOptions.length = 0;
     }
 
     const canShowCustomizationMenu =
@@ -193,6 +197,7 @@ export class _TopSites extends React.PureComponent {
           isFixed={props.isFixed}
           isFirst={props.isFirst}
           isLast={props.isLast}
+          mococnNumRows={mococnNumRows}
           dispatch={props.dispatch}
         >
           <TopSiteList
