@@ -1,3 +1,9 @@
+.top-site-outer {
+  .icon.icon-pin-small {
+    display: none;
+  }
+}
+
 // Work around from https://stackoverflow.com/questions/62665318/using-supports-selector-despite-sass-not-supporting-it
 @supports not ((user-select: auto) and #{'\selector(input::file-selector-button)'}) {
   .top-site-outer {
