@@ -38,12 +38,22 @@ export const SectionMenuOptions = {
     action: ac.OnlyToMain({type: at.UPDATE_SECTION_PREFS, data: {id: section.id, value: {collapsed: true}}}),
     userEvent: "MENU_COLLAPSE",
   }),
+  MoCoCNCollapseSection: section => {
+    let option = SectionMenuOptions.CollapseSection(section);
+    option.icon = "arrowhead-up";
+    return option;
+  },
   ExpandSection: section => ({
     id: "section_menu_action_expand_section",
     icon: "maximize",
     action: ac.OnlyToMain({type: at.UPDATE_SECTION_PREFS, data: {id: section.id, value: {collapsed: false}}}),
     userEvent: "MENU_EXPAND",
   }),
+  MoCoCNExpandSection: section => {
+    let option = SectionMenuOptions.ExpandSection(section);
+    option.icon = "arrowhead-down";
+    return option;
+  },
   ManageSection: section => ({
     id: "section_menu_action_manage_section",
     icon: "settings",
@@ -67,6 +77,32 @@ export const SectionMenuOptions = {
     action: {type: at.TOP_SITES_OPEN_SEARCH_SHORTCUTS_MODAL},
     userEvent: "MENU_ADD_SEARCH",
   }),
+  MoCoCNLessRows: section => {
+    if (!section.mococnNumRows) {
+      return {type: "empty"};
+    }
+
+    return {
+      id: "mococn_section_menu_action_less_rows",
+      icon: "minimize",
+      action: ac.SetPref(section.mococnNumRows.pref, section.mococnNumRows.val - 1),
+      disabled: section.mococnNumRows.val <= section.mococnNumRows.min,
+      userEvent: "MOCOCN_LESS_ROWS",
+    };
+  },
+  MoCoCNMoreRows: section => {
+    if (!section.mococnNumRows) {
+      return {type: "empty"};
+    }
+
+    return {
+      id: "mococn_section_menu_action_more_rows",
+      icon: "maximize",
+      action: ac.SetPref(section.mococnNumRows.pref, section.mococnNumRows.val + 1),
+      disabled: section.mococnNumRows.val >= section.mococnNumRows.max,
+      userEvent: "MOCOCN_MORE_ROWS",
+    };
+  },
   PrivacyNotice: section => ({
     id: "section_menu_action_privacy_notice",
     icon: "info",
@@ -77,4 +113,5 @@ export const SectionMenuOptions = {
     userEvent: "MENU_PRIVACY_NOTICE",
   }),
   CheckCollapsed: section => (section.collapsed ? SectionMenuOptions.ExpandSection(section) : SectionMenuOptions.CollapseSection(section)),
+  MoCoCNCheckCollapsed: section => (section.collapsed ? SectionMenuOptions.MoCoCNExpandSection(section) : SectionMenuOptions.MoCoCNCollapseSection(section)),
 };
