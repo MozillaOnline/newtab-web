@@ -6,11 +6,13 @@ import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
 import {
   MIN_CORNER_FAVICON_SIZE,
   MIN_RICH_FAVICON_SIZE,
+  MOCOCN_TOP_SITES_CONTEXT_MENU_OPTIONS,
   TOP_SITES_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SPOC_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SOURCE,
 } from "./TopSitesConstants";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
 import { ImpressionStats } from "../DiscoveryStreamImpressionStats/ImpressionStats";
 import React from "react";
@@ -403,6 +405,10 @@ export class TopSite extends React.PureComponent {
   render() {
     const { props } = this;
     const { link } = props;
+    const contextMenuOptions =
+      IS_MOCOCN_NEWTAB
+        ? MOCOCN_TOP_SITES_CONTEXT_MENU_OPTIONS
+        : TOP_SITES_CONTEXT_MENU_OPTIONS;
     const isContextMenuOpen = props.activeIndex === props.index;
     const title = link.label || link.hostname;
     const menuOptions =
@@ -433,7 +439,7 @@ export class TopSite extends React.PureComponent {
               options={
                 link.searchTopSite
                   ? TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS
-                  : menuOptions
+                  : contextMenuOptions
               }
               site={link}
               shouldSendImpressionStats={link.type === SPOC_TYPE}
