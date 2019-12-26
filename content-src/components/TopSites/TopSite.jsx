@@ -6,12 +6,14 @@ import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
 import {
   MIN_RICH_FAVICON_SIZE,
   MIN_SMALL_FAVICON_SIZE,
+  MOCOCN_MIN_SMALL_FAVICON_SIZE,
   TOP_SITES_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SPOC_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SPONSORED_POSITION_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SOURCE,
 } from "./TopSitesConstants";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
 import { ImpressionStats } from "../DiscoveryStreamImpressionStats/ImpressionStats";
 import React from "react";
@@ -180,6 +182,7 @@ export class TopSiteLink extends React.PureComponent {
     const { defaultStyle, link } = this.props;
 
     const { tippyTopIcon, faviconSize } = link;
+    let iconWrapperClass = "icon-wrapper";
     let imageClassName;
     let imageStyle;
     let showSmallFavicon = false;
@@ -191,6 +194,7 @@ export class TopSiteLink extends React.PureComponent {
     if (defaultStyle) {
       // force no styles (letter fallback) even if the link has imagery
       selectedColor = this.generateColor();
+      iconWrapperClass = `${iconWrapperClass} letter-fallback`;
     } else if (link.searchTopSite) {
       imageClassName = "top-site-icon rich-icon";
       imageStyle = {
@@ -205,6 +209,7 @@ export class TopSiteLink extends React.PureComponent {
       const spocImgURL =
         link.type === SPOC_TYPE ? link.customScreenshotURL : "";
 
+      iconWrapperClass = "";
       imageClassName = "top-site-icon rich-icon";
       imageStyle = {
         backgroundColor: link.backgroundColor,
@@ -219,12 +224,15 @@ export class TopSiteLink extends React.PureComponent {
         backgroundColor: link.backgroundColor,
         backgroundImage: `url(${tippyTopIcon || link.favicon})`,
       };
-    } else if (faviconSize >= MIN_SMALL_FAVICON_SIZE) {
+    } else if (faviconSize >= (
+      IS_MOCOCN_NEWTAB ? MOCOCN_MIN_SMALL_FAVICON_SIZE : MIN_SMALL_FAVICON_SIZE
+    )) {
       showSmallFavicon = true;
       smallFaviconStyle = { backgroundImage: `url(${link.favicon})` };
     } else {
       selectedColor = this.generateColor();
       imageClassName = "";
+      iconWrapperClass = `${iconWrapperClass} letter-fallback`;
     }
 
     return {
@@ -232,6 +240,7 @@ export class TopSiteLink extends React.PureComponent {
       smallFaviconStyle,
       imageStyle,
       imageClassName,
+      iconWrapperClass,
       selectedColor,
     };
   }
@@ -256,6 +265,7 @@ export class TopSiteLink extends React.PureComponent {
       smallFaviconStyle,
       imageStyle,
       imageClassName,
+      iconWrapperClass,
       selectedColor,
     } = this.calculateStyle();
 
@@ -292,11 +302,7 @@ export class TopSiteLink extends React.PureComponent {
           >
             <div className="tile" aria-hidden={true}>
               <div
-                className={
-                  selectedColor
-                    ? "icon-wrapper letter-fallback"
-                    : "icon-wrapper"
-                }
+                className={iconWrapperClass}
                 data-fallback={letterFallback}
                 style={selectedColor ? { backgroundColor: selectedColor } : {}}
               >
@@ -683,6 +689,9 @@ export class TopSiteList extends React.PureComponent {
     // Make a copy of the sites to truncate or extend to desired length
     let topSites = this.props.TopSites.rows.slice();
     topSites.length = this.props.TopSitesRows * TOP_SITES_MAX_SITES_PER_ROW;
+    if (this.props.mococnWideLayout) {
+      topSites.length /= 2;
+    }
     return topSites;
   }
 
@@ -760,7 +769,7 @@ export class TopSiteList extends React.PureComponent {
 
     // On narrow viewports, we only show 6 sites per row. We'll mark the rest as
     // .hide-for-narrow to hide in CSS via @media query.
-    const maxNarrowVisibleIndex = props.TopSitesRows * 6;
+    const maxNarrowVisibleIndex = props.TopSitesRows * (props.mococnWideLayout ? 3 : 6);
 
     for (let i = 0, l = topSites.length; i < l; i++) {
       const link =
@@ -774,6 +783,11 @@ export class TopSiteList extends React.PureComponent {
       };
       if (i >= maxNarrowVisibleIndex) {
         slotProps.className = "hide-for-narrow";
+      }
+      if (props.mococnWideLayout) {
+        slotProps.className = slotProps.className
+          ? `${slotProps.className} mococn-wide`
+          : "mococn-wide";
       }
       topSitesUI.push(
         !link ? (
