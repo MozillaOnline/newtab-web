@@ -374,9 +374,13 @@ export class _Sections extends React.PureComponent {
 }
 
 export const Sections = connect(state => {
+  let prefs = state.Prefs;
   let sections = state.Sections; // Do we need a `.slice(0)` or similar here?
 
   if (IS_MOCOCN_NEWTAB) {
+    // Keep topsites on top
+    prefs.values.sectionOrder = "topsites,topstories";
+
     sections = sections.map(section => {
       switch (section.id) {
         case "highlights":
@@ -388,11 +392,16 @@ export const Sections = connect(state => {
           section.compactCards = true;
           // Alternative card context menu layout
           section.contextMenuOptions = ["MoCoCNBlockUrl", "Separator", "OpenInNewWindow", "OpenInPrivateWindow"];
+          // Remove the learn more link for topstories
+          section.learnMore = {link: {href: "", message: "\u200b"}};
+          // Remove the privacy notice in section menu
+          section.privacyNoticeURL = "";
           // Show context instead of hostname since they share the same value
           section.rows = section.rows.map(row => {
             row.hostname = row.context;
             return row;
           });
+          section.title = {id: "mococn-section-header-topstories"};
           break;
       }
 
@@ -402,6 +411,6 @@ export const Sections = connect(state => {
 
   return {
     Sections: sections,
-    Prefs: state.Prefs,
+    Prefs: prefs,
   };
 })(_Sections);
