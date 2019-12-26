@@ -385,9 +385,11 @@ describe("<LinkMenu>", () => {
       "OpenInNewWindow",
       "OpenInPrivateWindow",
       "BlockUrl",
+      "MoCoCNBlockUrl",
       "DeleteUrl",
       "PinTopSite",
       "UnpinTopSite",
+      "MoCoCNUnpinTopSite",
       "SaveToPocket",
       "DeleteFromPocket",
       "ArchiveFromPocket",
@@ -416,6 +418,11 @@ describe("<LinkMenu>", () => {
           isSponsoredTopSite: undefined,
         },
       ],
+      "mococn-menu-dismiss": {
+        url: FAKE_SITE.url,
+        pocket_id: FAKE_SITE.pocket_id,
+        isSponsoredTopSite: undefined,
+      },
       menu_action_webext_dismiss: {
         source: "TOP_SITES",
         url: FAKE_SITE.url,
@@ -428,6 +435,7 @@ describe("<LinkMenu>", () => {
       },
       "newtab-menu-pin": { site: FAKE_SITE, index: FAKE_INDEX },
       "newtab-menu-unpin": { site: { url: FAKE_SITE.url } },
+      "mococn-menu-unpin": { site: { url: FAKE_SITE.url } },
       "newtab-menu-save-to-pocket": {
         site: { url: FAKE_SITE.url, title: FAKE_SITE.title },
       },
@@ -457,6 +465,11 @@ describe("<LinkMenu>", () => {
     options
       .filter(o => o.type !== "separator")
       .forEach(option => {
+        // Temporary hack to avoid updating the original tweak
+        if (option.id === "newtab-menu-dismiss" && option.string_id === "mococn-menu-dismiss") {
+          option.id = "mococn-menu-dismiss";
+        }
+
         it(`should fire a ${option.action.type} action for ${option.id} with the expected data`, () => {
           option.onClick(FAKE_EVENT);
 
