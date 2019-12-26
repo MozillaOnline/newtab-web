@@ -45,6 +45,11 @@ export const SectionMenuOptions = {
     }),
     userEvent: "MENU_COLLAPSE",
   }),
+  MoCoCNCollapseSection: section => {
+    let option = SectionMenuOptions.CollapseSection(section);
+    option.icon = "arrowhead-up";
+    return option;
+  },
   ExpandSection: section => ({
     id: "newtab-section-menu-expand-section",
     icon: "maximize",
@@ -54,6 +59,11 @@ export const SectionMenuOptions = {
     }),
     userEvent: "MENU_EXPAND",
   }),
+  MoCoCNExpandSection: section => {
+    let option = SectionMenuOptions.ExpandSection(section);
+    option.icon = "arrowhead-down";
+    return option;
+  },
   ManageSection: section => ({
     id: "newtab-section-menu-manage-section",
     icon: "settings",
@@ -77,6 +87,32 @@ export const SectionMenuOptions = {
     action: { type: at.TOP_SITES_OPEN_SEARCH_SHORTCUTS_MODAL },
     userEvent: "MENU_ADD_SEARCH",
   }),
+  MoCoCNLessRows: section => {
+    if (!section.mococnNumRows) {
+      return {type: "empty"};
+    }
+
+    return {
+      id: "mococn-section-menu-less-rows",
+      icon: "minimize",
+      action: ac.SetPref(section.mococnNumRows.pref, section.mococnNumRows.val - 1),
+      disabled: section.mococnNumRows.val <= section.mococnNumRows.min,
+      userEvent: "MOCOCN_LESS_ROWS",
+    };
+  },
+  MoCoCNMoreRows: section => {
+    if (!section.mococnNumRows) {
+      return {type: "empty"};
+    }
+
+    return {
+      id: "mococn-section-menu-more-rows",
+      icon: "maximize",
+      action: ac.SetPref(section.mococnNumRows.pref, section.mococnNumRows.val + 1),
+      disabled: section.mococnNumRows.val >= section.mococnNumRows.max,
+      userEvent: "MOCOCN_MORE_ROWS",
+    };
+  },
   PrivacyNotice: section => ({
     id: "newtab-section-menu-privacy-notice",
     icon: "info",
@@ -90,4 +126,8 @@ export const SectionMenuOptions = {
     section.collapsed
       ? SectionMenuOptions.ExpandSection(section)
       : SectionMenuOptions.CollapseSection(section),
+  MoCoCNCheckCollapsed: section => 
+    section.collapsed
+      ? SectionMenuOptions.MoCoCNExpandSection(section)
+      : SectionMenuOptions.MoCoCNCollapseSection(section),
 };

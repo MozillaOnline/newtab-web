@@ -6,3 +6,7 @@
 
 mococn-menu-dismiss = Dismiss
 mococn-menu-unpin = Delete
+
+mococn-section-menu-less-rows = Less rows
+mococn-section-menu-more-rows = More rows
+
