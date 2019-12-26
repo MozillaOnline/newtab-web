@@ -1,0 +1,37 @@
+$mococn-ds-top-sites-width: $grid-unit * 2 + 24px;
+$mococn-ds-top-sites-height: round($mococn-ds-top-sites-width * 0.618);
+
+$mococn-ds-top-sites-width-nte: 240px - $base-gutter;
+$mococn-ds-top-sites-height-nte: round($mococn-ds-top-sites-width-nte * 0.618);
+
+.ds-top-sites {
+  .top-sites {
+    .top-site-outer.mococn-wide {
+      .tile {
+        height: $mococn-ds-top-sites-height;
+        width: $mococn-ds-top-sites-width;
+      }
+
+      .title {
+        width: $mococn-ds-top-sites-width;
+      }
+    }
+  }
+}
+
+.outer-wrapper.newtab-experience {
+  .ds-top-sites {
+    .top-sites {
+      .top-site-outer.mococn-wide {
+        .tile {
+          height: $mococn-ds-top-sites-height-nte;
+          width: $mococn-ds-top-sites-width-nte;
+        }
+
+        .title {
+          width: $mococn-ds-top-sites-width-nte;
+        }
+      }
+    }
+  }
+}
