@@ -4,6 +4,7 @@ import {FormattedMessage, injectIntl} from "react-intl";
 import {CollapsibleSection} from "content-src/components/CollapsibleSection/CollapsibleSection";
 import {ComponentPerfTimer} from "content-src/components/ComponentPerfTimer/ComponentPerfTimer";
 import {connect} from "react-redux";
+import {IS_MOCOCN_NEWTAB} from "content-src/lib/constants";
 import {MoreRecommendations} from "content-src/components/MoreRecommendations/MoreRecommendations";
 import {PocketLoggedInCta} from "content-src/components/PocketLoggedInCta/PocketLoggedInCta";
 import React from "react";
@@ -315,4 +316,24 @@ export class _Sections extends React.PureComponent {
   }
 }
 
-export const Sections = connect(state => ({Sections: state.Sections, Prefs: state.Prefs}))(_Sections);
+export const Sections = connect(state => {
+  let sections = state.Sections; // Do we need a `.slice(0)` or similar here?
+
+  if (IS_MOCOCN_NEWTAB) {
+    sections = sections.map(section => {
+      switch (section.id) {
+        case "highlights":
+          // Always hide the highlights section
+          section.enabled = false;
+          break;
+      }
+
+      return section;
+    });
+  }
+
+  return {
+    Sections: sections,
+    Prefs: state.Prefs,
+  };
+})(_Sections);
