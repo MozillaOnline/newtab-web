@@ -383,6 +383,17 @@ export const Sections = connect(state => {
           // Always hide the highlights section
           section.enabled = false;
           break;
+        case "topstories":
+          // Use compact style for topstories
+          section.compactCards = true;
+          // Alternative card context menu layout
+          section.contextMenuOptions = ["MoCoCNBlockUrl", "Separator", "OpenInNewWindow", "OpenInPrivateWindow"];
+          // Show context instead of hostname since they share the same value
+          section.rows = section.rows.map(row => {
+            row.hostname = row.context;
+            return row;
+          });
+          break;
       }
 
       return section;
