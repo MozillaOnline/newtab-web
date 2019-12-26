@@ -1,6 +1,20 @@
+$mococn-top-sites-width: $card-width;
+$mococn-top-sites-height: round($card-width * 0.618);
+
 .top-site-outer {
   .icon.icon-pin-small {
     display: none;
+  }
+
+  &.mococn-wide {
+    .tile {
+      height: $mococn-top-sites-height;
+      width: $mococn-top-sites-width;
+    }
+
+    .title {
+      width: $mococn-top-sites-width;
+    }
   }
 }
 
@@ -10,5 +24,13 @@
     .edit-button {
       background-image: url('#{$b4fx82-image-path}glyph-edit-16.svg');
     }
+  }
+}
+.topsite-form {
+  $form-width: 300px;
+  $form-spacing: 32px;
+
+  .form-input-container.mococn-wide {
+    max-width: $form-width + 3 * $form-spacing + $mococn-top-sites-width;
   }
 }
