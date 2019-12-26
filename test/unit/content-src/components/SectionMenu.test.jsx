@@ -16,6 +16,11 @@ const DEFAULT_PROPS = {
   dispatch: () => {},
 };
 
+const MOCOCN_PROPS = {
+  extraOptions: ["MoCoCNCheckCollapsed", "MoCoCNLessRows", "MoCoCNMoreRows"],
+  mococnNumRows: { max: 3, min: 1, pref: "rowPref", val: 2 },
+};
+
 describe("<SectionMenu>", () => {
   let wrapper;
   beforeEach(() => {
@@ -104,6 +109,20 @@ describe("<SectionMenu>", () => {
       options.find(o => o.id && o.id === "newtab-section-menu-expand-section")
     );
   });
+  it("should show MoCoCNCollapse option for an expanded section if MoCoCNCheckCollapsed in options list", () => {
+    wrapper = shallow(<SectionMenu {...DEFAULT_PROPS} {...MOCOCN_PROPS} collapsed={false} />);
+    const { options } = wrapper.find(ContextMenu).props();
+    assert.isDefined(
+      options.find(o => o.id && o.id === "newtab-section-menu-collapse-section" && o.icon === "arrowhead-up")
+    );
+  });
+  it("should show MoCoCNExpand option for a collapsed section if MoCoCNCheckCollapsed in options list", () => {
+    wrapper = shallow(<SectionMenu {...DEFAULT_PROPS} {...MOCOCN_PROPS} collapsed={true} />);
+    const { options } = wrapper.find(ContextMenu).props();
+    assert.isDefined(
+      options.find(o => o.id && o.id === "newtab-section-menu-expand-section" && o.icon === "arrowhead-down")
+    );
+  });
   it("should show Add Top Site option", () => {
     wrapper = shallow(
       <SectionMenu {...DEFAULT_PROPS} extraOptions={["AddTopSite"]} />
@@ -182,12 +201,14 @@ describe("<SectionMenu>", () => {
       },
       "newtab-section-menu-manage-section": undefined,
       "newtab-section-menu-add-topsite": { index: -1 },
+      "mococn-section-menu-less-rows": { name: "rowPref", value: 1 },
+      "mococn-section-menu-more-rows": { name: "rowPref", value: 3 },
       "newtab-section-menu-privacy-notice": {
         url: DEFAULT_PROPS.privacyNoticeURL,
       },
     };
     const { options } = shallow(
-      <SectionMenu {...DEFAULT_PROPS} dispatch={dispatch} />
+      <SectionMenu {...DEFAULT_PROPS} {...MOCOCN_PROPS} dispatch={dispatch} />
     )
       .find(ContextMenu)
       .props();

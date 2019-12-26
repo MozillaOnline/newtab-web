@@ -115,6 +115,8 @@ export const UserEventAction = Joi.object().keys({
         "MENU_EXPAND",
         "MENU_MANAGE",
         "MENU_ADD_TOPSITE",
+        "MOCOCN_LESS_ROWS",
+        "MOCOCN_MORE_ROWS",
         "MENU_PRIVACY_NOTICE",
         "DELETE_FROM_POCKET",
         "ARCHIVE_FROM_POCKET",
