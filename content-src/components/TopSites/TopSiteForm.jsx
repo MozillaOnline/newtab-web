@@ -246,7 +246,7 @@ export class TopSiteForm extends React.PureComponent {
     const editTopsitesHeaderL10nId = "newtab-topsites-edit-shortcut-header";
     return (
       <form className="topsite-form" onSubmit={onSubmit}>
-        <div className="form-input-container">
+        <div className={`form-input-container${this.props.mococnWideLayout ? " mococn-wide" : ""}`}>
           <h3
             className="section-title grey-title"
             data-l10n-id={
@@ -283,6 +283,7 @@ export class TopSiteForm extends React.PureComponent {
             </div>
             <TopSiteLink
               link={previewLink}
+              className={this.props.mococnWideLayout ? "mococn-wide" : ""}
               defaultStyle={requestFailed}
               title={this.state.label}
             />
