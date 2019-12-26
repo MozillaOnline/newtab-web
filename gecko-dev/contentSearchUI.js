@@ -237,6 +237,12 @@ this.ContentSearchUIController = (function() {
         value: this.input.value,
         engineName: this.selectedEngineName,
       };
+
+      // Fx 80 or earlier expects string, see https://bugzil.la/1531609,1657572
+      if (!CSS.supports("overflow: clip")) {
+        entry = this.input.value;
+      }
+
       this._sendMsg("AddFormHistoryEntry", entry);
       return entry;
     },
@@ -683,9 +689,14 @@ this.ContentSearchUIController = (function() {
     },
 
     _updateDefaultEngineIcon() {
+      let eng = this._engines.find(
+        engine => engine.name === this.defaultEngine.name
+      );
       // We only show the engine's own icon for app provided engines, otherwise show
       // a default. xref https://bugzilla.mozilla.org/show_bug.cgi?id=1449338#c19
-      let icon = this.defaultEngine.isAppProvided
+      // App provided engines have isAppProvided (since Fx 78) or an
+      // identifier (before Fx 78)
+      let icon = this.defaultEngine.isAppProvided || (eng && eng.identifier)
         ? this.defaultEngine.icon
         : "chrome://global/skin/icons/search-glass.svg";
 
