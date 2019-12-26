@@ -9,6 +9,7 @@ import { ConfirmDialog } from "content-src/components/ConfirmDialog/ConfirmDialo
 import { connect } from "react-redux";
 import { DiscoveryStreamBase } from "content-src/components/DiscoveryStreamBase/DiscoveryStreamBase";
 import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
 import { Sections } from "content-src/components/Sections/Sections";
@@ -98,6 +99,10 @@ export class BaseContent extends React.PureComponent {
     this.openPreferences = this.openPreferences.bind(this);
     this.onWindowScroll = debounce(this.onWindowScroll.bind(this), 5);
     this.state = { fixedSearch: false };
+
+    this.state.mococnShowLogo = false;
+    this.onIntersectionChange = this.onIntersectionChange.bind(this);
+    this.onTargetMount = this.onTargetMount.bind(this);
   }
 
   componentDidMount() {
@@ -106,6 +111,32 @@ export class BaseContent extends React.PureComponent {
 
   componentWillUnmount() {
     global.removeEventListener("scroll", this.onWindowScroll);
+  }
+
+  onIntersectionChange(entries, observer) {
+    const [entry] = entries;
+    const mococnShowLogo = entry.intersectionRatio === 1.0;
+    this.setState({mococnShowLogo});
+  }
+
+  // Target `.search-inner-wrapper` since `padding-top` of `.search-wrapper` may change
+  onTargetMount(target) {
+    if (!IS_MOCOCN_NEWTAB) {
+      return;
+    }
+
+    if (!this.intersectionObserver) {
+      this.intersectionObserver = new global.IntersectionObserver(this.onIntersectionChange, {
+        rootMargin: "-211px 0px 0px",
+        threshold: 1.0,
+      });
+    }
+
+    if (target) {
+      this.intersectionObserver.observe(target);
+    } else {
+      this.intersectionObserver.disconnect();
+    }
   }
 
   onWindowScroll() {
@@ -168,7 +199,8 @@ export class BaseContent extends React.PureComponent {
               <div className="non-collapsible-section">
                 <ErrorBoundary>
                   <Search
-                    showLogo={noSectionsEnabled}
+                    showLogo={noSectionsEnabled || this.state.mococnShowLogo}
+                    onMoCoCNTargetMount={this.onTargetMount}
                     handoffEnabled={searchHandoffEnabled}
                     {...props.Search}
                   />
