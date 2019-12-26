@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+export const IS_MOCOCN_NEWTAB =
+  global.document && global.document.location.origin === "https://newtab.firefoxchina.cn";
 export const IS_NEWTAB =
   global.document && global.document.documentURI === "about:newtab";
 export const NEWTAB_DARK_THEME = {
