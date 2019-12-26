@@ -1,3 +1,9 @@
+.top-site-outer {
+  .icon.icon-pin-small {
+    display: none;
+  }
+}
+
 // `glyph-edit-16.svg` removed since Fx 101 in https://bugzil.la/1765459
 // `edit.svg` available since Fx 87 in https://bugzil.la/1524836
 // Check for `ruby-position: alternate` here, which was introduced in Fx 88
