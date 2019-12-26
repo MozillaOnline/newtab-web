@@ -4,6 +4,7 @@
 
 import { actionCreators as ac } from "common/Actions.jsm";
 import { ContextMenu } from "content-src/components/ContextMenu/ContextMenu";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import React from "react";
 import { SectionMenuOptions } from "content-src/lib/section-menu-options";
 
@@ -15,6 +16,12 @@ const DEFAULT_SECTION_MENU_OPTIONS = [
   "CheckCollapsed",
   "Separator",
   "ManageSection",
+];
+const MOCOCN_SECTION_MENU_OPTIONS = [
+  "MoCoCNLessRows",
+  "MoCoCNMoreRows",
+  "Separator",
+  "MoCoCNCheckCollapsed"
 ];
 const WEBEXT_SECTION_MENU_OPTIONS = [
   "MoveUp",
@@ -42,15 +49,19 @@ export class _SectionMenu extends React.PureComponent {
   getOptions() {
     const { props } = this;
 
+    // Only keep "CheckCollapsed" in our version
+    const contextMenuOptions = IS_MOCOCN_NEWTAB
+      ? MOCOCN_SECTION_MENU_OPTIONS
+      : DEFAULT_SECTION_MENU_OPTIONS;
     const propOptions = props.isWebExtension
       ? [...WEBEXT_SECTION_MENU_OPTIONS]
-      : [...DEFAULT_SECTION_MENU_OPTIONS];
+      : [...contextMenuOptions];
     // Remove the move related options if the section is fixed
     if (props.isFixed) {
       propOptions.splice(propOptions.indexOf("MoveUp"), 3);
     }
     // Prepend custom options and a separator
-    if (props.extraOptions) {
+    if (props.extraOptions && props.extraOptions.length) {
       propOptions.splice(0, 0, ...props.extraOptions, "Separator");
     }
     // Insert privacy notice before the last option ("ManageSection")
