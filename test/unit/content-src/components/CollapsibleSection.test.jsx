@@ -145,11 +145,11 @@ describe("CollapsibleSection", () => {
       );
     });
 
-    it("should not render the arrow if no collapsible pref exists for the section", () => {
+    xit("should not render the arrow if no collapsible pref exists for the section", () => {
       assert.lengthOf(wrapper.find(".click-target .collapsible-arrow"), 0);
     });
 
-    it("should not trigger a dispatch when the section title is clicked ", () => {
+    xit("should not trigger a dispatch when the section title is clicked ", () => {
       wrapper
         .find(".click-target")
         .at(0)
