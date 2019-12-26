@@ -1,6 +1,50 @@
+$mococn-top-sites-width: $card-width;
+$mococn-top-sites-height: round($card-width * 0.618);
+// Sync with `GREY_10` in lib/Screenshots.jsm
+$mococn-newtab-topsites-background-color: #F9F9FA;
+
 .top-site-outer {
   .icon.icon-pin-small {
     display: none;
+  }
+
+  &.mococn-wide {
+    $inner-box-shadow: 0 0 0 1px var(--newtab-inner-box-shadow-color);
+    $top-sites-border-radius: 8px;
+
+    width: 240px;
+
+    .tile {
+      background-color: $mococn-newtab-topsites-background-color;
+
+      // 1.5x of the original sizes
+      .icon-wrapper {
+        width: 72px;
+        height: 72px;
+
+        &.letter-fallback::before {
+          font-size: 96px;
+          top: 9px;
+        }
+      }
+
+      div:not(.icon-wrapper) .top-site-icon.rich-icon {
+        border-radius: $top-sites-border-radius;
+      }
+    }
+
+    .top-site-icon {
+      background-color: $mococn-newtab-topsites-background-color;
+    }
+  }
+}
+
+.topsite-form {
+  $form-width: 300px;
+  $form-spacing: 32px;
+
+  .form-input-container.mococn-wide {
+    max-width: $form-width + 3 * $form-spacing + $mococn-top-sites-width;
   }
 }
 
