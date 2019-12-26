@@ -76,6 +76,11 @@ export const LinkMenuOptions = {
     }),
     userEvent: "BLOCK",
   }),
+  MoCoCNBlockUrl: (site, index, eventSource) => {
+    let option = LinkMenuOptions.BlockUrl(site, index, eventSource);
+    option.string_id = "mococn_menu_action_dismiss";
+    return option;
+  },
 
   // This is an option for web extentions which will result in remove items from
   // memory and notify the web extenion, rather than using the built-in block list.
@@ -173,6 +178,12 @@ export const LinkMenuOptions = {
     }),
     userEvent: "UNPIN",
   }),
+  MoCoCNUnpinTopSite: site => {
+    let option = LinkMenuOptions.UnpinTopSite(site);
+    option.id = "mococn_menu_action_unpin";
+    option.icon = "delete";
+    return option;
+  },
   SaveToPocket: (site, index, eventSource) => ({
     id: "menu_action_save_to_pocket",
     icon: "pocket-save",
