@@ -118,7 +118,15 @@ export class BaseContent extends React.PureComponent {
   }
 
   openPreferences() {
-    this.props.dispatch(ac.OnlyToMain({ type: at.SETTINGS_OPEN }));
+    // Open option of current extension instead of about:preferences
+    if (IS_MOCOCN_NEWTAB) {
+      this.props.dispatch(ac.OnlyToMain({
+        type: at.OPEN_WEBEXT_SETTINGS,
+        data: "china-newtab@mozillaonline.com",
+      }));
+    } else {
+      this.props.dispatch(ac.OnlyToMain({ type: at.SETTINGS_OPEN }));
+    }
     this.props.dispatch(ac.UserEvent({ event: "OPEN_NEWTAB_PREFS" }));
   }
 
@@ -180,7 +188,9 @@ export class BaseContent extends React.PureComponent {
               ) : (
                 <Sections />
               )}
-              <PrefsButton onClick={this.openPreferences} />
+              {!IS_MOCOCN_NEWTAB &&
+                <PrefsButton onClick={this.openPreferences} />
+              }
             </div>
             <ConfirmDialog />
           </main>
