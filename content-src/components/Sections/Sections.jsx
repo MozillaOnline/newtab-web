@@ -155,6 +155,7 @@ export class Section extends React.PureComponent {
     const {numRows} = this;
     const maxCards = maxCardsPerRow * numRows;
     const maxCardsOnNarrow = CARDS_PER_ROW_DEFAULT * numRows;
+    const mococnNumRows = {max: 4, min: 2, pref: this.props.rowsPref, val: numRows};
 
     const {pocketCta, isUserLoggedIn} = Pocket || {};
     const {useCta} = pocketCta || {};
@@ -230,6 +231,7 @@ export class Section extends React.PureComponent {
         isFirst={isFirst}
         isLast={isLast}
         learnMore={learnMore}
+        mococnNumRows={mococnNumRows}
         dispatch={this.props.dispatch}
         isWebExtension={this.props.isWebExtension}>
 

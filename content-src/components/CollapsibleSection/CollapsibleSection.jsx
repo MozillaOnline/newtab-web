@@ -139,6 +139,7 @@ export class _CollapsibleSection extends React.PureComponent {
     const mococnClassName = isCollapsible ? "click-target" : "";
     const {enableAnimation, isAnimating, maxHeight, menuButtonHover, showContextMenu} = this.state;
     const {id, eventSource, collapsed, learnMore, title, extraMenuOptions, showPrefName, privacyNoticeURL, dispatch, isFixed, isFirst, isLast, isWebExtension} = this.props;
+    const {mococnNumRows} = this.props;
     const active = menuButtonHover || showContextMenu;
     let bodyStyle;
     if (isAnimating && !collapsed) {
@@ -194,6 +195,7 @@ export class _CollapsibleSection extends React.PureComponent {
                 isFixed={isFixed}
                 isFirst={isFirst}
                 isLast={isLast}
+                mococnNumRows={mococnNumRows}
                 dispatch={dispatch}
                 isWebExtension={isWebExtension} />
             }
