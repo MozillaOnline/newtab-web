@@ -6,7 +6,7 @@ import React from "react";
 import {SectionMenuOptions} from "content-src/lib/section-menu-options";
 
 const DEFAULT_SECTION_MENU_OPTIONS = ["MoveUp", "MoveDown", "Separator", "RemoveSection", "CheckCollapsed", "Separator", "ManageSection"];
-const MOCOCN_SECTION_MENU_OPTIONS = ["MoCoCNLessRows", "MoCoCNMoreRows", "Separator", "MoCoCNCheckCollapsed"];
+const MOCOCN_SECTION_MENU_OPTIONS = ["MoveUp", "MoveDown", "Separator", "MoCoCNLessRows", "MoCoCNMoreRows", "Separator", "MoCoCNCheckCollapsed"];
 const WEBEXT_SECTION_MENU_OPTIONS = ["MoveUp", "MoveDown", "Separator", "CheckCollapsed", "Separator", "ManageWebExtension"];
 
 export class _SectionMenu extends React.PureComponent {
@@ -17,7 +17,7 @@ export class _SectionMenu extends React.PureComponent {
     const contextMenuOptions = IS_MOCOCN_NEWTAB ? MOCOCN_SECTION_MENU_OPTIONS : DEFAULT_SECTION_MENU_OPTIONS;
     const propOptions = props.isWebExtension ? [...WEBEXT_SECTION_MENU_OPTIONS] : [...contextMenuOptions];
     // Remove the move related options if the section is fixed
-    if (props.isFixed) {
+    if (props.isFixed || IS_MOCOCN_NEWTAB) {
       propOptions.splice(propOptions.indexOf("MoveUp"), 3);
     }
     // Prepend custom options and a separator
