@@ -13,6 +13,7 @@ import { DSTextPromo } from "content-src/components/DiscoveryStreamComponents/DS
 import { Hero } from "content-src/components/DiscoveryStreamComponents/Hero/Hero";
 import { Highlights } from "content-src/components/DiscoveryStreamComponents/Highlights/Highlights";
 import { HorizontalRule } from "content-src/components/DiscoveryStreamComponents/HorizontalRule/HorizontalRule";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { List } from "content-src/components/DiscoveryStreamComponents/List/List";
 import { Navigation } from "content-src/components/DiscoveryStreamComponents/Navigation/Navigation";
 import React from "react";
@@ -289,6 +290,13 @@ export class _DiscoveryStreamBase extends React.PureComponent {
 
     if (!topStories) {
       return null;
+    }
+
+    if (IS_MOCOCN_NEWTAB) {
+      // Make it harder to collapse this section
+      topStories.pref.collapsed = topStories.pref.collapsed || undefined;
+      // Remove the privacy notice in section menu
+      topStories.privacyNoticeURL = "";
     }
 
     // Extract TopSites to render before the rest and Message to use for header
