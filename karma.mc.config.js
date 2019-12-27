@@ -153,6 +153,12 @@ module.exports = function(config) {
               functions: 100,
               branches: 84,
             },
+            "content-src/components/DiscoveryStreamComponents/CardGrid/CardGrid.jsx": {
+              statements: 87.5,
+              lines: 87.5,
+              functions: 85.71,
+              branches: 61.9,
+            },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,
               lines: 90.48,
