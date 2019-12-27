@@ -9,6 +9,7 @@ import {
 } from "../DSCard/DSCard.jsx";
 import { DSEmptyState } from "../DSEmptyState/DSEmptyState.jsx";
 import { FluentOrText } from "../../FluentOrText/FluentOrText.jsx";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { actionCreators as ac } from "common/Actions.jsm";
 import React from "react";
 
@@ -79,6 +80,11 @@ export class CardGrid extends React.PureComponent {
 
     for (let index = 0; index < items; index++) {
       const rec = recs[index];
+
+      if (IS_MOCOCN_NEWTAB && rec && rec.context) {
+        rec.domain = rec.context;
+        rec.context = "";
+      }
       cards.push(
         !rec || rec.placeholder ? (
           <PlaceholderDSCard key={`dscard-${index}`} />
