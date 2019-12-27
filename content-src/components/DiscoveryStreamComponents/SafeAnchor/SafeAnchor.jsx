@@ -6,6 +6,7 @@ import {
   actionCreators as ac,
   actionTypes as at,
 } from "common/Actions.sys.mjs";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import React from "react";
 
 export class SafeAnchor extends React.PureComponent {
@@ -24,7 +25,11 @@ export class SafeAnchor extends React.PureComponent {
           type: at.OPEN_LINK,
           data: {
             event: { altKey, button, ctrlKey, metaKey, shiftKey },
-            referrer: "https://getpocket.com/recommendations",
+            referrer: (
+              IS_MOCOCN_NEWTAB
+                ? ""
+                : "https://getpocket.com/recommendations"
+            ),
             // Use the anchor's url, which could have been cleaned up
             url: event.currentTarget.href,
           },
