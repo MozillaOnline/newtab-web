@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
 import { ContextMenuButton } from "content-src/components/ContextMenu/ContextMenuButton";
 import React from "react";
@@ -22,6 +23,12 @@ export class DSLinkMenu extends React.PureComponent {
       "BlockUrl",
       ...(this.props.showPrivacyInfo ? ["ShowPrivacyInfo"] : []),
     ];
+    const MOCOCN_TOP_STORIES_CONTEXT_MENU_OPTIONS = [
+      "MoCoCNBlockUrl",
+      "Separator",
+      "OpenInNewWindow",
+      "OpenInPrivateWindow"
+    ];
     const type = this.props.type || "DISCOVERY_STREAM";
     const title = this.props.title || this.props.source;
 
@@ -37,10 +44,18 @@ export class DSLinkMenu extends React.PureComponent {
             index={index}
             source={type.toUpperCase()}
             onShow={this.props.onMenuShow}
-            options={TOP_STORIES_CONTEXT_MENU_OPTIONS}
+            options={
+              IS_MOCOCN_NEWTAB
+                ? MOCOCN_TOP_STORIES_CONTEXT_MENU_OPTIONS
+                : TOP_STORIES_CONTEXT_MENU_OPTIONS
+            }
             shouldSendImpressionStats={true}
             site={{
-              referrer: "https://getpocket.com/recommendations",
+              referrer: (
+                IS_MOCOCN_NEWTAB
+                  ? ""
+                  : "https://getpocket.com/recommendations"
+              ),
               title: this.props.title,
               type: this.props.type,
               url: this.props.url,
