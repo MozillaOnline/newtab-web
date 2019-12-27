@@ -1,4 +1,5 @@
 import {FormattedMessage, injectIntl} from "react-intl";
+import {IS_MOCOCN_NEWTAB} from "content-src/lib/constants";
 import {LinkMenu} from "content-src/components/LinkMenu/LinkMenu";
 import React from "react";
 
@@ -43,6 +44,7 @@ export class _DSLinkMenu extends React.PureComponent {
     const {index, dispatch} = this.props;
     const isContextMenuOpen = this.state.showContextMenu && this.state.activeCard === index;
     const TOP_STORIES_CONTEXT_MENU_OPTIONS = ["CheckBookmarkOrArchive", "CheckSavedToPocket", "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl"];
+    const MOCOCN_TOP_STORIES_CONTEXT_MENU_OPTIONS = ["MoCoCNBlockUrl", "Separator", "OpenInNewWindow", "OpenInPrivateWindow"];
     const title = this.props.title || this.props.source;
     const type = this.props.type || "DISCOVERY_STREAM";
 
@@ -62,10 +64,10 @@ export class _DSLinkMenu extends React.PureComponent {
           source={type.toUpperCase()}
           onUpdate={this.onMenuUpdate}
           onShow={this.onMenuShow}
-          options={TOP_STORIES_CONTEXT_MENU_OPTIONS}
+          options={IS_MOCOCN_NEWTAB ? MOCOCN_TOP_STORIES_CONTEXT_MENU_OPTIONS : TOP_STORIES_CONTEXT_MENU_OPTIONS}
           shouldSendImpressionStats={true}
           site={{
-            referrer: "https://getpocket.com/recommendations",
+            referrer: (IS_MOCOCN_NEWTAB ? "" : "https://getpocket.com/recommendations"),
             title: this.props.title,
             type: this.props.type,
             url: this.props.url,
