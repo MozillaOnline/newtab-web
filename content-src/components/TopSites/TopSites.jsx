@@ -241,6 +241,12 @@ export const TopSites = connect((state, props) => {
     let pinnedOnlyRows = [];
     topSites.rows.forEach((site, index) => {
       if (site && site.isPinned && !site.searchTopSite) {
+        // Erroneous customScreenshotURL value from data migration
+        if (site.customScreenshotURL &&
+            site.customScreenshotURL === "https://offlintab.firefoxchina.cnundefined") {
+          delete site.customScreenshotURL;
+        }
+
         pinnedOnlyRows[index] = site;
       }
     });
