@@ -27,6 +27,9 @@ describe("ActivityStream", () => {
       "lib/TopStoriesFeed.jsm": { TopStoriesFeed: Fake },
       "lib/HighlightsFeed.jsm": { HighlightsFeed: Fake },
       "lib/ASRouterFeed.jsm": { ASRouterFeed: Fake },
+      "lib/RecommendationProviderSwitcher.jsm": {
+        RecommendationProviderSwitcher: Fake,
+      },
       "lib/DiscoveryStreamFeed.jsm": { DiscoveryStreamFeed: Fake },
     }));
     as = new ActivityStream();
@@ -151,6 +154,10 @@ describe("ActivityStream", () => {
       const feed = as.feeds.get("feeds.asrouterfeed")();
       assert.instanceOf(feed, Fake);
     });
+    it("should create a RecommendationProviderSwitcher feed", () => {
+      const feed = as.feeds.get("feeds.recommendationproviderswitcher")();
+      assert.instanceOf(feed, Fake);
+    });
     it("should create a DiscoveryStreamFeed feed", () => {
       const feed = as.feeds.get("feeds.discoverystreamfeed")();
       assert.instanceOf(feed, Fake);
@@ -204,7 +211,7 @@ describe("ActivityStream", () => {
       sandbox.stub(global.Services.prefs, "prefHasUserValue").returns(true);
       sandbox.stub(global.Services.prefs, "getStringPref").returns("US");
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "en-US");
 
       as._updateDynamicPrefs();
@@ -217,7 +224,7 @@ describe("ActivityStream", () => {
       sandbox.stub(global.Services.prefs, "prefHasUserValue").returns(true);
       sandbox.stub(global.Services.prefs, "getStringPref").returns("CA");
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "en-CA");
 
       as._updateDynamicPrefs();
@@ -230,35 +237,12 @@ describe("ActivityStream", () => {
       sandbox.stub(global.Services.prefs, "prefHasUserValue").returns(true);
       sandbox.stub(global.Services.prefs, "getStringPref").returns("DE");
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "de-DE");
 
       as._updateDynamicPrefs();
 
       assert.isTrue(
-        JSON.parse(PREFS_CONFIG.get("discoverystream.config").value).enabled
-      );
-    });
-    it("should be false with no geo and locale", () => {
-      sandbox.stub(global.Services.prefs, "prefHasUserValue").returns(true);
-      sandbox.stub(global.Services.prefs, "getStringPref").returns("NOGEO");
-
-      as._updateDynamicPrefs();
-
-      assert.isFalse(
-        JSON.parse(PREFS_CONFIG.get("discoverystream.config").value).enabled
-      );
-    });
-    it("should be false with weird geo and locale combination", () => {
-      sandbox.stub(global.Services.prefs, "prefHasUserValue").returns(true);
-      sandbox.stub(global.Services.prefs, "getStringPref").returns("DE");
-      sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
-        .get(() => "en-US");
-
-      as._updateDynamicPrefs();
-
-      assert.isFalse(
         JSON.parse(PREFS_CONFIG.get("discoverystream.config").value).enabled
       );
     });
@@ -281,7 +265,7 @@ describe("ActivityStream", () => {
       sandbox.stub(global.Services.prefs, "prefHasUserValue").returns(true);
       sandbox.stub(global.Services.prefs, "getStringPref").returns("US");
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "no-LOCALE");
 
       as._updateDynamicPrefs();
@@ -292,7 +276,7 @@ describe("ActivityStream", () => {
       sandbox.stub(global.Services.prefs, "prefHasUserValue").returns(true);
       sandbox.stub(global.Services.prefs, "getStringPref").returns("US");
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "en-US");
 
       as._updateDynamicPrefs();
@@ -308,7 +292,7 @@ describe("ActivityStream", () => {
         .onSecondCall()
         .returns("NOGEO");
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "en-US");
 
       as._updateDynamicPrefs();
@@ -343,7 +327,7 @@ describe("ActivityStream", () => {
     it("should set true with expected geo and locale", () => {
       sandbox.stub(global.Services.prefs, "getStringPref").returns("US");
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "en-US");
 
       as._updateDynamicPrefs();
@@ -355,7 +339,7 @@ describe("ActivityStream", () => {
       as._defaultPrefs.set("feeds.section.topstories", false);
       sandbox.stub(global.Services.prefs, "getStringPref").returns("US");
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "en-US");
 
       as._updateDynamicPrefs();

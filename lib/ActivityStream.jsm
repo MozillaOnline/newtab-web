@@ -38,6 +38,11 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
+  "RecommendationProviderSwitcher",
+  "resource://activity-stream/lib/RecommendationProviderSwitcher.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "PlacesFeed",
   "resource://activity-stream/lib/PlacesFeed.jsm"
 );
@@ -451,6 +456,7 @@ const PREFS_CONFIG = new Map([
         type: "remote-settings",
         bucket: "cfr-fxa",
         frequency: { custom: [{ period: "daily", cap: 1 }] },
+        updateCycleInMs: 3600000,
       }),
     },
   ],
@@ -468,22 +474,10 @@ const PREFS_CONFIG = new Map([
     {
       title: "Configuration for the new pocket new tab",
       getValue: ({ geo, locale }) => {
-        // PLEASE NOTE:
-        // hardcoded_layout in `lib/DiscoveryStreamFeed.jsm` only works for en-* and DE and requires refactoring for other locales
-        const dsEnablementMatrix = {
-          US: ["en-CA", "en-GB", "en-US"],
-          CA: ["en-CA", "en-GB", "en-US"],
-          DE: ["de", "de-DE", "de-AT", "de-CH"],
-        };
-
-        // Verify that the current geo & locale combination is enabled
-        const isEnabled =
-          !!dsEnablementMatrix[geo] && dsEnablementMatrix[geo].includes(locale);
-
         return JSON.stringify({
           api_key_pref: "extensions.pocket.oAuthConsumerKey",
           collapsible: true,
-          enabled: isEnabled,
+          enabled: true,
           show_spocs: showSpocs({ geo }),
           hardcoded_layout: true,
           personalized: true,
@@ -621,6 +615,12 @@ const FEEDS_DATA = [
     value: true,
   },
   {
+    name: "recommendationproviderswitcher",
+    factory: () => new RecommendationProviderSwitcher(),
+    title: "Handles switching between two types of personality providers",
+    value: true,
+  },
+  {
     name: "discoverystreamfeed",
     factory: () => new DiscoveryStreamFeed(),
     title: "Handles new pocket ui for the new tab page",
@@ -675,7 +675,9 @@ this.ActivityStream = class ActivityStream {
         this.feeds,
         ac.BroadcastToContent({
           type: at.INIT,
-          data: {},
+          data: {
+            locale: this.locale,
+          },
         }),
         { type: at.UNINIT }
       );
@@ -745,7 +747,7 @@ this.ActivityStream = class ActivityStream {
       this.geo = "";
     }
 
-    this.locale = Services.locale.appLocaleAsLangTag;
+    this.locale = Services.locale.appLocaleAsBCP47;
 
     // Update the pref config of those with dynamic values
     for (const pref of PREFS_CONFIG.keys()) {
