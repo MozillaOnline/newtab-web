@@ -47,14 +47,14 @@ describe("<Base>", () => {
     );
   });
 
-  it("should render an ASRouterAdmin if the devtools pref is true", () => {
+  it("should not render an ASRouterAdmin even if the devtools pref is true", () => {
     const wrapper = shallow(
       <Base
         {...DEFAULT_PROPS}
         Prefs={{ values: { "asrouter.devtoolsEnabled": true } }}
       />
     );
-    assert.lengthOf(wrapper.find(ASRouterAdmin), 1);
+    assert.lengthOf(wrapper.find(ASRouterAdmin), 0);
   });
 
   it("should not render an ASRouterAdmin if the devtools pref is false", () => {
