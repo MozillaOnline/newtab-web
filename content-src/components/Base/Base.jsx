@@ -3,7 +3,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
-import { ASRouterAdmin } from "content-src/components/ASRouterAdmin/ASRouterAdmin";
 import { ASRouterUISurface } from "../../asrouter/asrouter-content";
 import { ConfirmDialog } from "content-src/components/ConfirmDialog/ConfirmDialog";
 import { connect } from "react-redux";
@@ -68,7 +67,6 @@ export class _Base extends React.PureComponent {
   render() {
     const { props } = this;
     const { App } = props;
-    const isDevtoolsEnabled = props.Prefs.values["asrouter.devtoolsEnabled"];
 
     if (!App.initialized) {
       return null;
@@ -78,7 +76,6 @@ export class _Base extends React.PureComponent {
       <ErrorBoundary className="base-content-fallback">
         <React.Fragment>
           <BaseContent {...this.props} />
-          {isDevtoolsEnabled ? <ASRouterAdmin /> : null}
         </React.Fragment>
       </ErrorBoundary>
     );
