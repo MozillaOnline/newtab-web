@@ -15,7 +15,6 @@ import { connect } from "react-redux";
 import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { ModalOverlayWrapper } from "../../asrouter/components/ModalOverlay/ModalOverlay";
 import React from "react";
-import { SearchShortcutsForm } from "./SearchShortcutsForm";
 import { TOP_SITES_MAX_SITES_PER_ROW } from "common/Reducers.jsm";
 import { TopSiteForm } from "./TopSiteForm";
 import { TopSiteList } from "./TopSite";
@@ -69,9 +68,6 @@ export class _TopSites extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onEditFormClose = this.onEditFormClose.bind(this);
-    this.onSearchShortcutsFormClose = this.onSearchShortcutsFormClose.bind(
-      this
-    );
   }
 
   /**
@@ -136,16 +132,6 @@ export class _TopSites extends React.PureComponent {
     this.props.dispatch({ type: at.TOP_SITES_CANCEL_EDIT });
   }
 
-  onSearchShortcutsFormClose() {
-    this.props.dispatch(
-      ac.UserEvent({
-        source: TOP_SITES_SOURCE,
-        event: "SEARCH_EDIT_CLOSE",
-      })
-    );
-    this.props.dispatch({ type: at.TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL });
-  }
-
   render() {
     const { props } = this;
     const { editForm, showSearchShortcutsForm } = props.TopSites;
@@ -202,21 +188,6 @@ export class _TopSites extends React.PureComponent {
                     dispatch={this.props.dispatch}
                     mococnWideLayout={this.mococnWideLayout}
                     {...editForm}
-                  />
-                </ModalOverlayWrapper>
-              </div>
-            )}
-            {showSearchShortcutsForm && (
-              <div className="edit-search-shortcuts">
-                <ModalOverlayWrapper
-                  unstyled={true}
-                  onClose={this.onSearchShortcutsFormClose}
-                  innerClassName="modal"
-                >
-                  <SearchShortcutsForm
-                    TopSites={props.TopSites}
-                    onClose={this.onSearchShortcutsFormClose}
-                    dispatch={this.props.dispatch}
                   />
                 </ModalOverlayWrapper>
               </div>
