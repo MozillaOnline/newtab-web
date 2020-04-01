@@ -11,7 +11,6 @@ import { NEWTAB_DARK_THEME } from "content-src/lib/constants";
 import React from "react";
 import ReactDOM from "react-dom";
 import { SnippetsTemplates } from "./templates/template-manifest";
-import { FirstRun } from "./templates/FirstRun/FirstRun";
 
 const INCOMING_MESSAGE_NAME = "ASRouter:parent-to-child";
 const OUTGOING_MESSAGE_NAME = "ASRouter:child-to-parent";
@@ -378,31 +377,6 @@ export class ASRouterUISurface extends React.PureComponent {
   }
 
   renderFirstRun() {
-    const { message } = this.state;
-    if (TEMPLATES_ABOVE_PAGE.includes(message.template)) {
-      return (
-        <ImpressionsWrapper
-          id="FIRST_RUN"
-          message={this.state.message}
-          sendImpression={this.sendImpression}
-          shouldSendImpressionOnUpdate={shouldSendImpressionOnUpdate}
-          // This helps with testing
-          document={this.props.document}
-        >
-          <FirstRun
-            document={this.props.document}
-            message={message}
-            sendUserActionTelemetry={this.sendUserActionTelemetry}
-            executeAction={ASRouterUtils.executeAction}
-            onBlockById={ASRouterUtils.blockById}
-            onDismiss={this.onDismissById(this.state.message.id)}
-            fxaEndpoint={this.props.fxaEndpoint}
-            appUpdateChannel={this.props.appUpdateChannel}
-            fetchFlowParams={this.fetchFlowParams}
-          />
-        </ImpressionsWrapper>
-      );
-    }
     return null;
   }
 
