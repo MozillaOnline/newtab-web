@@ -303,7 +303,7 @@ describe("<Section>", () => {
       assert.lengthOf(wrapper.find(PocketLoggedInCta), 0);
     });
 
-    it("should render a pocket cta if not logged in and set to display cta", () => {
+    xit("should render a pocket cta if not logged in and set to display cta", () => {
       TOP_STORIES_SECTION.topics = [{ name: "topic1", url: "topic-url1" }];
       wrapper = shallow(
         <Section

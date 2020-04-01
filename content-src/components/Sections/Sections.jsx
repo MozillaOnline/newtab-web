@@ -10,7 +10,6 @@ import { FluentOrText } from "content-src/components/FluentOrText/FluentOrText";
 import { connect } from "react-redux";
 import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { MoreRecommendations } from "content-src/components/MoreRecommendations/MoreRecommendations";
-import { PocketLoggedInCta } from "content-src/components/PocketLoggedInCta/PocketLoggedInCta";
 import React from "react";
 import { Topics } from "content-src/components/Topics/Topics";
 import { TopSites } from "content-src/components/TopSites/TopSites";
@@ -204,9 +203,6 @@ export class Section extends React.PureComponent {
 
     const hasTopics = topics && !!topics.length;
 
-    const shouldShowPocketCta =
-      id === "topstories" && useCta && isUserLoggedIn === false;
-
     // Show topics only for top stories and if it has loaded with topics.
     // The classs .top-stories-bottom-container ensures content doesn't shift as things load.
     const shouldShowTopics =
@@ -314,12 +310,6 @@ export class Section extends React.PureComponent {
               {shouldShowTopics && (
                 <div className="wrapper-topics">
                   <Topics topics={this.props.topics} />
-                </div>
-              )}
-
-              {shouldShowPocketCta && (
-                <div className="wrapper-cta">
-                  <PocketLoggedInCta />
                 </div>
               )}
 
