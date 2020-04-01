@@ -132,7 +132,7 @@ describe("ASRouterUISurface", () => {
     assert.isTrue(wrapper.exists());
   });
 
-  it("should pass in the correct form_method for newsletter snippets", () => {
+  xit("should pass in the correct form_method for newsletter snippets", () => {
     wrapper.setState({ message: FAKE_NEWSLETTER_SNIPPET });
 
     assert.isTrue(wrapper.find("SubmitFormSnippet").exists());
@@ -143,7 +143,7 @@ describe("ASRouterUISurface", () => {
     );
   });
 
-  it("should pass in the correct form_method for fxa snippets", () => {
+  xit("should pass in the correct form_method for fxa snippets", () => {
     wrapper.setState({ message: FAKE_FXA_SNIPPET });
 
     assert.isTrue(wrapper.find("SubmitFormSnippet").exists());
