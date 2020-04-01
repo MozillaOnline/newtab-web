@@ -15,7 +15,6 @@ import { NEWTAB_DARK_THEME } from "content-src/lib/constants";
 import React from "react";
 import ReactDOM from "react-dom";
 import { SnippetsTemplates } from "./templates/template-manifest";
-import { FirstRun } from "./templates/FirstRun/FirstRun";
 
 const INCOMING_MESSAGE_NAME = "ASRouter:parent-to-child";
 const OUTGOING_MESSAGE_NAME = "ASRouter:child-to-parent";
@@ -25,7 +24,6 @@ const TEMPLATES_ABOVE_PAGE = [
   "return_to_amo_overlay",
   "extended_triplets",
 ];
-const FIRST_RUN_TEMPLATES = TEMPLATES_ABOVE_PAGE;
 const TEMPLATES_BELOW_SEARCH = ["simple_below_search_snippet"];
 
 export const ASRouterUtils = {
@@ -386,33 +384,6 @@ export class ASRouterUISurface extends React.PureComponent {
   }
 
   renderFirstRun() {
-    const { message } = this.state;
-    if (FIRST_RUN_TEMPLATES.includes(message.template)) {
-      return (
-        <ImpressionsWrapper
-          id="FIRST_RUN"
-          message={this.state.message}
-          sendImpression={this.sendImpression}
-          shouldSendImpressionOnUpdate={shouldSendImpressionOnUpdate}
-          // This helps with testing
-          document={this.props.document}
-        >
-          <FirstRun
-            document={this.props.document}
-            interruptCleared={this.state.interruptCleared}
-            message={message}
-            sendUserActionTelemetry={this.sendUserActionTelemetry}
-            executeAction={ASRouterUtils.executeAction}
-            dispatch={this.props.dispatch}
-            onBlockById={ASRouterUtils.blockById}
-            onDismiss={this.onDismissById(this.state.message.id)}
-            fxaEndpoint={this.props.fxaEndpoint}
-            appUpdateChannel={this.props.appUpdateChannel}
-            fetchFlowParams={this.fetchFlowParams}
-          />
-        </ImpressionsWrapper>
-      );
-    }
     return null;
   }
 
