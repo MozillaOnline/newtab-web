@@ -94,6 +94,19 @@ export const LinkMenuOptions = {
   MoCoCNBlockUrl: (site, index, eventSource) => {
     let option = LinkMenuOptions.BlockUrl(site, index, eventSource);
     option.string_id = "mococn-menu-dismiss";
+
+    // Compat fix for Fx 74 and earlier, see https://bugzil.la/1617280,1618944
+    if (!site.hasDSCollectionDismissConfig) {
+      option.action = ac.AlsoToMain({
+        type: at.BLOCK_URL,
+        data: {
+          url: site.open_url || site.url,
+          pocket_id: site.pocket_id,
+          ...(site.flight_id ? { flight_id: site.flight_id } : {}),
+        }
+      });
+    }
+
     return option;
   },
 
