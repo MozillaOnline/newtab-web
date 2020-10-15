@@ -134,7 +134,9 @@ export class _TopSites extends React.PureComponent {
     const { props } = this;
     const { editForm, showSearchShortcutsForm } = props.TopSites;
     const extraMenuOptions = ["AddTopSite"];
-    const colors = props.Prefs.values["newNewtabExperience.colors"];
+    // Taken from https://bugzil.la/1688699, pref not available before Fx 86
+    const colors = props.Prefs.values["newNewtabExperience.colors"] ||
+                   "#0090ED,#FF4F5F,#2AC3A2,#FF7139,#A172FF,#FFA437,#FF2A8A";
 
     if (props.Prefs.values["improvesearch.topSiteSearchShortcuts"]) {
       extraMenuOptions.push("AddSearchShortcut");
