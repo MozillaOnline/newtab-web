@@ -1,0 +1,8 @@
+// Work around from https://stackoverflow.com/questions/62665318/using-supports-selector-despite-sass-not-supporting-it
+@supports not ((user-select: auto) and #{'\selector(input::file-selector-button)'}) {
+  .top-site-outer {
+    .edit-button {
+      background-image: url('#{$b4fx82-image-path}glyph-edit-16.svg');
+    }
+  }
+}
