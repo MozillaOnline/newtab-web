@@ -9,6 +9,7 @@ import { connect } from "react-redux";
 import { DiscoveryStreamBase } from "content-src/components/DiscoveryStreamBase/DiscoveryStreamBase";
 import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
 import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
+import { MoCoCNPromo } from "content-src/components/MoCoCNPromo/MoCoCNPromo";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
 import { Sections } from "content-src/components/Sections/Sections";
@@ -218,6 +219,27 @@ export class BaseContent extends React.PureComponent {
             </div>
             <ConfirmDialog />
           </main>
+
+          <MoCoCNPromo
+            options={{
+              imageHeight: "130px",
+              imageWidth: "128px",
+            }}
+            shownUntil="445864"
+            type="float"
+            url="https://s.click.taobao.com/NsIJTuu"
+            variant="left"
+          />
+          <MoCoCNPromo
+            options={{
+              imageHeight: "146px",
+              imageWidth: "143px",
+            }}
+            shownUntil="445864"
+            type="float"
+            url="https://u.jd.com/tkxxCeD"
+            variant="right"
+          />
         </div>
       </div>
     );
