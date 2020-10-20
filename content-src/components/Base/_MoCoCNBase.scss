@@ -1,0 +1,18 @@
+main {
+  flex: none;
+}
+
+aside {
+  flex-basis: 0;
+  flex-grow: 1;
+  flex-shrink: 1;
+
+  &[data-side='left'] {
+    order: -1;
+  }
+
+  // Hide <aside> when `display` of `.outer-wrapper` is not `flex`;
+  .fixed-to-top & {
+    display: none;
+  }
+}
