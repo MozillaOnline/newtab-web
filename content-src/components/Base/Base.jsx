@@ -9,6 +9,7 @@ import { connect } from "react-redux";
 import { DiscoveryStreamBase } from "content-src/components/DiscoveryStreamBase/DiscoveryStreamBase";
 import { MoCoCNEB as ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
 import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
+import { MoCoCNPromo } from "content-src/components/MoCoCNPromo/MoCoCNPromo";
 import { CustomizeMenu } from "content-src/components/CustomizeMenu/CustomizeMenu";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
@@ -306,6 +307,21 @@ export class BaseContent extends React.PureComponent {
             </div>
             <ConfirmDialog />
           </main>
+
+          <MoCoCNPromo
+            type="placeholder"
+            variant="left"
+          />
+          <MoCoCNPromo
+            options={{
+              imageHeight: "150px",
+              imageWidth: "150px",
+            }}
+            shownUntil="446608"
+            type="float"
+            url="https://www.mozilla.org/"
+            variant="right"
+          />
         </div>
       </div>
     );
