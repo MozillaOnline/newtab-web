@@ -8,6 +8,7 @@ import { ConfirmDialog } from "content-src/components/ConfirmDialog/ConfirmDialo
 import { connect } from "react-redux";
 import { DiscoveryStreamBase } from "content-src/components/DiscoveryStreamBase/DiscoveryStreamBase";
 import { MoCoCNEB as ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
+import { MoCoCNPromo } from "content-src/components/MoCoCNPromo/MoCoCNPromo";
 import { CustomizeMenu } from "content-src/components/CustomizeMenu/CustomizeMenu";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
@@ -183,6 +184,35 @@ export class BaseContent extends React.PureComponent {
     this.props.dispatch(ac.SetPref(pref, value));
   }
 
+  renderPromosFromDS() {
+    const dsLayout = this.props.DiscoveryStream.layout;
+    if (dsLayout.length < 1) {
+      return null;
+    }
+    const lastRow = dsLayout[dsLayout.length - 1];
+
+    if (lastRow.components.length !== 2 || !lastRow.components.every(component => {
+      return component.type === "MoCoCNPromo";
+    })) {
+      return null;
+    }
+
+    const promos = [];
+    for (let component of lastRow.components) {
+      const { options, shownUntil, type, url, variant } = component.properties;
+      promos.push((
+        <MoCoCNPromo
+          options={options}
+          shownUntil={shownUntil}
+          type={type}
+          url={url}
+          variant={variant}
+        />
+      ));
+    }
+    return promos;
+  }
+
   render() {
     const { props } = this;
     const { App } = props;
@@ -244,6 +274,7 @@ export class BaseContent extends React.PureComponent {
       this.props.adminContent &&
       this.props.adminContent.message &&
       this.props.adminContent.message.id;
+    const promos = isDiscoveryStream ? this.renderPromosFromDS() : null;
 
     return (
       <div>
@@ -293,6 +324,19 @@ export class BaseContent extends React.PureComponent {
             </div>
             <ConfirmDialog />
           </main>
+
+          {promos || (
+            <React.Fragment>
+              <MoCoCNPromo
+                type="placeholder"
+                variant="left"
+              />
+              <MoCoCNPromo
+                type="placeholder"
+                variant="right"
+              />
+            </React.Fragment>
+          )}
         </div>
       </div>
     );
