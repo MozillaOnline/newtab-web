@@ -1,0 +1,96 @@
+$mococn-promo-assets: '../../mococn/assets/';
+
+aside {
+  display: flex;
+  margin-bottom: $base-gutter * -1;
+  overflow: hidden;
+
+  a.float_promo {
+    display: inline-block;
+    height: var(--mococn-promo-float-height);
+    margin-top: calc(var(--mococn-promo-float-height) * -0.5);
+    position: fixed;
+    top: 50%;
+    width: var(--mococn-promo-float-width);
+
+    button {
+      border-width: 0;
+      bottom: 0;
+      cursor: pointer;
+      display: none;
+      position: absolute;
+    }
+
+    &:hover button {
+      display: block;
+    }
+  }
+
+  ul.skin_promo {
+    flex-shrink: 0;
+    margin-bottom: calc(var(--mococn-promo-skin-height) * -21);
+    padding: 0;
+    width: calc(var(--mococn-promo-skin-width) * 5);
+
+    li {
+      display: inline-block;
+      height: var(--mococn-promo-skin-height);
+      vertical-align: middle;
+      width: var(--mococn-promo-skin-width);
+
+      a {
+        cursor: pointer;
+        display: inline-block;
+        position: relative;
+
+        .background,
+        .foreground {
+          background-image: var(--mococn-promo-skin-background);
+          height: var(--mococn-promo-skin-height);
+          width: var(--mococn-promo-skin-width);
+        }
+
+        .foreground {
+          background-image: var(--mococn-promo-skin-foreground);
+          clip-path: polygon(-23% 0%, -23% 0%, 20% 100%, -23% 100%);
+          position: absolute;
+          top: 0;
+          transition: clip-path 0.6s;
+        }
+
+        &:hover > .foreground {
+          clip-path: polygon(0% 0%, 80% 0%, 123% 100%, 0% 100%);
+        }
+      }
+
+      button {
+        border-width: 0;
+        cursor: pointer;
+        margin: calc((var(--mococn-promo-skin-height) - $icon-size) / 2) calc((var(--mococn-promo-skin-width) - $icon-size) / 2);
+      }
+    }
+  }
+
+  // Extend `aside` to both sides of screen
+  &[data-side="left"] {
+    flex-direction: row-reverse;
+    margin-left: $base-gutter * -1;
+
+    a.float_promo {
+      // background-image: var(--mococn-promo-float-bgimage, url('#{$mococn-promo-assets}promo-left.png'));
+
+      button {
+        right: 0;
+      }
+    }
+  }
+
+  &[data-side="right"] {
+    flex-direction: row;
+    margin-right: $base-gutter * -1;
+
+    a.float_promo {
+      background-image: var(--mococn-promo-float-bgimage, url('#{$mococn-promo-assets}dont-hurt-the-web.png'));
+    }
+  }
+}
