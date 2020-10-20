@@ -1,8 +1,10 @@
 @import './variables';
 @import './mixins';
 
+@import '../components/Base/MoCoCNBase';
 @import '../components/TopSites/MoCoCNTopSites';
 @import '../components/Card/MoCoCNCard';
+@import '../components/MoCoCNPromo/MoCoCNPromo';
 
 @import '../components/DiscoveryStreamComponents/CardGrid/MoCoCNCardGrid';
 @import '../components/DiscoveryStreamComponents/TopSites/MoCoCNTopSites';

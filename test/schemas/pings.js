@@ -126,7 +126,7 @@ export const UserEventAction = Joi.object().keys({
         "SHOW_PRIVACY_INFO",
         "CLICK_PRIVACY_INFO",
       ]).required(),
-      source: Joi.valid(["TOP_SITES", "TOP_STORIES", "HIGHLIGHTS"]),
+      source: Joi.valid(["TOP_SITES", "TOP_STORIES", "HIGHLIGHTS", "MOCOCN_PROMO"]),
       action_position: Joi.number().integer(),
       value: Joi.object().keys({
         icon_type: Joi.valid([

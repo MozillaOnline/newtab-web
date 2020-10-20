@@ -5,6 +5,7 @@ import {
 } from "content-src/components/Base/Base";
 import { ASRouterAdmin } from "content-src/components/ASRouterAdmin/ASRouterAdmin";
 import { MoCoCNEB as ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
+import { MoCoCNPromo } from "content-src/components/MoCoCNPromo/MoCoCNPromo";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
 import { shallow } from "enzyme";
@@ -130,6 +131,26 @@ describe("<BaseContent>", () => {
 
     const wrapper = shallow(<BaseContent {...onlySearchProps} />);
     assert.lengthOf(wrapper.find(".only-search"), 1);
+  });
+
+  it("should render the MoCoCNPromo components if configured", () => {
+    const promoProps = Object.assign({}, DEFAULT_PROPS, {
+      DiscoveryStream: {
+        config: { enabled: true },
+        layout: [{
+          components: [{
+            type: "MoCoCNPromo",
+            properties: {},
+          }, {
+            type: "MoCoCNPromo",
+            properties: {},
+          }]
+        }],
+      },
+    });
+
+    const wrapper = shallow(<BaseContent {...promoProps} />);
+    assert.lengthOf(wrapper.find(MoCoCNPromo), 2);
   });
 });
 

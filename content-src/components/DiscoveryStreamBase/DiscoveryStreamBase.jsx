@@ -262,6 +262,16 @@ export class _DiscoveryStreamBase extends React.PureComponent {
     });
     const { config } = this.props.DiscoveryStream;
 
+    // Remove MoCoCNPromos row
+    if (layoutRender.length) {
+      const lastRow = layoutRender[layoutRender.length - 1];
+      if (lastRow.components.length === 2 && lastRow.components.every(component => {
+        return component.type === "MoCoCNPromo";
+      })) {
+        layoutRender.length -= 1;
+      }
+    }
+
     // Allow rendering without extracting special components
     if (!config.collapsible) {
       return this.renderLayout(layoutRender);
