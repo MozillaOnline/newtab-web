@@ -84,6 +84,11 @@ Current templates include\:
 
 Detailed Docs
 -------------
+
+* Read more about `trigger listeners and user action schemas`__.
+
+.. __: /toolkit/components/messaging-system/docs
+
 .. In theory, we ought to be able to use the :glob: directive here to
 .. automatically generate the list below. For unknown reasons, however,
 .. `mach doc` _sometimes_ gets confused and refuses to find patterns like
@@ -91,6 +96,7 @@ Detailed Docs
 .. toctree::
   :maxdepth: 2
 
+  simple-cfr-template
   debugging-docs
   experiment-guide
   first-run

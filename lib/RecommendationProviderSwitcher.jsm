@@ -16,6 +16,8 @@ const { actionTypes: at, actionCreators: ac } = ChromeUtils.import(
   "resource://activity-stream/common/Actions.jsm"
 );
 const PREF_PERSONALIZATION_VERSION = "discoverystream.personalization.version";
+const PREF_PERSONALIZATION_OVERRIDE_VERSION =
+  "discoverystream.personalization.overrideVersion";
 const PREF_PERSONALIZATION_MODEL_KEYS =
   "discoverystream.personalization.modelKeys";
 
@@ -104,14 +106,18 @@ this.RecommendationProviderSwitcher = class RecommendationProviderSwitcher {
   /**
    * Sets affinityProvider state to the correct version.
    */
-  setVersion() {
+  setVersion(isStartup = false) {
     const version = this.store.getState().Prefs.values[
       PREF_PERSONALIZATION_VERSION
     ];
+    const overrideVersion = this.store.getState().Prefs.values[
+      PREF_PERSONALIZATION_OVERRIDE_VERSION
+    ];
+
     const modelKeys = this.store.getState().Prefs.values[
       PREF_PERSONALIZATION_MODEL_KEYS
     ];
-    if (version === 2 && modelKeys) {
+    if (version === 2 && modelKeys && overrideVersion !== 1) {
       this.affinityProviderV2 = {
         modelKeys: modelKeys.split(",").map(i => i.trim()),
       };
@@ -122,6 +128,9 @@ this.RecommendationProviderSwitcher = class RecommendationProviderSwitcher {
         type: at.DISCOVERY_STREAM_PERSONALIZATION_VERSION,
         data: {
           version,
+        },
+        meta: {
+          isStartup,
         },
       })
     );
@@ -172,7 +181,7 @@ this.RecommendationProviderSwitcher = class RecommendationProviderSwitcher {
   onAction(action) {
     switch (action.type) {
       case at.INIT:
-        this.setVersion();
+        this.setVersion(true /* isStartup */);
         break;
       case at.DISCOVERY_STREAM_CONFIG_CHANGE:
         this.teardown();

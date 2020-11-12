@@ -458,6 +458,7 @@ describe("DiscoveryStreamFeed", () => {
       assert.calledWith(feed.store.dispatch, {
         type: "DISCOVERY_STREAM_SPOCS_PLACEMENTS",
         data: { placements: [{ name: "first" }, { name: "second" }] },
+        meta: { isStartup: false },
       });
     });
     it("should fire update placements from loadLayout", async () => {
@@ -646,9 +647,11 @@ describe("DiscoveryStreamFeed", () => {
       assert.calledWith(feed.store.dispatch.firstCall, {
         type: at.DISCOVERY_STREAM_FEED_UPDATE,
         data: { feed: { data: { status: "failed" } }, url: "foo.com" },
+        meta: { isStartup: false },
       });
       assert.calledWith(feed.store.dispatch.secondCall, {
         type: at.DISCOVERY_STREAM_FEEDS_UPDATE,
+        meta: { isStartup: false },
       });
     });
 
@@ -751,6 +754,49 @@ describe("DiscoveryStreamFeed", () => {
       const feedResp = await feed.getComponentFeed("foo.com");
 
       assert.deepEqual(feedResp, { data: { status: "failed" } });
+    });
+  });
+
+  describe("#personalizationVersionOverride", () => {
+    it("should dispatch setPref", async () => {
+      sandbox.spy(feed.store, "dispatch");
+      feed.store.getState = () => ({
+        Prefs: {
+          values: {
+            "discoverystream.personalization.version": 2,
+          },
+        },
+      });
+
+      feed.personalizationVersionOverride(false);
+
+      assert.calledWithMatch(feed.store.dispatch, {
+        data: {
+          name: "discoverystream.personalization.overrideVersion",
+          value: 1,
+        },
+        type: at.SET_PREF,
+      });
+    });
+    it("should dispatch CLEAR_PREF", async () => {
+      sandbox.spy(feed.store, "dispatch");
+      feed.store.getState = () => ({
+        Prefs: {
+          values: {
+            "discoverystream.personalization.version": 2,
+            "discoverystream.personalization.overrideVersion": 1,
+          },
+        },
+      });
+
+      feed.personalizationVersionOverride(true);
+
+      assert.calledWithMatch(feed.store.dispatch, {
+        data: {
+          name: "discoverystream.personalization.overrideVersion",
+        },
+        type: at.CLEAR_PREF,
+      });
     });
   });
 
@@ -870,6 +916,18 @@ describe("DiscoveryStreamFeed", () => {
         feed.store.getState().DiscoveryStream.spocs.data.spocs.items[0],
         { id: "data", min_score: 0, score: 1 }
       );
+    });
+    it("should call personalizationVersionOverride with feature_flags", async () => {
+      sandbox.stub(feed.cache, "get").returns(Promise.resolve());
+      sandbox.stub(feed, "personalizationVersionOverride").returns();
+      sandbox
+        .stub(feed, "fetchFromEndpoint")
+        .resolves({ settings: { feature_flags: {} }, spocs: [{ id: "data" }] });
+      sandbox.stub(feed.cache, "set").returns(Promise.resolve());
+
+      await feed.loadSpocs(feed.store.dispatch);
+
+      assert.calledOnce(feed.personalizationVersionOverride);
     });
     it("should return expected data if normalizeSpocsItems returns no spoc data", async () => {
       sandbox.stub(feed.cache, "get").returns(Promise.resolve());
@@ -1180,70 +1238,6 @@ describe("DiscoveryStreamFeed", () => {
       ]);
       assert.deepEqual(filtered, [
         { item_score: 0.5, min_score: 0.6, score: 0.5 },
-      ]);
-    });
-  });
-  describe("#removeFlightDupes", () => {
-    it("should no op with no params", () => {
-      const { data: result, filtered } = feed.removeFlightDupes([]);
-
-      assert.equal(result.length, 0);
-      assert.equal(filtered.length, 0);
-    });
-    it("should filter out duplicate flights", () => {
-      const { data: result, filtered } = feed.removeFlightDupes([
-        { id: 1, flight_id: 2 },
-        { id: 2, flight_id: 3 },
-        { id: 3, flight_id: 1 },
-        { id: 4, flight_id: 3 },
-        { id: 5, flight_id: 1 },
-      ]);
-
-      assert.deepEqual(result, [
-        { id: 1, flight_id: 2 },
-        { id: 2, flight_id: 3 },
-        { id: 3, flight_id: 1 },
-      ]);
-
-      assert.deepEqual(filtered, [
-        { id: 4, flight_id: 3 },
-        { id: 5, flight_id: 1 },
-      ]);
-    });
-    it("should filter out duplicate flight while using spocs_per_domain", async () => {
-      sandbox.stub(feed.store, "getState").returns({
-        DiscoveryStream: {
-          spocs: { spocs_per_domain: 2 },
-        },
-      });
-
-      const { data: result, filtered } = feed.removeFlightDupes([
-        { id: 1, flight_id: 2 },
-        { id: 2, flight_id: 3 },
-        { id: 3, flight_id: 1 },
-        { id: 4, flight_id: 3 },
-        { id: 5, flight_id: 1 },
-        { id: 6, flight_id: 2 },
-        { id: 7, flight_id: 3 },
-        { id: 8, flight_id: 1 },
-        { id: 9, flight_id: 3 },
-        { id: 10, flight_id: 1 },
-      ]);
-
-      assert.deepEqual(result, [
-        { id: 1, flight_id: 2 },
-        { id: 2, flight_id: 3 },
-        { id: 3, flight_id: 1 },
-        { id: 4, flight_id: 3 },
-        { id: 5, flight_id: 1 },
-        { id: 6, flight_id: 2 },
-      ]);
-
-      assert.deepEqual(filtered, [
-        { id: 7, flight_id: 3 },
-        { id: 8, flight_id: 1 },
-        { id: 9, flight_id: 3 },
-        { id: 10, flight_id: 1 },
       ]);
     });
   });
@@ -1713,7 +1707,6 @@ describe("DiscoveryStreamFeed", () => {
         DiscoveryStream: {
           spocs: {
             data,
-            spocs_per_domain: 2,
           },
         },
       });
@@ -1813,7 +1806,6 @@ describe("DiscoveryStreamFeed", () => {
           spocs: {
             data,
             placements: [{ name: "spocs" }, { name: "notSpocs" }],
-            spocs_per_domain: 1,
           },
         },
       });

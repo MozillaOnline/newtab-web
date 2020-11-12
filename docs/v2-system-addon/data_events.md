@@ -185,6 +185,27 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
 }
 ```
 
+#### Clicking a popular topic link
+
+```js
+{
+  "event": "CLICK",
+  "source": "POPULAR_TOPICS",
+  "value": {
+    "topic": ["must-reads" | "productivity" | "health" | "finance" | "technology" | "more-recommendations"]
+  }
+  // Basic metadata
+  "action": "activity_stream_event",
+  "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7
+}
+```
+
 #### Adding a search shortcut
 ```js
 {
@@ -1332,23 +1353,6 @@ This reports a failure in the Remote Settings loader to load messages for Activi
 }
 ```
 
-## Trailhead experiment enrollment ping
-
-This reports an enrollment ping when a user gets enrolled in a Trailhead experiment. Note that this ping is only collected through the Mozilla Events telemetry pipeline.
-
-```js
-{
-  "category": "activity_stream",
-  "method": "enroll",
-  "object": "preference_study"
-  "value": "activity-stream-firstup-trailhead-interrupts",
-  "extra_keys": {
-    "experimentType": "as-firstrun",
-    "branch": ["supercharge" | "join" | "sync" | "privacy" ...]
-  }
-}
-```
-
 ## Feature Callouts interaction pings
 
 This reports when a user has seen or clicked a badge/notification in the browser toolbar in a non-PBM window
@@ -1392,6 +1396,18 @@ For message impressions we concatenate the ids of all messages in the panel.
   "message_id": "WHATS_NEW_70",
   "event": ["CLICK" | "IMPRESSION"],
   "value": { "view": ["application_menu" | "toolbar_dropdown"] }
+}
+```
+
+We also report when the panel checkbox (used to allow users to opt out of
+notifications) is checked or unchecked.
+
+```
+{
+  ...
+  "message_id": "n/a",
+  "event": "WNP_PREF_TOGGLE",
+  "value": { "prefValue": true }
 }
 ```
 
@@ -1460,4 +1476,24 @@ Unlike other Activity Stream pings, this is a Firefox Events telemetry event, an
     "branches": "control;variant_1;variant_2"
   }
 }
+```
+
+### Experiment attribute errors
+
+This records whether issues were encountered with any of the targeting attributes used in the experiment enrollment or message targeting.
+Two different types of events are sent: `attribute_error` and `attribute_timeout` along with the attribute that caused it.
+
+```js
+[
+  "messaging_experiments",
+  "targeting",
+  "attribute_error", // event
+  "foo" // attribute
+],
+[
+  "messaging_experiments",
+  "targeting",
+  "attribute_timeout", // event
+  "bar" // attribute
+]
 ```

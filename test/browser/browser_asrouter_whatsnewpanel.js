@@ -26,25 +26,23 @@ add_task(async function test_with_rs_messages() {
   );
   const initialMessageCount = ASRouter.state.messages.length;
   const client = RemoteSettings("whats-new-panel");
-  await client.db.clear();
-  for (const record of msgs) {
-    await client.db.create(
+  await client.db.importChanges(
+    {},
+    42,
+    msgs.map(record => ({
       // Modify targeting to ensure the messages always show up
-      { ...record, targeting: "true" }
-    );
-  }
-  await client.db.saveLastModified(42); // Prevent from loading JSON dump.
+      ...record,
+      targeting: "true",
+    })),
+    { clear: true }
+  );
+
+  UITour.showMenu(window, "appMenu");
+  await BrowserTestUtils.waitForEvent(window.PanelUI.mainView, "ViewShown");
+  const mainView = document.getElementById("appMenu-mainView");
 
   const whatsNewBtn = document.getElementById("appMenu-whatsnew-button");
   Assert.equal(whatsNewBtn.hidden, true, "What's New btn doesn't exist");
-
-  const mainView = document.getElementById("appMenu-mainView");
-  UITour.showMenu(window, "appMenu");
-  await BrowserTestUtils.waitForEvent(
-    mainView,
-    "ViewShown",
-    "Panel did not open"
-  );
 
   // Reload the provider
   await ASRouter._updateMessageProviders();

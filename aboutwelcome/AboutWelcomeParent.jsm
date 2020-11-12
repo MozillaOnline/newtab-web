@@ -12,6 +12,8 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
+  AddonManager: "resource://gre/modules/AddonManager.jsm",
+  AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   FxAccounts: "resource://gre/modules/FxAccounts.jsm",
   MigrationUtils: "resource:///modules/MigrationUtils.jsm",
   OS: "resource://gre/modules/osfile.jsm",
@@ -19,6 +21,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
     "resource://messaging-system/lib/SpecialMessageActions.jsm",
   AboutWelcomeTelemetry:
     "resource://activity-stream/aboutwelcome/lib/AboutWelcomeTelemetry.jsm",
+  AttributionCode: "resource:///modules/AttributionCode.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(this, "log", () => {
@@ -41,6 +44,12 @@ const AWTerminate = {
   TAB_CLOSED: "welcome-tab-closed",
   APP_SHUT_DOWN: "app-shut-down",
   ADDRESS_BAR_NAVIGATED: "address-bar-navigated",
+};
+const LIGHT_WEIGHT_THEMES = {
+  DARK: "firefox-compact-dark@mozilla.org",
+  LIGHT: "firefox-compact-light@mozilla.org",
+  AUTOMATIC: "default-theme@mozilla.org",
+  ALPENGLOW: "firefox-alpenglow@mozilla.org",
 };
 
 async function getImportableSites() {
@@ -162,7 +171,7 @@ class AboutWelcomeParent extends JSWindowActorParent {
    * @param {Browser} browser
    * @param {Window} window
    */
-  onContentMessage(type, data, browser, window) {
+  async onContentMessage(type, data, browser, window) {
     log.debug(`Received content event: ${type}`);
     switch (type) {
       case "AWPage:SET_WELCOME_MESSAGE_SEEN":
@@ -178,6 +187,8 @@ class AboutWelcomeParent extends JSWindowActorParent {
         break;
       case "AWPage:FXA_METRICS_FLOW_URI":
         return FxAccounts.config.promiseMetricsFlowURI("aboutwelcome");
+      case "AWPage:GET_ATTRIBUTION_DATA":
+        return AttributionCode.getAttrDataAsync();
       case "AWPage:IMPORTABLE_SITES":
         return getImportableSites();
       case "AWPage:TELEMETRY_EVENT":
@@ -187,6 +198,31 @@ class AboutWelcomeParent extends JSWindowActorParent {
         this.AboutWelcomeObserver.terminateReason =
           AWTerminate.ADDRESS_BAR_NAVIGATED;
         break;
+      case "AWPage:GET_ADDON_FROM_REPOSITORY":
+        const [addonInfo] = await AddonRepository.getAddonsByIDs([data]);
+        if (addonInfo.sourceURI.scheme !== "https") {
+          return null;
+        }
+        return {
+          name: addonInfo.name,
+          url: addonInfo.sourceURI.spec,
+          iconURL: addonInfo.icons["64"] || addonInfo.icons["32"],
+        };
+      case "AWPage:SELECT_THEME":
+        return AddonManager.getAddonByID(
+          LIGHT_WEIGHT_THEMES[data]
+        ).then(addon => addon.enable());
+      case "AWPage:GET_SELECTED_THEME":
+        let themes = await AddonManager.getAddonsByTypes(["theme"]);
+        let activeTheme = themes.find(addon => addon.isActive);
+
+        // convert this to the short form name that the front end code
+        // expects
+        let themeShortName = Object.keys(LIGHT_WEIGHT_THEMES).find(
+          key => LIGHT_WEIGHT_THEMES[key] === activeTheme?.id
+        );
+        return themeShortName?.toLowerCase();
+
       case "AWPage:WAIT_FOR_MIGRATION_CLOSE":
         return new Promise(resolve =>
           Services.ww.registerNotification(function observer(subject, topic) {

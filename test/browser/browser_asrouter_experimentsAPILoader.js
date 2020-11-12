@@ -10,15 +10,26 @@ const { RemoteSettingsExperimentLoader } = ChromeUtils.import(
 const { ExperimentAPI } = ChromeUtils.import(
   "resource://messaging-system/experiments/ExperimentAPI.jsm"
 );
+const { ExperimentFakes } = ChromeUtils.import(
+  "resource://testing-common/MSTestUtils.jsm"
+);
 
-const EXPERIMENT_PAYLOAD = {
-  enabled: true,
-  arguments: {
-    slug: "test_xman_cfr",
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
+const EXPERIMENT_PAYLOAD = ExperimentFakes.recipe("test_xman_cfr", {
+  id: "xman_test_message",
+  bucketConfig: {
+    count: 100,
+    start: 0,
+    total: 100,
+    namespace: "mochitest",
+    randomizationUnit: "normandy_id",
+  },
+  branches: [
+    {
+      slug: "control",
+      ratio: 1,
+      feature: {
+        featureId: "cfr",
+        enabled: true,
         value: {
           id: "xman_test_message",
           content: {
@@ -26,7 +37,7 @@ const EXPERIMENT_PAYLOAD = {
             addon: {
               id: "954390",
               icon:
-                "resource://activity-stream/data/content/assets/cfr_fb_container.png",
+                "chrome://activity-stream/content/data/content/assets/cfr_fb_container.png",
               title: "Facebook Container",
               users: 1455872,
               author: "Mozilla",
@@ -109,20 +120,16 @@ const EXPERIMENT_PAYLOAD = {
           },
           targeting: "true",
         },
-        groups: ["cfr"],
       },
-    ],
-    isHighVolume: "false,",
-    userFacingName: "About:Welcome Pull Factor Reinforcement",
-    isEnrollmentPaused: false,
-    experimentDocumentUrl:
-      "https://experimenter.services.mozilla.com/experiments/aboutwelcome-pull-factor-reinforcement/",
-    userFacingDescription:
-      "This study uses 4 different variants of about:welcome with a goal of testing new experiment framework and get insights on whether reinforcing pull-factors improves retention.",
-  },
-  filter_expression: "true",
-  id: "test_xman_cfr",
-};
+    },
+  ],
+  userFacingName: "About:Welcome Pull Factor Reinforcement",
+  isEnrollmentPaused: false,
+  experimentDocumentUrl:
+    "https://experimenter.services.mozilla.com/experiments/aboutwelcome-pull-factor-reinforcement/",
+  userFacingDescription:
+    "This study uses 4 different variants of about:welcome with a goal of testing new experiment framework and get insights on whether reinforcing pull-factors improves retention.",
+});
 
 add_task(async function test_loading_experimentsAPI() {
   // Force the WNPanel provider cache to 0 by modifying updateCycleInMs
@@ -130,22 +137,24 @@ add_task(async function test_loading_experimentsAPI() {
     set: [
       [
         "browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments",
-        `{"id":"messaging-experiments","enabled":true,"type":"remote-experiments","messageGroups":["cfr","whats-new-panel","moments-page","snippets","cfr-fxa"],"frequency":{"custom":[{"period":"daily","cap":1}]},"updateCycleInMs":0}`,
+        `{"id":"messaging-experiments","enabled":true,"type":"remote-experiments","messageGroups":["cfr","whats-new-panel","moments-page","snippets","cfr-fxa"],"updateCycleInMs":0}`,
       ],
     ],
   });
-  const client = RemoteSettings("messaging-experiments");
-  await client.db.clear();
-  await client.db.create(
-    // Modify targeting to ensure the messages always show up
-    { ...EXPERIMENT_PAYLOAD }
+  const client = RemoteSettings("nimbus-desktop-experiments");
+  await client.db.importChanges(
+    {},
+    42,
+    [
+      // Modify targeting to ensure the messages always show up
+      { ...EXPERIMENT_PAYLOAD },
+    ],
+    { clear: true }
   );
-  await client.db.saveLastModified(42); // Prevent from loading JSON dump.
-
   // Fetch the new recipe from RS
   await RemoteSettingsExperimentLoader.updateRecipes();
   await BrowserTestUtils.waitForCondition(
-    () => ExperimentAPI.getExperiment({ group: "cfr" }),
+    () => ExperimentAPI.getExperiment({ featureId: "cfr" }),
     "ExperimentAPI should return an experiment"
   );
 

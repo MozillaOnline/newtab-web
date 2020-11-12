@@ -30,6 +30,11 @@ const { actionTypes: at, actionCreators: ac } = ChromeUtils.import(
 );
 ChromeUtils.defineModuleGetter(
   this,
+  "Region",
+  "resource://gre/modules/Region.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "PersistentCache",
   "resource://activity-stream/lib/PersistentCache.jsm"
 );
@@ -64,6 +69,9 @@ const PREF_REC_IMPRESSIONS = "discoverystream.rec.impressions";
 const PREF_COLLECTION_DISMISSIBLE = "discoverystream.isCollectionDismissible";
 const PREF_RECS_PERSONALIZED = "discoverystream.recs.personalized";
 const PREF_SPOCS_PERSONALIZED = "discoverystream.spocs.personalized";
+const PREF_PERSONALIZATION_VERSION = "discoverystream.personalization.version";
+const PREF_PERSONALIZATION_OVERRIDE_VERSION =
+  "discoverystream.personalization.overrideVersion";
 
 let getHardcodedLayout;
 
@@ -169,6 +177,10 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     });
   }
 
+  get region() {
+    return Region.home;
+  }
+
   get showSpocs() {
     // Combine user-set sponsored opt-out with Mozilla-set config
     return (
@@ -211,12 +223,15 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     return this._providerSwitcher;
   }
 
-  setupPrefs() {
+  setupPrefs(isStartup = false) {
     // Send the initial state of the pref on our reducer
     this.store.dispatch(
       ac.BroadcastToContent({
         type: at.DISCOVERY_STREAM_CONFIG_SETUP,
         data: this.config,
+        meta: {
+          isStartup,
+        },
       })
     );
     this.store.dispatch(
@@ -226,6 +241,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
           value: this.store.getState().Prefs.values[
             PREF_COLLECTION_DISMISSIBLE
           ],
+        },
+        meta: {
+          isStartup,
         },
       })
     );
@@ -250,7 +268,8 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     // 2. Hardcoded layouts don't have this already done for us.
     const endpoint = rawEndpoint
       .replace("$apiKey", apiKey)
-      .replace("$locale", this.locale);
+      .replace("$locale", this.locale)
+      .replace("$region", this.region);
 
     try {
       // Make sure the requested endpoint is allowed
@@ -375,7 +394,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     return layout;
   }
 
-  updatePlacements(sendUpdate, layout) {
+  updatePlacements(sendUpdate, layout, isStartup = false) {
     const placements = [];
     const placementsMap = {};
     for (const row of layout.filter(r => r.components && r.components.length)) {
@@ -393,6 +412,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
       sendUpdate({
         type: at.DISCOVERY_STREAM_SPOCS_PLACEMENTS,
         data: { placements },
+        meta: {
+          isStartup,
+        },
       });
     }
   }
@@ -418,6 +440,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     sendUpdate({
       type: at.DISCOVERY_STREAM_LAYOUT_UPDATE,
       data: layoutResp,
+      meta: {
+        isStartup,
+      },
     });
 
     if (layoutResp.spocs) {
@@ -434,10 +459,12 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
           type: at.DISCOVERY_STREAM_SPOCS_ENDPOINT,
           data: {
             url,
-            spocs_per_domain: layoutResp.spocs.spocs_per_domain,
+          },
+          meta: {
+            isStartup,
           },
         });
-        this.updatePlacements(sendUpdate, layoutResp.layout);
+        this.updatePlacements(sendUpdate, layoutResp.layout, isStartup);
       }
     }
   }
@@ -451,7 +478,11 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
    *                     the scope for isStartup and the promises object.
    *                     Combines feed results and promises for each component with a feed.
    */
-  buildFeedPromise({ newFeedsPromises, newFeeds }, isStartup, sendUpdate) {
+  buildFeedPromise(
+    { newFeedsPromises, newFeeds },
+    isStartup = false,
+    sendUpdate
+  ) {
     return component => {
       const { url } = component.feed;
 
@@ -472,6 +503,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
               data: {
                 feed: newFeeds[url],
                 url,
+              },
+              meta: {
+                isStartup,
               },
             });
 
@@ -557,7 +591,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
       .reduce(this.reduceFeedComponents(isStartup, sendUpdate), initialData);
   }
 
-  async loadComponentFeeds(sendUpdate, isStartup) {
+  async loadComponentFeeds(sendUpdate, isStartup = false) {
     const { DiscoveryStream } = this.store.getState();
 
     if (!DiscoveryStream || !DiscoveryStream.layout) {
@@ -584,6 +618,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     await this.cache.set("feeds", newFeeds);
     sendUpdate({
       type: at.DISCOVERY_STREAM_FEEDS_UPDATE,
+      meta: {
+        isStartup,
+      },
     });
   }
 
@@ -630,6 +667,31 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     };
   }
 
+  // This sets an override pref for personalization version.
+  personalizationVersionOverride(spoc_v2) {
+    const overrideVersion = this.store.getState().Prefs.values[
+      PREF_PERSONALIZATION_OVERRIDE_VERSION
+    ];
+
+    const currentVersion = this.store.getState().Prefs.values[
+      PREF_PERSONALIZATION_VERSION
+    ];
+
+    // If we have a downgrade override, and the current version can be downgraded,
+    // and it hasn't already been downgraded, set it to 1.
+    if (spoc_v2 === false && currentVersion === 2 && overrideVersion !== 1) {
+      this.store.dispatch(ac.SetPref(PREF_PERSONALIZATION_OVERRIDE_VERSION, 1));
+    }
+
+    // This is if we need to revert the downgrade and do cleanup.
+    if (spoc_v2 && overrideVersion === 1) {
+      this.store.dispatch({
+        type: at.CLEAR_PREF,
+        data: { name: PREF_PERSONALIZATION_OVERRIDE_VERSION },
+      });
+    }
+  }
+
   async loadSpocs(sendUpdate, isStartup) {
     const cachedData = (await this.cache.get()) || {};
     let spocsState;
@@ -637,7 +699,6 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
     let frequencyCapped = [];
     let blockedItems = [];
     let belowMinScore = [];
-    let flightDupes = [];
 
     const { placements } = this.store.getState().DiscoveryStream.spocs;
 
@@ -673,6 +734,12 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
               ...spocsResponse,
             },
           };
+
+          if (spocsResponse.settings && spocsResponse.settings.feature_flags) {
+            this.personalizationVersionOverride(
+              spocsResponse.settings.feature_flags.spoc_v2
+            );
+          }
 
           const spocsResultPromises = this.getPlacements().map(
             async placement => {
@@ -726,20 +793,12 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
               } = this.filterBlocked(capResult);
               blockedItems = [...blockedItems, ...blocks];
 
-              // It's important that we score before removing flight dupes.
-              // This ensure we remove the lower ranking dupes.
               const {
                 data: scoredResults,
                 filtered: minScoreFilter,
               } = await this.scoreItems(blockedResults, "spocs");
 
               belowMinScore = [...belowMinScore, ...minScoreFilter];
-
-              let {
-                data: dupesResult,
-                filtered: dupes,
-              } = this.removeFlightDupes(scoredResults);
-              flightDupes = [...flightDupes, ...dupes];
 
               spocsState.spocs = {
                 ...spocsState.spocs,
@@ -748,7 +807,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
                   context,
                   sponsor,
                   sponsored_by_override,
-                  items: dupesResult,
+                  items: scoredResults,
                 },
               };
             }
@@ -765,7 +824,6 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
               frequency_cap: frequencyCapped,
               blocked_by_user: blockedItems,
               below_min_score: belowMinScore,
-              flight_duplicate: flightDupes,
             },
             true
           );
@@ -792,6 +850,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
       data: {
         lastUpdated: spocsState.lastUpdated,
         spocs: spocsState.spocs,
+      },
+      meta: {
+        isStartup,
       },
     });
   }
@@ -820,7 +881,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
    * We can call this on startup because it's generally fast.
    * It reports to devtools the last time the data in the cache was updated.
    */
-  async loadAffinityScoresCache() {
+  async loadAffinityScoresCache(isStartup = false) {
     const cachedData = (await this.cache.get()) || {};
     const { affinities } = cachedData;
     if (this.personalized && affinities && affinities.scores) {
@@ -839,6 +900,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
           type: at.DISCOVERY_STREAM_PERSONALIZATION_LAST_UPDATED,
           data: {
             lastUpdated: this.domainAffinitiesLastUpdated,
+          },
+          meta: {
+            isStartup,
           },
         })
       );
@@ -963,38 +1027,6 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
       };
     }
     return { data, filtered };
-  }
-
-  removeFlightDupes(spocs) {
-    if (spocs && spocs.length) {
-      const spocsPerDomain =
-        this.store.getState().DiscoveryStream.spocs.spocs_per_domain || 1;
-      const flightMap = {};
-      const flightDuplicates = [];
-
-      // This removes flight dupes.
-      // We do this only after scoring and sorting because that way
-      // we can keep the first item we see, and end up keeping the highest scored.
-      const newSpocs = spocs.filter(s => {
-        if (!flightMap[s.flight_id]) {
-          flightMap[s.flight_id] = 1;
-          return true;
-        } else if (flightMap[s.flight_id] < spocsPerDomain) {
-          flightMap[s.flight_id]++;
-          return true;
-        }
-        flightDuplicates.push(s);
-        return false;
-      });
-      return {
-        data: newSpocs,
-        filtered: flightDuplicates,
-      };
-    }
-    return {
-      data: spocs,
-      filtered: [],
-    };
   }
 
   // For backwards compatibility, older spoc endpoint don't have flight_id,
@@ -1178,7 +1210,9 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
    * @param {RefreshAll} options
    */
   async refreshAll(options = {}) {
-    const affinityCacheLoadPromise = this.loadAffinityScoresCache();
+    const affinityCacheLoadPromise = this.loadAffinityScoresCache(
+      options.isStartup
+    );
 
     const spocsPersonalized = this.store.getState().Prefs.values[
       PREF_SPOCS_PERSONALIZED
@@ -1665,7 +1699,7 @@ this.DiscoveryStreamFeed = class DiscoveryStreamFeed {
       case at.INIT:
         // During the initialization of Firefox:
         // 1. Set-up listeners and initialize the redux state for config;
-        this.setupPrefs();
+        this.setupPrefs(true /* isStartup */);
         // 2. If config.enabled is true, start loading data.
         if (this.config.enabled) {
           await this.enable();
@@ -1880,7 +1914,6 @@ getHardcodedLayout = isBasicLayout => ({
   lastUpdate: Date.now(),
   spocs: {
     url: "https://spocs.getpocket.com/spocs",
-    spocs_per_domain: 3,
   },
   layout: [
     {
@@ -1936,7 +1969,7 @@ getHardcodedLayout = isBasicLayout => ({
             },
             link_url: "https://getpocket.com/firefox/new_tab_learn_more",
             icon:
-              "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
+              "chrome://activity-stream/content/data/content/assets/glyph-pocket-16.svg",
           },
           properties: {},
           styles: {
@@ -1960,7 +1993,7 @@ getHardcodedLayout = isBasicLayout => ({
           feed: {
             embed_reference: null,
             url:
-              "https://getpocket.cdn.mozilla.net/v3/firefox/global-recs?version=3&consumer_key=$apiKey&locale_lang=$locale&count=30",
+              "https://getpocket.cdn.mozilla.net/v3/firefox/global-recs?version=3&consumer_key=$apiKey&locale_lang=$locale&region=$region&count=30",
           },
           spocs: {
             probability: 1,
@@ -1990,17 +2023,17 @@ getHardcodedLayout = isBasicLayout => ({
                 url: "https://getpocket.com/explore/must-reads?src=fx_new_tab",
               },
               {
-                name: "Productivity",
+                name: "Self Improvement",
                 url:
-                  "https://getpocket.com/explore/productivity?src=fx_new_tab",
+                  "https://getpocket.com/explore/self-improvement?src=fx_new_tab",
               },
               {
                 name: "Health",
                 url: "https://getpocket.com/explore/health?src=fx_new_tab",
               },
               {
-                name: "Finance",
-                url: "https://getpocket.com/explore/finance?src=fx_new_tab",
+                name: "Business",
+                url: "https://getpocket.com/explore/business?src=fx_new_tab",
               },
               {
                 name: "Technology",

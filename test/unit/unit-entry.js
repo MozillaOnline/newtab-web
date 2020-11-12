@@ -45,6 +45,10 @@ const RemoteSettings = name => ({
 RemoteSettings.pollChanges = () => {};
 
 const TEST_GLOBAL = {
+  AboutReaderParent: {
+    addMessageListener: (messageName, listener) => {},
+    removeMessageListener: (messageName, listener) => {},
+  },
   AddonManager: {
     getActiveAddons() {
       return Promise.resolve({ addons: [], fullData: false });
@@ -62,6 +66,7 @@ const TEST_GLOBAL = {
     }
     post() {}
   },
+  browserSearchRegion: "US",
   BrowserWindowTracker: { getTopWindow() {} },
   ChromeUtils: {
     defineModuleGetter() {},
@@ -227,6 +232,11 @@ const TEST_GLOBAL = {
     // eslint-disable-next-line object-shorthand
     File: function() {}, // NB: This is a function/constructor
   },
+  Region: {
+    home: "US",
+    REGION_TOPIC: "browser-region",
+    REGION_UPDATED: "region-updated",
+  },
   Services: {
     dirsvc: {
       get: () => ({ parent: { parent: { path: "appPath" } } }),
@@ -319,17 +329,14 @@ const TEST_GLOBAL = {
         identifier: "google",
         searchForm:
           "https://www.google.com/search?q=&ie=utf-8&oe=utf-8&client=firefox-b",
-        wrappedJSObject: {
-          __internalAliases: ["@google"],
-        },
+        aliases: ["@google"],
       },
       defaultPrivateEngine: {
         identifier: "bing",
         searchForm: "https://www.bing.com",
-        wrappedJSObject: {
-          __internalAliases: ["@bing"],
-        },
+        aliases: ["@bing"],
       },
+      getEngineByAlias: () => null,
     },
     scriptSecurityManager: {
       createNullPrincipal() {},
@@ -424,6 +431,13 @@ const TEST_GLOBAL = {
         sessionId: "fake_session_id",
       };
     },
+  },
+  PageThumbs: {
+    addExpirationFilter() {},
+    removeExpirationFilter() {},
+  },
+  gUUIDGenerator: {
+    generateUUID: () => "{foo-123-foo}",
   },
 };
 overrider.set(TEST_GLOBAL);

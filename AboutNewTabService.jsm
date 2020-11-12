@@ -41,6 +41,10 @@ const { E10SUtils } = ChromeUtils.import(
   "resource://gre/modules/E10SUtils.jsm"
 );
 
+const { ExperimentAPI } = ChromeUtils.import(
+  "resource://messaging-system/experiments/ExperimentAPI.jsm"
+);
+
 /**
  * BEWARE: Do not add variables for holding state in the global scope.
  * Any state variables should be properties of the appropriate class
@@ -52,8 +56,10 @@ const { E10SUtils } = ChromeUtils.import(
 
 const PREF_ABOUT_HOME_CACHE_ENABLED =
   "browser.startup.homepage.abouthome_cache.enabled";
-const PREF_SEPARATE_ABOUT_WELCOME = "browser.aboutwelcome.enabled";
-const SEPARATE_ABOUT_WELCOME_URL =
+const PREF_ABOUT_HOME_CACHE_TESTING =
+  "browser.startup.homepage.abouthome_cache.testing";
+const PREF_ABOUT_WELCOME_ENABLED = "browser.aboutwelcome.enabled";
+const ABOUT_WELCOME_URL =
   "resource://activity-stream/aboutwelcome/aboutwelcome.html";
 
 ChromeUtils.defineModuleGetter(
@@ -86,6 +92,7 @@ const AboutHomeStartupCacheChild = {
   _initted: false,
   CACHE_REQUEST_MESSAGE: "AboutHomeStartupCache:CacheRequest",
   CACHE_RESPONSE_MESSAGE: "AboutHomeStartupCache:CacheResponse",
+  CACHE_USAGE_RESULT_MESSAGE: "AboutHomeStartupCache:UsageResult",
 
   /**
    * Called via a process script very early on in the process lifetime. This
@@ -118,6 +125,24 @@ const AboutHomeStartupCacheChild = {
     this._pageInputStream = pageInputStream;
     this._scriptInputStream = scriptInputStream;
     this._initted = true;
+  },
+
+  /**
+   * A function that lets us put the AboutHomeStartupCacheChild back into
+   * its initial state. This is used by tests to let us simulate the startup
+   * behaviour of the module without having to manually launch a new privileged
+   * about content process every time.
+   */
+  uninit() {
+    if (!Services.prefs.getBoolPref(PREF_ABOUT_HOME_CACHE_TESTING, false)) {
+      throw new Error(
+        "Cannot uninit AboutHomeStartupCacheChild unless testing."
+      );
+    }
+
+    this._pageInputStream = null;
+    this._scriptInputStream = null;
+    this._initted = false;
   },
 
   /**
@@ -159,10 +184,12 @@ const AboutHomeStartupCacheChild = {
           !this._scriptInputStream.available() ||
           !this._pageInputStream.available()
         ) {
+          this.reportUsageResult(false /* success */);
           return null;
         }
       } catch (e) {
         if (e.result === Cr.NS_BASE_STREAM_CLOSED) {
+          this.reportUsageResult(false /* success */);
           return null;
         }
         throw e;
@@ -178,6 +205,8 @@ const AboutHomeStartupCacheChild = {
     channel.contentStream = isScriptRequest
       ? this._scriptInputStream
       : this._pageInputStream;
+
+    this.reportUsageResult(true /* success */);
 
     return channel;
   },
@@ -203,7 +232,13 @@ const AboutHomeStartupCacheChild = {
 
     let worker = this.getOrCreateWorker();
 
-    let { page, script } = await worker.post("construct", [state]);
+    TelemetryStopwatch.start("FX_ABOUTHOME_CACHE_CONSTRUCTION");
+
+    let { page, script } = await worker
+      .post("construct", [state])
+      .finally(() => {
+        TelemetryStopwatch.finish("FX_ABOUTHOME_CACHE_CONSTRUCTION");
+      });
 
     let pageInputStream = Cc[
       "@mozilla.org/io/string-input-stream;1"
@@ -239,6 +274,12 @@ const AboutHomeStartupCacheChild = {
       this.constructAndSendCache(state);
     }
   },
+
+  reportUsageResult(success) {
+    Services.cpmm.sendAsyncMessage(this.CACHE_USAGE_RESULT_MESSAGE, {
+      success,
+    });
+  },
 };
 
 /**
@@ -260,8 +301,8 @@ class BaseAboutNewTabService {
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
-      "isSeparateAboutWelcome",
-      PREF_SEPARATE_ABOUT_WELCOME,
+      "isAboutWelcomePrefEnabled",
+      PREF_ABOUT_WELCOME_ENABLED,
       false
     );
 
@@ -274,8 +315,8 @@ class BaseAboutNewTabService {
 
     this.classID = Components.ID("{cb36c925-3adc-49b3-b720-a5cc49d8a40e}");
     this.QueryInterface = ChromeUtils.generateQI([
-      Ci.nsIAboutNewTabService,
-      Ci.nsIObserver,
+      "nsIAboutNewTabService",
+      "nsIObserver",
     ]);
   }
 
@@ -302,14 +343,19 @@ class BaseAboutNewTabService {
     ].join("");
   }
 
-  /*
-   * Returns the about:welcome URL
-   *
-   * This is calculated in the same way the default URL is.
-   */
   get welcomeURL() {
-    if (this.isSeparateAboutWelcome) {
-      return SEPARATE_ABOUT_WELCOME_URL;
+    /*
+     * Returns the about:welcome URL
+     *
+     * This is calculated in the same way the default URL is.
+     */
+
+    if (
+      this.isAboutWelcomePrefEnabled &&
+      // about:welcome should be enabled by default if no experiment exists.
+      ExperimentAPI.isFeatureEnabled("aboutwelcome", true)
+    ) {
+      return ABOUT_WELCOME_URL;
     }
     return this.defaultURL;
   }

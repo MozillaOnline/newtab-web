@@ -90,7 +90,6 @@ const USER_PREFS_ENCODING = {
 const PREF_IMPRESSION_ID = "impressionId";
 const TELEMETRY_PREF = "telemetry";
 const EVENTS_TELEMETRY_PREF = "telemetry.ut.events";
-const STRUCTURED_INGESTION_TELEMETRY_PREF = "telemetry.structuredIngestion";
 const STRUCTURED_INGESTION_ENDPOINT_PREF =
   "telemetry.structuredIngestion.endpoint";
 // List of namespaces for the structured ingestion system.
@@ -133,10 +132,6 @@ this.TelemetryFeed = class TelemetryFeed {
 
   get eventTelemetryEnabled() {
     return this._prefs.get(EVENTS_TELEMETRY_PREF);
-  }
-
-  get structuredIngestionTelemetryEnabled() {
-    return this._prefs.get(STRUCTURED_INGESTION_TELEMETRY_PREF);
   }
 
   get structuredIngestionEndpointBase() {
@@ -805,7 +800,7 @@ this.TelemetryFeed = class TelemetryFeed {
   }
 
   sendStructuredIngestionEvent(eventObject, namespace, pingType, version) {
-    if (this.telemetryEnabled && this.structuredIngestionTelemetryEnabled) {
+    if (this.telemetryEnabled) {
       this.pingCentre.sendStructuredIngestionPing(
         eventObject,
         this._generateStructuredIngestionEndpoint(namespace, pingType, version)
@@ -848,14 +843,6 @@ this.TelemetryFeed = class TelemetryFeed {
 
   handleUndesiredEvent(action) {
     this.sendEvent(this.createUndesiredEvent(action));
-  }
-
-  handleTrailheadEnrollEvent(action) {
-    // Unlike `sendUTEvent`, we always send the event if AS's telemetry is enabled
-    // regardless of `this.eventTelemetryEnabled`.
-    if (this.telemetryEnabled) {
-      this.utEvents.sendTrailheadEnrollEvent(action.data);
-    }
   }
 
   async sendPageTakeoverData() {
@@ -970,9 +957,6 @@ this.TelemetryFeed = class TelemetryFeed {
         break;
       case at.TELEMETRY_PERFORMANCE_EVENT:
         this.sendEvent(this.createPerformanceEvent(action));
-        break;
-      case at.TRAILHEAD_ENROLL_EVENT:
-        this.handleTrailheadEnrollEvent(action);
         break;
       case at.UNINIT:
         this.uninit();
@@ -1154,6 +1138,5 @@ const EXPORTED_SYMBOLS = [
   "PREF_IMPRESSION_ID",
   "TELEMETRY_PREF",
   "EVENTS_TELEMETRY_PREF",
-  "STRUCTURED_INGESTION_TELEMETRY_PREF",
   "STRUCTURED_INGESTION_ENDPOINT_PREF",
 ];
