@@ -36,6 +36,10 @@ const INITIAL_STATE = {
     // The list of available search shortcuts.
     searchShortcuts: [],
   },
+  MoCoCNPrefs: {
+    initialized: false,
+    values: {},
+  },
   Prefs: {
     initialized: false,
     values: { featureConfig: {} },
@@ -288,6 +292,20 @@ function Dialog(prevState = INITIAL_STATE.Dialog, action) {
       return Object.assign({}, prevState, { visible: false });
     case at.DELETE_HISTORY_URL:
       return Object.assign({}, INITIAL_STATE.Dialog);
+    default:
+      return prevState;
+  }
+}
+
+function MoCoCNPrefs(prevState = INITIAL_STATE.MoCoCNPrefs, action) {
+  let newValues;
+  switch (action.type) {
+    case at.MOCOCN_PREFS_INITIAL_VALUES:
+      return Object.assign({}, prevState, {initialized: true, values: action.data});
+    case at.MOCOCN_PREF_CHANGED:
+      newValues = Object.assign({}, prevState.values);
+      newValues[action.data.name] = action.data.value;
+      return Object.assign({}, prevState, {values: newValues});
     default:
       return prevState;
   }
@@ -843,6 +861,7 @@ const reducers = {
   App,
   ASRouter,
   Snippets,
+  MoCoCNPrefs,
   Prefs,
   Dialog,
   Sections,
