@@ -3,6 +3,7 @@ const {
   TopSites,
   App,
   Snippets,
+  MoCoCNPrefs,
   Prefs,
   Dialog,
   Sections,
@@ -261,6 +262,71 @@ describe("Reducers", () => {
       const oldState = { rows: [{ url: "foo.com" }, { url: "bar.com" }] };
       const nextState = TopSites(oldState, { type: at.SNIPPETS_PREVIEW_MODE });
       assert.lengthOf(nextState.rows, 0);
+    });
+  });
+  describe("MoCoCNPrefs", () => {
+    function prevState(custom = {}) {
+      return Object.assign({}, INITIAL_STATE.MoCoCNPrefs, custom);
+    }
+    it("should have the correct initial state", () => {
+      const state = MoCoCNPrefs(undefined, {});
+      assert.deepEqual(state, INITIAL_STATE.MoCoCNPrefs);
+    });
+    describe("MOCOCN_PREFS_INITIAL_VALUES", () => {
+      it("should return a new object", () => {
+        const state = MoCoCNPrefs(undefined, {
+          type: at.MOCOCN_PREFS_INITIAL_VALUES,
+          data: {},
+        });
+        assert.notEqual(
+          INITIAL_STATE.MoCoCNPrefs,
+          state,
+          "should not modify INITIAL_STATE"
+        );
+      });
+      it("should set initalized to true", () => {
+        const state = MoCoCNPrefs(undefined, {
+          type: at.MOCOCN_PREFS_INITIAL_VALUES,
+          data: {},
+        });
+        assert.isTrue(state.initialized);
+      });
+      it("should set .values", () => {
+        const newValues = { foo: 1, bar: 2 };
+        const state = MoCoCNPrefs(undefined, {
+          type: at.MOCOCN_PREFS_INITIAL_VALUES,
+          data: newValues,
+        });
+        assert.equal(state.values, newValues);
+      });
+    });
+    describe("MOCOCN_PREF_CHANGED", () => {
+      it("should return a new MoCoCNPrefs object", () => {
+        const state = MoCoCNPrefs(undefined, {
+          type: at.MOCOCN_PREF_CHANGED,
+          data: { name: "foo", value: 2 },
+        });
+        assert.notEqual(
+          INITIAL_STATE.MoCoCNPrefs,
+          state,
+          "should not modify INITIAL_STATE"
+        );
+      });
+      it("should set the changed pref", () => {
+        const state = MoCoCNPrefs(prevState({ foo: 1 }), {
+          type: at.MOCOCN_PREF_CHANGED,
+          data: { name: "foo", value: 2 },
+        });
+        assert.equal(state.values.foo, 2);
+      });
+      it("should return a new .pref object instead of mutating", () => {
+        const oldState = prevState({ foo: 1 });
+        const state = MoCoCNPrefs(oldState, {
+          type: at.MOCOCN_PREF_CHANGED,
+          data: { name: "foo", value: 2 },
+        });
+        assert.notEqual(oldState.values, state.values);
+      });
     });
   });
   describe("Prefs", () => {
