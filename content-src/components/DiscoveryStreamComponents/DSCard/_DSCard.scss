@@ -287,7 +287,7 @@ $excerpt-line-height: 20;
   .ds-card {
     // Temporary fix to have the context button focus blend in with other New Tab Experience context menu focus
     .context-menu-button {
-      &:is(:active, :focus) {
+      &:-moz-any(:active, :focus) {
         outline: 0;
         fill: var(--newtab-primary-action-background);
         border: 1px solid var(--newtab-primary-action-background);

@@ -249,7 +249,7 @@ $customize-menu-border-tint: 1px solid $newtab-card-tint;
     top: -20px;
     transition: opacity 200ms;
 
-    &:is(:active, :focus) {
+    &:-moz-any(:active, :focus) {
       outline: 0;
       opacity: 1;
       background-color: var(--newtab-topsites-context-menu-hover);
@@ -279,7 +279,7 @@ $customize-menu-border-tint: 1px solid $newtab-card-tint;
     transition-property: transform, opacity;
     width: $context-menu-button-size;
 
-    &:is(:active, :focus) {
+    &:-moz-any(:active, :focus) {
       opacity: 1;
       transform: scale(1);
     }
