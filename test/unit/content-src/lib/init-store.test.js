@@ -4,6 +4,7 @@ import {
   EARLY_QUEUED_ACTIONS,
   INCOMING_MESSAGE_NAME,
   initStore,
+  initMoCoCNPrefs,
   MERGE_STORE_ACTION,
   OUTGOING_MESSAGE_NAME,
   queueEarlyMessageMiddleware,
@@ -15,6 +16,7 @@ describe("initStore", () => {
   let store;
   beforeEach(() => {
     globals = new GlobalOverrider();
+    globals.set("addEventListener", globals.sandbox.spy());
     globals.set("RPMSendAsyncMessage", globals.sandbox.spy());
     globals.set("RPMAddMessageListener", globals.sandbox.spy());
     store = initStore({ number: addNumberReducer });
@@ -53,6 +55,38 @@ describe("initStore", () => {
 
     assert.calledOnce(global.console.error);
   });
+  [
+    { event: { key: "otherprefix.test", oldValue: 0, newValue: 1 }, shouldDispatch: false },
+    { event: { key: "redux.test", oldValue: 1, newValue: 1 }, shouldDispatch: false },
+    { event: { key: "redux.test", oldValue: 1, newValue: 2 }, shouldDispatch: true },
+  ].forEach(({ event, shouldDispatch }) => {
+    it(`should add a storage listener that may dispatch actions for ${event.key}: ${event.oldValue} => ${event.newValue}`, () => {
+      assert.calledWith(global.addEventListener, "storage");
+      const [, listener] = global.addEventListener.firstCall.args;
+      globals.sandbox.spy(store, "dispatch");
+
+      listener(event);
+
+      if (shouldDispatch) {
+        assert.calledWith(store.dispatch, {
+          type: at.MOCOCN_PREF_CHANGED,
+          data: { name: event.key, value: event.newValue }
+        });
+      } else {
+        assert.notCalled(store.dispatch);
+      }
+    });
+  });
+  it("should log errors from failed event handlers", () => {
+    const [, listener] = global.addEventListener.firstCall.args;
+    globals.sandbox.stub(global.console, "error");
+    globals.sandbox.stub(store, "dispatch").throws(Error("failed"));
+
+    const event = { key: "redux.test", oldValue: 0, newValue: 1 };
+    listener(event);
+
+    assert.calledOnce(global.console.error);
+  });
   it("should replace the state if a MERGE_STORE_ACTION is dispatched", () => {
     store.dispatch({ type: MERGE_STORE_ACTION, data: { number: 42 } });
     assert.deepEqual(store.getState(), { number: 42 });
@@ -84,6 +118,17 @@ describe("initStore", () => {
       action
     );
     assert.notCalled(subscriber);
+  });
+  it("should persist a MOCOCN_SET_PREF action into localStorage", () => {
+    // stub `Storage.prototype` instead of `localStorage` per advice from
+    // https://github.com/jasmine/jasmine/issues/299#issuecomment-78126524
+    globals.sandbox.stub(global.Storage.prototype, "setItem");
+    const action = {
+      type: at.MOCOCN_SET_PREF,
+      data: { name: "redux.test", value: 1 },
+    };
+    store.dispatch(action);
+    assert.calledOnce(global.localStorage.setItem);
   });
   it("should not send out other types of actions", () => {
     store.dispatch({ type: "FOO" });
@@ -200,5 +245,49 @@ describe("initStore", () => {
         assert.calledWith(next, action);
       });
     });
+  });
+  describe("initMoCoCNPrefs", () => {
+    it("should read values from localStorage", () => {
+      globals.sandbox.stub(global.Storage.prototype, "getItem").returns("1");
+      globals.sandbox.stub(store, "dispatch");
+
+      initMoCoCNPrefs(store);
+
+      assert.calledThrice(global.localStorage.getItem);
+      assert.calledOnce(store.dispatch);
+      assert.calledWith(store.dispatch, {
+        type: at.MOCOCN_PREFS_INITIAL_VALUES,
+        data: {
+          "redux.promo.both.hideUntil": 1,
+          "redux.promo.left.hideUntil": 1,
+          "redux.promo.right.hideUntil": 1,
+        }
+      });
+    });
+
+    it("should not throw if data in localStorage is not valid JSON", () => {
+      globals.sandbox.stub(global.Storage.prototype, "getItem").returns("Invalid JSON");
+      globals.sandbox.stub(store, "dispatch");
+
+      assert.doesNotThrow(() => { initMoCoCNPrefs(store) });
+      assert.calledOnce(store.dispatch);
+      assert.calledWith(store.dispatch, {
+        type: at.MOCOCN_PREFS_INITIAL_VALUES,
+        data: {
+          "redux.promo.both.hideUntil": 0,
+          "redux.promo.left.hideUntil": 0,
+          "redux.promo.right.hideUntil": 0,
+        }
+      });
+    });
+
+    it("should log errors if dispatching initial values failed but not throw", () => {
+      globals.sandbox.stub(global.console, "error");
+      globals.sandbox.stub(store, "dispatch").throws(Error("failed"));
+
+      assert.doesNotThrow(() => { initMoCoCNPrefs(store) });
+      assert.calledOnce(global.console.error);
+    });
+
   });
 });
