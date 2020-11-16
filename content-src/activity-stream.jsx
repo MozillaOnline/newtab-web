@@ -17,7 +17,7 @@ import {
 } from "common/Actions.sys.mjs";
 import { Base } from "content-src/components/Base/Base";
 import { DetectUserSessionStart } from "content-src/lib/detect-user-session-start";
-import { initStore } from "content-src/lib/init-store";
+import { initStore, initMoCoCNPrefs } from "content-src/lib/init-store";
 import { Provider } from "react-redux";
 import React from "react";
 import ReactDOM from "react-dom";
@@ -66,6 +66,7 @@ export const NewTab = ({ store }) => (
 
 export function renderWithoutState() {
   const store = initStore(reducers);
+  initMoCoCNPrefs(store);
   new DetectUserSessionStart(store).sendEventOrAddListener();
 
   // If this document has already gone into the background by the time we've reached
@@ -95,6 +96,7 @@ export function renderWithoutState() {
 
 export function renderCache(initialState) {
   const store = initStore(reducers, initialState);
+  initMoCoCNPrefs(store);
   new DetectUserSessionStart(store).sendEventOrAddListener();
 
   ReactDOM.hydrate(<NewTab store={store} />, document.getElementById("root"));
