@@ -55,6 +55,28 @@ const messageMiddleware = store => next => action => {
   }
 };
 
+const localStorageMiddleware = store => next => action => {
+  // Make this an au.is*** check?
+  if (action.type === at.MOCOCN_SET_PREF) {
+    /* istanbul ignore else */
+    if (global.localStorage) {
+      global.localStorage.setItem(action.data.name, action.data.value);
+    }
+
+    // Maybe this?
+    let newAction = Object.assign({}, action, {
+      type: at.MOCOCN_PREF_CHANGED,
+    });
+    try {
+      store.dispatch(newAction);
+    } catch (ex) {
+      /* istanbul ignore next */
+      console.error("Storage changed:", action, "Dispatch error: ", ex); // eslint-disable-line no-console
+    }
+  }
+  next(action);
+};
+
 export const rehydrationMiddleware = ({ getState }) => {
   // NB: The parameter here is MiddlewareAPI which looks like a Store and shares
   // the same getState, so attached properties are accessible from the store.
@@ -152,7 +174,8 @@ export function initStore(reducers, initialState) {
       applyMiddleware(
         queueEarlyMessageMiddleware,
         rehydrationMiddleware,
-        messageMiddleware
+        messageMiddleware,
+        localStorageMiddleware
       )
   );
 
@@ -171,5 +194,61 @@ export function initStore(reducers, initialState) {
     });
   }
 
+  /* istanbul ignore else */
+  if (global.localStorage) {
+    const keyPrefix = "redux.";
+    global.addEventListener("storage", event => {
+      if (!event.key.startsWith(keyPrefix) ||
+          event.oldValue === event.newValue) {
+        return;
+      }
+
+      let action = {
+        type: at.MOCOCN_PREF_CHANGED,
+        data: {
+          name: event.key,
+          value: event.newValue,
+        },
+      };
+      try {
+        store.dispatch(action);
+      } catch (ex) {
+        console.error("Storage changed:", action, "Dispatch error: ", ex); // eslint-disable-line no-console
+        dump(
+          `Storage changed: ${JSON.stringify(action)}\nDispatch error: ${ex}\n${
+            ex.stack
+          }`
+        );
+      }
+    });
+  }
+
   return store;
+}
+
+export function initMoCoCNPrefs(store) {
+  /* istanbul ignore else */
+  if (global.localStorage) {
+    try {
+      let results = {};
+      for (let key of [
+        "redux.promo.both.hideUntil",
+        "redux.promo.left.hideUntil",
+        "redux.promo.right.hideUntil",
+      ]) {
+        try {
+          results[key] = JSON.parse(global.localStorage.getItem(key) || "0");
+        } catch (ex) {
+          results[key] = 0;
+        }
+      }
+      store.dispatch({
+        type: at.MOCOCN_PREFS_INITIAL_VALUES,
+        data: results,
+      });
+    } catch (ex) {
+      console.error("Dispatch error: ", ex); // eslint-disable-line no-console
+      dump(`Dispatch error: ${ex}\n${ex.stack}`);
+    }
+  }
 }
