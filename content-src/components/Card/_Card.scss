@@ -11,7 +11,7 @@
   position: relative;
   width: 100%;
 
-  &:is(:focus):not(.placeholder) {
+  &:-moz-any(:focus):not(.placeholder) {
     @include ds-focus;
 
     transition: none;
@@ -45,13 +45,13 @@
     position: absolute;
     width: 100%;
 
-    &:is(:focus) {
+    &:-moz-any(:focus) {
       .card {
         @include ds-focus;
       }
     }
 
-    &:is(.active, :focus) {
+    &:-moz-any(.active, :focus) {
       .card {
         @include fade-in-card;
       }
@@ -62,7 +62,7 @@
     }
   }
 
-  &:is(:hover, :focus, .active):not(.placeholder) {
+  &:-moz-any(:hover, :focus, .active):not(.placeholder) {
     @include context-menu-button-hover;
 
     outline: none;

@@ -179,7 +179,7 @@ $customize-menu-border-tint: 1px solid rgba(0, 0, 0, 15%);
     transition-property: transform, opacity;
     width: $context-menu-button-size;
 
-    &:is(:active, :focus) {
+    &:-moz-any(:active, :focus) {
       opacity: 1;
       transform: scale(1);
     }

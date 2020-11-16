@@ -2,11 +2,11 @@
   .ds-top-sites {
     .top-sites {
       .top-site-outer {
-        .top-site-inner > a:is(.active, :focus) .tile {
+        .top-site-inner > a:-moz-any(.active, :focus) .tile {
           @include ds-focus;
         }
 
-        .top-site-inner > a:is(:hover) .top-site-inner {
+        .top-site-inner > a:-moz-any(:hover) .top-site-inner {
           @include ds-fade-in(var(--newtab-background-color-secondary));
         }
       }
