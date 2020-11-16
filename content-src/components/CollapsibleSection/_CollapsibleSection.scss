@@ -65,7 +65,7 @@
       transition-property: opacity;
       width: $context-menu-button-size;
 
-      &:is(:active, :focus, :hover) {
+      &:-moz-any(:active, :focus, :hover) {
         fill: var(--newtab-section-header-text-color);
         opacity: 1;
       }

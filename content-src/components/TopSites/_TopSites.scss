@@ -88,7 +88,7 @@ $hover-transition-duration: 150ms;
   }
 
   &:not(.dnd-active) {
-    .top-site-outer:is(.active, :focus, :hover) {
+    .top-site-outer:-moz-any(.active, :focus, :hover) {
       .tile {
         @include fade-in;
       }
@@ -112,7 +112,7 @@ $hover-transition-duration: 150ms;
       display: block;
       outline: none;
 
-      &:is(.active, :focus) {
+      &:-moz-any(.active, :focus) {
         .tile {
           @include fade-in;
         }
