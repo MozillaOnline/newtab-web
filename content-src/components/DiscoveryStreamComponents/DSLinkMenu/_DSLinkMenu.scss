@@ -22,7 +22,7 @@
     }
   }
 
-  &:is(:hover, :focus, .active) {
+  &:-moz-any(:hover, :focus, .active) {
     @include context-menu-button-hover;
     outline: none;
 
