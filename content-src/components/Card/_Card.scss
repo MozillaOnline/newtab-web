@@ -4,7 +4,7 @@
   .card-outer {
     border-radius: $border-radius-new;
 
-    &:is(:focus):not(.placeholder) {
+    &:-moz-any(:focus):not(.placeholder) {
       @include ds-focus-nte;
 
       transition: none;
@@ -26,7 +26,7 @@
 
     // Temporary fix to have the context button focus blend in with other New Tab Experience context menu focus
     .context-menu-button {
-      &:is(:active, :focus) {
+      &:-moz-any(:active, :focus) {
         outline: 0;
         fill: var(--newtab-primary-action-background);
         border: 1px solid var(--newtab-primary-action-background);
@@ -34,7 +34,7 @@
     }
 
     > a {
-      &:is(:focus) {
+      &:-moz-any(:focus) {
         .card {
           @include ds-focus-nte;
         }
@@ -45,7 +45,7 @@
 
 .outer-wrapper:not(.newtab-experience) {
   .card-outer {
-    &:is(:hover, :focus, .active):not(.placeholder) {
+    &:-moz-any(:hover, :focus, .active):not(.placeholder) {
       @include fade-in-card;
     }
   }
@@ -88,7 +88,7 @@
     position: absolute;
     width: 100%;
 
-    &:is(.active, :focus) {
+    &:-moz-any(.active, :focus) {
       .card {
         @include fade-in-card;
       }
@@ -99,7 +99,7 @@
     }
   }
 
-  &:is(:hover, :focus, .active):not(.placeholder) {
+  &:-moz-any(:hover, :focus, .active):not(.placeholder) {
     @include context-menu-button-hover;
     outline: none;
 

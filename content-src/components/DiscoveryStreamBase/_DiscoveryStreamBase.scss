@@ -62,7 +62,7 @@ $ds-width: 936px;
       color: var(--newtab-link-primary-color);
       font-weight: normal;
 
-      &:is(:focus, :hover) {
+      &:-moz-any(:focus, :hover) {
         text-decoration: underline;
       }
     }
