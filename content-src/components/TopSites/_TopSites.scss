@@ -17,7 +17,7 @@ $letter-fallback-color: $white;
   padding: 0;
 
   &:not(.dnd-active) {
-    .top-site-outer:is(.active, :focus, :hover) {
+    .top-site-outer:-moz-any(.active, :focus, :hover) {
       background: var(--newtab-element-hover-color);
     }
   }
@@ -111,7 +111,7 @@ $letter-fallback-color: $white;
     }
   }
 
-  &:is(:hover) {
+  &:-moz-any(:hover) {
     .context-menu-button {
       opacity: 1;
     }
@@ -132,7 +132,7 @@ $letter-fallback-color: $white;
     top: -20px;
     transition: opacity 200ms;
 
-    &:is(:active, :focus) {
+    &:-moz-any(:active, :focus) {
       outline: 0;
       opacity: 1;
       background-color: var(--newtab-element-hover-color);
