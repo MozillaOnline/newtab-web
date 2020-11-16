@@ -409,13 +409,13 @@ body {
       transition: 0.4s opacity, 0.4s translate;
     }
 
-    &.in :is(.colorway-text, .variation-button) {
+    &.in :-moz-any(.colorway-text, .variation-button) {
       opacity: 0;
       transition: none;
       translate: 0 calc(var(--translate) / -3);
     }
 
-    &.out :is(.colorway-text, .variation-button) {
+    &.out :-moz-any(.colorway-text, .variation-button) {
       opacity: 0;
       translate: 0 calc(var(--translate) / 3);
     }

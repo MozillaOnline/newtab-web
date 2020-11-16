@@ -357,12 +357,12 @@ body[lwt-newtab-brighttext] {
 .onboardingContainer .colorway-variations .variation-button {
   transition: 0.4s opacity, 0.4s translate;
 }
-.onboardingContainer .colorway-variations.in :is(.colorway-text, .variation-button) {
+.onboardingContainer .colorway-variations.in :-moz-any(.colorway-text, .variation-button) {
   opacity: 0;
   transition: none;
   translate: 0 calc(var(--translate) / -3);
 }
-.onboardingContainer .colorway-variations.out :is(.colorway-text, .variation-button) {
+.onboardingContainer .colorway-variations.out :-moz-any(.colorway-text, .variation-button) {
   opacity: 0;
   translate: 0 calc(var(--translate) / 3);
 }
