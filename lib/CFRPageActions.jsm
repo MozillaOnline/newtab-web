@@ -37,7 +37,7 @@ const SUMO_BASE_URL = Services.urlFormatter.formatURLPref(
   "app.support.baseURL"
 );
 const ADDONS_API_URL =
-  "https://services.addons.mozilla.org/api/v3/addons/addon";
+  "https://services.addons.mozilla.org/api/v4/addons/addon";
 
 const DELAY_BEFORE_EXPAND_MS = 1000;
 const CATEGORY_ICONS = {
@@ -65,7 +65,7 @@ let PageActionMap = new WeakMap();
  * We need one PageAction for each window
  */
 class PageAction {
-  constructor(win, dispatchToASRouter) {
+  constructor(win, dispatchCFRAction) {
     this.window = win;
 
     this.urlbar = win.gURLBar; // The global URLBar object
@@ -79,7 +79,7 @@ class PageAction {
 
     // This should NOT be use directly to dispatch message-defined actions attached to buttons.
     // Please use dispatchUserAction instead.
-    this._dispatchToASRouter = dispatchToASRouter;
+    this._dispatchCFRAction = dispatchCFRAction;
 
     this._popupStateChange = this._popupStateChange.bind(this);
     this._collapse = this._collapse.bind(this);
@@ -283,25 +283,25 @@ class PageAction {
   }
 
   dispatchUserAction(action) {
-    this._dispatchToASRouter(
+    this._dispatchCFRAction(
       { type: "USER_ACTION", data: action },
-      { browser: this.window.gBrowser.selectedBrowser }
+      this.window.gBrowser.selectedBrowser
     );
   }
 
   _dispatchImpression(message) {
-    this._dispatchToASRouter({ type: "IMPRESSION", data: message });
+    this._dispatchCFRAction({ type: "IMPRESSION", data: message });
   }
 
   _sendTelemetry(ping) {
-    this._dispatchToASRouter({
+    this._dispatchCFRAction({
       type: "DOORHANGER_TELEMETRY",
       data: { action: "cfr_user_event", source: "CFR", ...ping },
     });
   }
 
   _blockMessage(messageID) {
-    this._dispatchToASRouter({
+    this._dispatchCFRAction({
       type: "BLOCK_MESSAGE_BY_ID",
       data: { id: messageID },
     });
@@ -420,19 +420,16 @@ class PageAction {
           args: { total: users },
         })
       );
-      footerUsers.removeAttribute("hidden");
+      footerUsers.hidden = false;
     } else {
       // Prevent whitespace around empty label from affecting other spacing
-      footerUsers.setAttribute("hidden", true);
+      footerUsers.hidden = true;
       footerUsers.removeAttribute("value");
     }
 
     // Spacer pushes the link to the opposite end when there's other content
-    if (rating || users) {
-      footerSpacer.removeAttribute("hidden");
-    } else {
-      footerSpacer.setAttribute("hidden", true);
-    }
+
+    footerSpacer.hidden = !rating && !users;
   }
 
   _createElementAndAppend({ type, id }, parent) {
@@ -521,17 +518,8 @@ class PageAction {
 
     let { content, id } = message;
     let { primary, secondary } = content.buttons;
-
-    let dateFormat = new Services.intl.DateTimeFormat(
-      this.window.gBrowser.ownerGlobal.navigator.language,
-      {
-        month: "long",
-        year: "numeric",
-      }
-    ).format;
-
     let earliestDate = await TrackingDBService.getEarliestRecordedDate();
-    let monthName = dateFormat(new Date(earliestDate));
+    let timestamp = new Date().getTime(earliestDate);
     let panelTitle = "";
     let headerLabel = this.window.document.getElementById(
       "cfr-notification-header-label"
@@ -551,7 +539,7 @@ class PageAction {
         content: message.content.heading_text,
         attributes: {
           blockedCount: reachedMilestone,
-          date: monthName,
+          date: timestamp,
         },
       })
     );
@@ -915,7 +903,7 @@ class PageAction {
   _executeNotifierAction(browser, message) {
     switch (message.content.layout) {
       case "chiclet_open_url":
-        this._dispatchToASRouter(
+        this._dispatchCFRAction(
           {
             type: "USER_ACTION",
             data: {
@@ -1074,21 +1062,21 @@ const CFRPageActions = {
    * Force a recommendation to be shown. Should only happen via the Admin page.
    * @param browser                 The browser for the recommendation
    * @param recommendation  The recommendation to show
-   * @param dispatchToASRouter      A function to dispatch resulting actions to
+   * @param dispatchCFRAction      A function to dispatch resulting actions to
    * @return                        Did adding the recommendation succeed?
    */
-  async forceRecommendation(browser, recommendation, dispatchToASRouter) {
+  async forceRecommendation(browser, recommendation, dispatchCFRAction) {
     // If we are forcing via the Admin page, the browser comes in a different format
-    const win = browser.browser.ownerGlobal;
+    const win = browser.ownerGlobal;
     const { id, content, personalizedModelVersion } = recommendation;
-    RecommendationMap.set(browser.browser, {
+    RecommendationMap.set(browser, {
       id,
       content,
       retain: true,
       modelVersion: personalizedModelVersion,
     });
     if (!PageActionMap.has(win)) {
-      PageActionMap.set(win, new PageAction(win, dispatchToASRouter));
+      PageActionMap.set(win, new PageAction(win, dispatchCFRAction));
     }
 
     if (content.skip_address_bar_notifier) {
@@ -1110,10 +1098,10 @@ const CFRPageActions = {
    * @param browser                 The browser for the recommendation
    * @param host                    The host for the recommendation
    * @param recommendation  The recommendation to show
-   * @param dispatchToASRouter      A function to dispatch resulting actions to
+   * @param dispatchCFRAction      A function to dispatch resulting actions to
    * @return                        Did adding the recommendation succeed?
    */
-  async addRecommendation(browser, host, recommendation, dispatchToASRouter) {
+  async addRecommendation(browser, host, recommendation, dispatchCFRAction) {
     const win = browser.ownerGlobal;
     if (PrivateBrowsingUtils.isWindowPrivate(win)) {
       return false;
@@ -1138,7 +1126,7 @@ const CFRPageActions = {
       modelVersion: personalizedModelVersion,
     });
     if (!PageActionMap.has(win)) {
-      PageActionMap.set(win, new PageAction(win, dispatchToASRouter));
+      PageActionMap.set(win, new PageAction(win, dispatchCFRAction));
     }
 
     if (content.skip_address_bar_notifier) {

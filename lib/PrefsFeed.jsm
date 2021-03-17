@@ -6,6 +6,9 @@
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.import(
   "resource://activity-stream/common/Actions.jsm"
 );
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
 const { Prefs } = ChromeUtils.import(
   "resource://activity-stream/lib/ActivityStreamPrefs.jsm"
 );
@@ -23,10 +26,24 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/AppConstants.jsm"
 );
 
+XPCOMUtils.defineLazyGetter(this, "aboutNewTabFeature", () => {
+  const { ExperimentFeature } = ChromeUtils.import(
+    "resource://nimbus/ExperimentAPI.jsm"
+  );
+  return new ExperimentFeature("newtab");
+});
+
+ChromeUtils.defineModuleGetter(
+  this,
+  "Region",
+  "resource://gre/modules/Region.jsm"
+);
+
 this.PrefsFeed = class PrefsFeed {
   constructor(prefMap) {
     this._prefMap = prefMap;
     this._prefs = new Prefs();
+    this.onExperimentUpdated = this.onExperimentUpdated.bind(this);
   }
 
   onPrefChanged(name, value) {
@@ -62,8 +79,26 @@ this.PrefsFeed = class PrefsFeed {
     this._prefMap.set(key, { value });
   }
 
+  /**
+   * Handler for when experiment data updates.
+   */
+  onExperimentUpdated(event, reason) {
+    const value = aboutNewTabFeature.getValue() || {};
+    this.store.dispatch(
+      ac.BroadcastToContent({
+        type: at.PREF_CHANGED,
+        data: {
+          name: "featureConfig",
+          value,
+        },
+      })
+    );
+  }
+
   init() {
     this._prefs.observeBranch(this);
+    aboutNewTabFeature.onUpdate(this.onExperimentUpdated);
+
     this._storage = this.store.dbStorage.getDbTable("sectionPrefs");
 
     // Get the initial value of each activity stream pref
@@ -76,6 +111,16 @@ this.PrefsFeed = class PrefsFeed {
     // computed in main process
     values.isPrivateBrowsingEnabled = PrivateBrowsingUtils.enabled;
     values.platform = AppConstants.platform;
+
+    // Save the geo pref if we have it
+    if (Region.home) {
+      values.region = Region.home;
+      this.geo = values.region;
+    } else if (this.geo !== "") {
+      // Watch for geo changes and use a dummy value for now
+      Services.obs.addObserver(this, Region.REGION_TOPIC);
+      this.geo = "";
+    }
 
     // Get the firefox accounts url for links and to send firstrun metrics to.
     values.fxa_endpoint = Services.prefs.getStringPref(
@@ -101,6 +146,10 @@ this.PrefsFeed = class PrefsFeed {
       value: searchTopSiteExperimentPrefValue,
     });
 
+    values.mayHaveSponsoredTopSites = Services.prefs.getBoolPref(
+      "browser.topsites.useRemoteSetting"
+    );
+
     // Read the pref for search hand-off from firefox.js and store it
     // in our interal list of prefs to watch
     let handoffToAwesomebarPrefValue = Services.prefs.getBoolPref(
@@ -111,6 +160,9 @@ this.PrefsFeed = class PrefsFeed {
       value: handoffToAwesomebarPrefValue,
     });
 
+    // Add experiment values and default values
+    values.featureConfig = aboutNewTabFeature.getValue() || {};
+    this._setBoolPref(values, "logowordmark.alwaysVisible", false);
     this._setBoolPref(values, "feeds.section.topstories", false);
     this._setBoolPref(values, "discoverystream.enabled", false);
     this._setBoolPref(values, "discoverystream.isCollectionDismissible", false);
@@ -125,6 +177,8 @@ this.PrefsFeed = class PrefsFeed {
     this._setIntPref(values, "discoverystream.personalization.version", 1);
     this._setIntPref(values, "discoverystream.personalization.overrideVersion");
     this._setStringPref(values, "discoverystream.spocs-endpoint", "");
+    this._setStringPref(values, "discoverystream.spocs-endpoint-query", "");
+    this._setStringPref(values, "newNewtabExperience.colors", "");
 
     // Set the initial state of all prefs in redux
     this.store.dispatch(
@@ -138,8 +192,16 @@ this.PrefsFeed = class PrefsFeed {
     );
   }
 
+  uninit() {
+    this.removeListeners();
+  }
+
   removeListeners() {
     this._prefs.ignoreBranch(this);
+    aboutNewTabFeature.off(this.onExperimentUpdated);
+    if (this.geo === "") {
+      Services.obs.removeObserver(this, Region.REGION_TOPIC);
+    }
   }
 
   async _setIndexedDBPref(id, value) {
@@ -151,13 +213,26 @@ this.PrefsFeed = class PrefsFeed {
     }
   }
 
+  observe(subject, topic, data) {
+    switch (topic) {
+      case Region.REGION_TOPIC:
+        this.store.dispatch(
+          ac.BroadcastToContent({
+            type: at.PREF_CHANGED,
+            data: { name: "region", value: Region.home },
+          })
+        );
+        break;
+    }
+  }
+
   onAction(action) {
     switch (action.type) {
       case at.INIT:
         this.init();
         break;
       case at.UNINIT:
-        this.removeListeners();
+        this.uninit();
         break;
       case at.CLEAR_PREF:
         Services.prefs.clearUserPref(this._prefs._branchStr + action.data.name);

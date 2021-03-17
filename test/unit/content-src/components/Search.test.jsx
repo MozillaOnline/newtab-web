@@ -3,7 +3,10 @@ import { mount, shallow } from "enzyme";
 import React from "react";
 import { _Search as Search } from "content-src/components/Search/Search";
 
-const DEFAULT_PROPS = { dispatch() {} };
+const DEFAULT_PROPS = {
+  dispatch() {},
+  Prefs: { values: { featureConfig: {} } },
+};
 
 describe("<Search>", () => {
   let globals;
@@ -75,6 +78,18 @@ describe("<Search>", () => {
     const [action] = dispatch.firstCall.args;
     assert.isUserEventAction(action);
     assert.propertyVal(action.data, "event", "SEARCH");
+  });
+  it("should show our logo when the prop exists.", () => {
+    const showLogoProps = Object.assign({}, DEFAULT_PROPS, { showLogo: true });
+
+    const wrapper = shallow(<Search {...showLogoProps} />);
+    assert.lengthOf(wrapper.find(".logo-and-wordmark"), 1);
+  });
+  it("should not show our logo when the prop does not exist.", () => {
+    const hideLogoProps = Object.assign({}, DEFAULT_PROPS, { showLogo: false });
+
+    const wrapper = shallow(<Search {...hideLogoProps} />);
+    assert.lengthOf(wrapper.find(".logo-and-wordmark"), 0);
   });
 
   describe("Search Hand-off", () => {

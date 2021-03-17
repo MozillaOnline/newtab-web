@@ -306,7 +306,7 @@ add_task(async function check_needsUpdate() {
 
 add_task(async function checksearchEngines() {
   const result = await ASRouterTargeting.Environment.searchEngines;
-  const expectedInstalled = (await Services.search.getDefaultEngines())
+  const expectedInstalled = (await Services.search.getAppProvidedEngines())
     .map(engine => engine.identifier)
     .sort()
     .join(",");
@@ -344,7 +344,7 @@ add_task(async function checksearchEngines() {
   const message2 = {
     id: "foo",
     targeting: `searchEngines[${
-      (await Services.search.getDefaultEngines())[0].identifier
+      (await Services.search.getAppProvidedEngines())[0].identifier
     } in .installed]`,
   };
   is(
@@ -836,7 +836,7 @@ add_task(async function check_blockedCountByType() {
 add_task(async function checkCFRPinnedTabsTargetting() {
   const now = Date.now();
   const timeMinutesAgo = numMinutes => now - numMinutes * 60 * 1000;
-  const messages = CFRMessageProvider.getMessages();
+  const messages = await CFRMessageProvider.getMessages();
   const trigger = {
     id: "frequentVisits",
     context: {
@@ -911,8 +911,8 @@ add_task(async function checkPatternMatches() {
 });
 
 add_task(async function checkPatternsValid() {
-  const messages = CFRMessageProvider.getMessages().filter(
-    m => m.trigger.patterns
+  const messages = (await CFRMessageProvider.getMessages()).filter(
+    m => m.trigger?.patterns
   );
 
   for (const message of messages) {
@@ -1113,7 +1113,9 @@ add_task(async function check_newTabSettings_webExtension() {
 
 add_task(async function check_openUrlTrigger_context() {
   const message = {
-    ...CFRMessageProvider.getMessages().find(m => m.id === "YOUTUBE_ENHANCE_3"),
+    ...(await CFRMessageProvider.getMessages()).find(
+      m => m.id === "YOUTUBE_ENHANCE_3"
+    ),
     targeting: "visitsCount == 3",
   };
   const trigger = {

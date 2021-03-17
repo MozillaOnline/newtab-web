@@ -44,7 +44,38 @@ const RemoteSettings = name => ({
 });
 RemoteSettings.pollChanges = () => {};
 
+class JSWindowActorParent {
+  sendAsyncMessage(name, data) {
+    return { name, data };
+  }
+}
+
+class JSWindowActorChild {
+  sendAsyncMessage(name, data) {
+    return { name, data };
+  }
+
+  sendQuery(name, data) {
+    return Promise.resolve({ name, data });
+  }
+
+  get contentWindow() {
+    return {
+      Promise,
+    };
+  }
+}
+
+class ExperimentFeature {
+  isEnabled() {}
+  getValue() {}
+  onUpdate() {}
+  off() {}
+}
+
 const TEST_GLOBAL = {
+  JSWindowActorParent,
+  JSWindowActorChild,
   AboutReaderParent: {
     addMessageListener: (messageName, listener) => {},
     removeMessageListener: (messageName, listener) => {},
@@ -234,8 +265,7 @@ const TEST_GLOBAL = {
   },
   Region: {
     home: "US",
-    REGION_TOPIC: "browser-region",
-    REGION_UPDATED: "region-updated",
+    REGION_TOPIC: "browser-region-updated",
   },
   Services: {
     dirsvc: {
@@ -261,6 +291,7 @@ const TEST_GLOBAL = {
       setEventRecordingEnabled: () => {},
       recordEvent: eventDetails => {},
       scalarSet: () => {},
+      keyedScalarAdd: () => {},
     },
     console: { logStringMessage: () => {} },
     prefs: {
@@ -336,7 +367,7 @@ const TEST_GLOBAL = {
         searchForm: "https://www.bing.com",
         aliases: ["@bing"],
       },
-      getEngineByAlias: () => null,
+      getEngineByAlias: async () => null,
     },
     scriptSecurityManager: {
       createNullPrincipal() {},
@@ -406,9 +437,20 @@ const TEST_GLOBAL = {
     },
   },
   FX_MONITOR_OAUTH_CLIENT_ID: "fake_client_id",
+  ExperimentAPI: {
+    getExperiment() {},
+    on: () => {},
+    off: () => {},
+  },
+  ExperimentFeature,
   TelemetryEnvironment: {
     setExperimentActive() {},
-    currentEnvironment: { profile: { creationDate: 16587 } },
+    currentEnvironment: {
+      profile: {
+        creationDate: 16587,
+      },
+      settings: {},
+    },
   },
   TelemetryStopwatch: {
     start: () => {},

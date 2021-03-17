@@ -100,11 +100,6 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
-  "ASRouterFeed",
-  "resource://activity-stream/lib/ASRouterFeed.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
   "DiscoveryStreamFeed",
   "resource://activity-stream/lib/DiscoveryStreamFeed.jsm"
 );
@@ -419,20 +414,6 @@ const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "asrouter.userprefs.cfr.addons",
-    {
-      title: "Does the user allow CFR addon recommendations?",
-      value: true,
-    },
-  ],
-  [
-    "asrouter.userprefs.cfr.features",
-    {
-      title: "Does the user allow CFR feature recommendations?",
-      value: true,
-    },
-  ],
-  [
     "asrouter.providers.onboarding",
     {
       title: "Configuration for onboarding provider",
@@ -674,12 +655,6 @@ const FEEDS_DATA = [
     value: true,
   },
   {
-    name: "asrouterfeed",
-    factory: () => new ASRouterFeed(),
-    title: "Handles AS Router messages, such as snippets and onboaridng",
-    value: true,
-  },
-  {
     name: "recommendationproviderswitcher",
     factory: () => new RecommendationProviderSwitcher(),
     title: "Handles switching between two types of personality providers",
@@ -856,9 +831,7 @@ this.ActivityStream = class ActivityStream {
   observe(subject, topic, data) {
     switch (topic) {
       case Region.REGION_TOPIC:
-        if (data === Region.REGION_UPDATED) {
-          this._updateDynamicPrefs();
-        }
+        this._updateDynamicPrefs();
         break;
     }
   }

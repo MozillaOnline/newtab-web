@@ -1,11 +1,13 @@
 import { CFRMessageProvider } from "lib/CFRMessageProvider.jsm";
 import CFRDoorhangerSchema from "content-src/asrouter/templates/CFR/templates/ExtensionDoorhanger.schema.json";
 import CFRChicletSchema from "content-src/asrouter/templates/CFR/templates/CFRUrlbarChiclet.schema.json";
+import InfoBarSchema from "content-src/asrouter/templates/CFR/templates/InfoBar.schema.json";
 
 const SCHEMAS = {
   cfr_urlbar_chiclet: CFRChicletSchema,
   cfr_doorhanger: CFRDoorhangerSchema,
   milestone_message: CFRDoorhangerSchema,
+  infobar: InfoBarSchema,
 };
 
 const DEFAULT_CONTENT = {
@@ -87,8 +89,8 @@ describe("ExtensionDoorhanger", () => {
   it("should validate L10N_CONTENT", () => {
     assert.jsonSchema(L10N_CONTENT, CFRDoorhangerSchema);
   });
-  it("should validate all messages from CFRMessageProvider", () => {
-    const messages = CFRMessageProvider.getMessages();
+  it("should validate all messages from CFRMessageProvider", async () => {
+    const messages = await CFRMessageProvider.getMessages();
     messages.forEach(msg =>
       assert.jsonSchema(msg.content, SCHEMAS[msg.template])
     );

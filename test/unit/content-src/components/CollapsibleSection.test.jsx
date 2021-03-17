@@ -1,5 +1,5 @@
 import { actionTypes as at } from "common/Actions.jsm";
-import { CollapsibleSection } from "content-src/components/CollapsibleSection/CollapsibleSection";
+import { _CollapsibleSection as CollapsibleSection } from "content-src/components/CollapsibleSection/CollapsibleSection";
 import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
 import { mount } from "enzyme";
 import React from "react";
@@ -10,12 +10,14 @@ const DEFAULT_PROPS = {
   title: "Cool Section",
   prefName: "collapseSection",
   collapsed: false,
+  eventSource: "foo",
   document: {
     addEventListener: () => {},
     removeEventListener: () => {},
     visibilityState: "visible",
   },
   dispatch: () => {},
+  Prefs: { values: { featureConfig: {} } },
 };
 
 describe("CollapsibleSection", () => {
@@ -52,6 +54,38 @@ describe("CollapsibleSection", () => {
         .first()
         .hasClass("collapsed")
     );
+  });
+
+  it("should fire a MENU_COLLAPSE user event when section title is clicked", done => {
+    function dispatch(a) {
+      if (a.type === "TELEMETRY_USER_EVENT") {
+        assert.equal(a.data.event, "MENU_COLLAPSE");
+        assert.equal(a.data.source, "foo");
+        done();
+      }
+    }
+
+    setup({ dispatch });
+    wrapper
+      .find(".click-target")
+      .at(0)
+      .simulate("click");
+  });
+
+  it("should fire a MENU_EXPAND user event when section title is collapsed", done => {
+    function dispatch(a) {
+      if (a.type === "TELEMETRY_USER_EVENT") {
+        assert.equal(a.data.event, "MENU_EXPAND");
+        assert.equal(a.data.source, "foo");
+        done();
+      }
+    }
+
+    setup({ dispatch, collapsed: true });
+    wrapper
+      .find(".click-target")
+      .at(0)
+      .simulate("click");
   });
 
   it("should fire a pref change event when section title is clicked", done => {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Localized } from "./MSLocalized";
 import { Zap } from "./Zap";
 import { AboutWelcomeUtils } from "../../lib/aboutwelcome-utils";
@@ -53,18 +53,19 @@ export const MultiStageAboutWelcome = props => {
 
   // Transition to next screen, opening about:home on last screen button CTA
   const handleTransition =
-    index < props.screens.length
-      ? useCallback(() => setScreenIndex(prevState => prevState + 1), [])
-      : AboutWelcomeUtils.handleUserAction({
-          type: "OPEN_ABOUT_PAGE",
-          data: { args: "home", where: "current" },
-        });
+    index < props.screens.length - 1
+      ? () => setScreenIndex(prevState => prevState + 1)
+      : () =>
+          AboutWelcomeUtils.handleUserAction({
+            type: "OPEN_ABOUT_PAGE",
+            data: { args: "home", where: "current" },
+          });
 
   // Update top sites with default sites by region when region is available
   const [region, setRegion] = useState(null);
   useEffect(() => {
     (async () => {
-      setRegion(await window.AWWaitForRegionChange());
+      setRegion(await window.AWGetRegion());
     })();
   }, []);
 
@@ -82,19 +83,19 @@ export const MultiStageAboutWelcome = props => {
 
   const useImportable = props.message_id.includes("IMPORTABLE");
   // Track whether we have already sent the importable sites impression telemetry
-  const [importTelemetrySent, setImportTelemetrySent] = useState(null);
+  const importTelemetrySent = useRef(false);
   const [topSites, setTopSites] = useState([]);
   useEffect(() => {
     (async () => {
       let DEFAULT_SITES = await window.AWGetDefaultSites();
       const importable = JSON.parse(await window.AWGetImportableSites());
       const showImportable = useImportable && importable.length >= 5;
-      if (!importTelemetrySent) {
+      if (!importTelemetrySent.current) {
         AboutWelcomeUtils.sendImpressionTelemetry(`${props.message_id}_SITES`, {
           display: showImportable ? "importable" : "static",
           importable: importable.length,
         });
-        setImportTelemetrySent(true);
+        importTelemetrySent.current = true;
       }
       setTopSites(
         showImportable
@@ -135,6 +136,7 @@ export class WelcomeScreen extends React.PureComponent {
   constructor(props) {
     super(props);
     this.handleAction = this.handleAction.bind(this);
+    this.state = { alternateContent: "" };
   }
 
   handleOpenURL(action, flowParams, UTMTerm) {
@@ -192,6 +194,25 @@ export class WelcomeScreen extends React.PureComponent {
       }
     }
 
+    // Wait until we become default browser to continue rest of action.
+    if (action.waitForDefault) {
+      // Update the UI to show additional "waiting" content.
+      this.setState({ alternateContent: "waiting_for_default" });
+
+      // Keep checking frequently as we want the UI to be responsive.
+      await new Promise(resolve =>
+        (async function checkDefault() {
+          if (await window.AWIsDefaultBrowser()) {
+            resolve();
+          } else {
+            setTimeout(checkDefault, 100);
+          }
+        })()
+      );
+
+      AboutWelcomeUtils.sendActionTelemetry(props.messageId, "default_browser");
+    }
+
     // A special tiles.action.theme value indicates we should use the event's value vs provided value.
     if (action.theme) {
       let themeToUse =
@@ -208,18 +229,19 @@ export class WelcomeScreen extends React.PureComponent {
     }
   }
 
-  renderSecondaryCTA(className) {
+  renderSecondaryCTA(position) {
+    let targetElement = position
+      ? `secondary_button_${position}`
+      : `secondary_button`;
     return (
-      <div
-        className={className ? `secondary-cta ${className}` : `secondary-cta`}
-      >
-        <Localized text={this.props.content.secondary_button.text}>
+      <div className={position ? `secondary-cta ${position}` : "secondary-cta"}>
+        <Localized text={this.props.content[targetElement].text}>
           <span />
         </Localized>
-        <Localized text={this.props.content.secondary_button.label}>
+        <Localized text={this.props.content[targetElement].label}>
           <button
             className="secondary"
-            value="secondary_button"
+            value={targetElement}
             onClick={this.handleAction}
           />
         </Localized>
@@ -240,7 +262,7 @@ export class WelcomeScreen extends React.PureComponent {
               className="tiles-topsites-section"
               name="topsites-section"
               id="topsites-section"
-              aria-labelledby="topsites-disclaimer"
+              aria-labelledby="helptext"
               role="region"
             >
               {this.props.topSites.data
@@ -341,6 +363,21 @@ export class WelcomeScreen extends React.PureComponent {
             />
           </div>
         ) : null;
+      case "image":
+        return this.props.content.tiles.source ? (
+          <div className={`${this.props.content.tiles.media_type}`}>
+            <img
+              src={
+                AboutWelcomeUtils.hasDarkMode() &&
+                this.props.content.tiles.source.dark
+                  ? this.props.content.tiles.source.dark
+                  : this.props.content.tiles.source.default
+              }
+              role="presentation"
+              alt=""
+            />
+          </div>
+        ) : null;
     }
     return null;
   }
@@ -354,30 +391,38 @@ export class WelcomeScreen extends React.PureComponent {
     return steps;
   }
 
-  renderDisclaimer() {
-    if (
-      this.props.content.tiles &&
-      this.props.content.tiles.type === "topsites" &&
-      this.props.topSites &&
-      this.props.topSites.showImportable
-    ) {
-      return (
-        <Localized text={this.props.content.disclaimer}>
-          <p id="topsites-disclaimer" className="tiles-topsites-disclaimer" />
-        </Localized>
-      );
-    }
-    return null;
+  renderHelpText() {
+    return (
+      <Localized text={this.props.content.help_text.text}>
+        <p
+          id="helptext"
+          className={`helptext ${this.props.content.help_text.position}`}
+        />
+      </Localized>
+    );
   }
 
   render() {
+    // Use the provided content or switch to an alternate one.
     const { content, topSites } = this.props;
-    const hasSecondaryTopCTA =
-      content.secondary_button && content.secondary_button.position === "top";
+    if (content[this.state.alternateContent]) {
+      Object.assign(content, content[this.state.alternateContent]);
+    }
+
+    const showImportableSitesDisclaimer =
+      content.tiles &&
+      content.tiles.type === "topsites" &&
+      topSites &&
+      topSites.showImportable;
+
     return (
       <main className={`screen ${this.props.id}`}>
-        {hasSecondaryTopCTA ? this.renderSecondaryCTA("top") : null}
-        <div className={`brand-logo ${hasSecondaryTopCTA ? "cta-top" : ""}`} />
+        {content.secondary_button_top ? this.renderSecondaryCTA("top") : null}
+        <div
+          className={`brand-logo ${
+            content.secondary_button_top ? "cta-top" : ""
+          }`}
+        />
         <div className="welcome-text">
           <Zap hasZap={content.zap} text={content.title} />
           <Localized text={content.subtitle}>
@@ -396,16 +441,15 @@ export class WelcomeScreen extends React.PureComponent {
             />
           </Localized>
         </div>
-        {content.secondary_button && content.secondary_button.position !== "top"
-          ? this.renderSecondaryCTA()
+        {content.help_text && content.help_text.position === "default"
+          ? this.renderHelpText()
           : null}
+        {content.secondary_button ? this.renderSecondaryCTA() : null}
         <nav
           className={
-            content.tiles &&
-            content.tiles.type === "topsites" &&
-            topSites &&
-            topSites.showImportable
-              ? "steps has-disclaimer"
+            (content.help_text && content.help_text.position === "footer") ||
+            showImportableSitesDisclaimer
+              ? "steps has-helptext"
               : "steps"
           }
           data-l10n-id={"onboarding-welcome-steps-indicator"}
@@ -417,7 +461,10 @@ export class WelcomeScreen extends React.PureComponent {
           <p />
           {this.renderStepsIndicator()}
         </nav>
-        {this.renderDisclaimer()}
+        {(content.help_text && content.help_text.position === "footer") ||
+        showImportableSitesDisclaimer
+          ? this.renderHelpText()
+          : null}
       </main>
     );
   }

@@ -2,13 +2,16 @@ import { PanelTestProvider } from "lib/PanelTestProvider.jsm";
 import schema from "content-src/asrouter/schemas/panel/cfr-fxa-bookmark.schema.json";
 import update_schema from "content-src/asrouter/templates/OnboardingMessage/UpdateAction.schema.json";
 import whats_new_schema from "content-src/asrouter/templates/OnboardingMessage/WhatsNewMessage.schema.json";
-const messages = PanelTestProvider.getMessages();
 
 describe("PanelTestProvider", () => {
+  let messages;
+  beforeEach(async () => {
+    messages = await PanelTestProvider.getMessages();
+  });
   it("should have a message", () => {
     // Careful: when changing this number make sure that new messages also go
     // through schema verifications.
-    assert.lengthOf(messages, 18);
+    assert.lengthOf(messages, 13);
   });
   it("should be a valid message", () => {
     const fxaMessages = messages.filter(

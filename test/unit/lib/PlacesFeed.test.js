@@ -1,7 +1,7 @@
 import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
 import { GlobalOverrider } from "test/unit/utils";
 import { PlacesFeed } from "lib/PlacesFeed.jsm";
-const { HistoryObserver, BookmarksObserver, PlacesObserver } = PlacesFeed;
+const { BookmarksObserver, PlacesObserver } = PlacesFeed;
 
 const FAKE_BOOKMARK = {
   bookmarkGuid: "xi31",
@@ -38,6 +38,9 @@ describe("PlacesFeed", () => {
         deletePocketEntry: sandbox.spy(() => Promise.resolve()),
         archivePocketEntry: sandbox.spy(() => Promise.resolve()),
       },
+    });
+    globals.set("PartnerLinkAttribution", {
+      makeRequest: sandbox.spy(),
     });
     sandbox
       .stub(global.PlacesUtils.bookmarks, "TYPE_BOOKMARK")
@@ -79,16 +82,6 @@ describe("PlacesFeed", () => {
   });
   afterEach(() => globals.restore());
 
-  it("should have a HistoryObserver that dispatches to the store", () => {
-    assert.instanceOf(feed.historyObserver, HistoryObserver);
-    const action = { type: "FOO" };
-
-    feed.historyObserver.dispatch(action);
-
-    assert.calledOnce(feed.store.dispatch);
-    assert.equal(feed.store.dispatch.firstCall.args[0].type, action.type);
-  });
-
   it("should have a BookmarksObserver that dispatch to the store", () => {
     assert.instanceOf(feed.bookmarksObserver, BookmarksObserver);
     const action = { type: "FOO" };
@@ -113,18 +106,18 @@ describe("PlacesFeed", () => {
       feed.onAction({ type: at.INIT });
 
       assert.calledWith(
-        global.PlacesUtils.history.addObserver,
-        feed.historyObserver,
-        true
-      );
-      assert.calledWith(
         global.PlacesUtils.bookmarks.addObserver,
         feed.bookmarksObserver,
         true
       );
       assert.calledWith(
         global.PlacesUtils.observers.addListener,
-        ["bookmark-added", "bookmark-removed"],
+        [
+          "bookmark-added",
+          "bookmark-removed",
+          "history-cleared",
+          "page-removed",
+        ],
         feed.placesObserver.handlePlacesEvent
       );
       assert.calledWith(global.Services.obs.addObserver, feed, BLOCKED_EVENT);
@@ -137,16 +130,17 @@ describe("PlacesFeed", () => {
       feed.onAction({ type: at.UNINIT });
 
       assert.calledWith(
-        global.PlacesUtils.history.removeObserver,
-        feed.historyObserver
-      );
-      assert.calledWith(
         global.PlacesUtils.bookmarks.removeObserver,
         feed.bookmarksObserver
       );
       assert.calledWith(
         global.PlacesUtils.observers.removeListener,
-        ["bookmark-added", "bookmark-removed"],
+        [
+          "bookmark-added",
+          "bookmark-removed",
+          "history-cleared",
+          "page-removed",
+        ],
         feed.placesObserver.handlePlacesEvent
       );
       assert.calledWith(
@@ -396,7 +390,7 @@ describe("PlacesFeed", () => {
       assert.equal(url.endsWith("sponsor-privacy"), true);
       assert.equal(where, "tab");
     });
-    it("should set the URL bar value to the label value", () => {
+    it("should set the URL bar value to the label value", async () => {
       const locationBar = { search: sandbox.stub() };
       const action = {
         type: at.FILL_SEARCH_TERM,
@@ -404,10 +398,11 @@ describe("PlacesFeed", () => {
         _target: { browser: { ownerGlobal: { gURLBar: locationBar } } },
       };
 
-      feed.fillSearchTopSiteTerm(action);
+      await feed.fillSearchTopSiteTerm(action);
 
       assert.calledOnce(locationBar.search);
       assert.calledWithExactly(locationBar.search, "@Foo", {
+        searchEngine: null,
         searchModeEntry: "topsites_newtab",
       });
     });
@@ -564,6 +559,22 @@ describe("PlacesFeed", () => {
       feed.onAction(action);
       assert.calledWith(feed.handoffSearchToAwesomebar, action);
     });
+    it("should call makeAttributionRequest on PARTNER_LINK_ATTRIBUTION", () => {
+      sinon.stub(feed, "makeAttributionRequest");
+      let data = { targetURL: "https://partnersite.com", source: "topsites" };
+      feed.onAction({
+        type: at.PARTNER_LINK_ATTRIBUTION,
+        data,
+      });
+
+      assert.calledOnce(feed.makeAttributionRequest);
+      assert.calledWithExactly(feed.makeAttributionRequest, data);
+    });
+    it("should call PartnerLinkAttribution.makeRequest when calling makeAttributionRequest", () => {
+      let data = { targetURL: "https://partnersite.com", source: "topsites" };
+      feed.makeAttributionRequest(data);
+      assert.calledOnce(global.PartnerLinkAttribution.makeRequest);
+    });
   });
 
   describe("handoffSearchToAwesomebar", () => {
@@ -616,6 +627,7 @@ describe("PlacesFeed", () => {
       });
       assert.calledOnce(fakeUrlBar.search);
       assert.calledWith(fakeUrlBar.search, "@google foo", {
+        searchEngine: global.Services.search.defaultEngine,
         searchModeEntry: "handoff",
       });
       assert.notCalled(fakeUrlBar.focus);
@@ -643,6 +655,7 @@ describe("PlacesFeed", () => {
       });
       assert.calledOnce(fakeUrlBar.search);
       assert.calledWith(fakeUrlBar.search, "@bing foo", {
+        searchEngine: global.Services.search.defaultPrivateEngine,
         searchModeEntry: "handoff",
       });
       assert.notCalled(fakeUrlBar.focus);
@@ -670,6 +683,7 @@ describe("PlacesFeed", () => {
       });
       assert.calledOnce(fakeUrlBar.search);
       assert.calledWithExactly(fakeUrlBar.search, "@google foo", {
+        searchEngine: global.Services.search.defaultEngine,
         searchModeEntry: "handoff",
       });
       assert.notCalled(fakeUrlBar.focus);
@@ -696,6 +710,7 @@ describe("PlacesFeed", () => {
       });
       assert.calledOnce(fakeUrlBar.search);
       assert.calledWithExactly(fakeUrlBar.search, "foo", {
+        searchEngine: global.Services.search.defaultEngine,
         searchModeEntry: "handoff",
       });
     });
@@ -715,45 +730,6 @@ describe("PlacesFeed", () => {
     it("should not call dispatch if the topic is something other than BLOCKED_EVENT", () => {
       feed.observe(null, "someotherevent");
       assert.notCalled(feed.store.dispatch);
-    });
-  });
-
-  describe("HistoryObserver", () => {
-    let dispatch;
-    let observer;
-    beforeEach(() => {
-      dispatch = sandbox.spy();
-      observer = new HistoryObserver(dispatch);
-    });
-    it("should have a QueryInterface property", () => {
-      assert.property(observer, "QueryInterface");
-    });
-    describe("#onDeleteURI", () => {
-      it("should dispatch a PLACES_LINK_DELETED action with the right url", async () => {
-        await observer.onDeleteURI({ spec: "foo.com" });
-
-        assert.calledWith(dispatch, {
-          type: at.PLACES_LINK_DELETED,
-          data: { url: "foo.com" },
-        });
-      });
-    });
-    describe("#onClearHistory", () => {
-      it("should dispatch a PLACES_HISTORY_CLEARED action", () => {
-        observer.onClearHistory();
-        assert.calledWith(dispatch, { type: at.PLACES_HISTORY_CLEARED });
-      });
-    });
-    describe("Other empty methods (to keep code coverage happy)", () => {
-      it("should have a various empty functions for xpconnect happiness", () => {
-        observer.onBeginUpdateBatch();
-        observer.onEndUpdateBatch();
-        observer.onTitleChanged();
-        observer.onFrecencyChanged();
-        observer.onManyFrecenciesChanged();
-        observer.onPageChanged();
-        observer.onDeleteVisits();
-      });
     });
   });
 
@@ -807,10 +783,16 @@ describe("PlacesFeed", () => {
         )
       );
     });
-    it("should only dispatch 1 PLACES_LINKS_CHANGED action if any onDeleteURI notifications happened at once", async () => {
-      await feed.historyObserver.onDeleteURI({ spec: "foo.com" });
-      await feed.historyObserver.onDeleteURI({ spec: "foo1.com" });
-      await feed.historyObserver.onDeleteURI({ spec: "foo2.com" });
+    it("should only dispatch 1 PLACES_LINKS_CHANGED action if any page-removed notifications happened at once", async () => {
+      await feed.placesObserver.handlePlacesEvent([
+        { type: "page-removed", url: "foo.com", isRemovedFromStore: true },
+      ]);
+      await feed.placesObserver.handlePlacesEvent([
+        { type: "page-removed", url: "foo1.com", isRemovedFromStore: true },
+      ]);
+      await feed.placesObserver.handlePlacesEvent([
+        { type: "page-removed", url: "foo2.com", isRemovedFromStore: true },
+      ]);
 
       assert.calledOnce(
         feed.store.dispatch.withArgs(
@@ -827,6 +809,32 @@ describe("PlacesFeed", () => {
       dispatch = sandbox.spy();
       observer = new PlacesObserver(dispatch);
     });
+
+    describe("#history-cleared", () => {
+      it("should dispatch a PLACES_HISTORY_CLEARED action", async () => {
+        const args = [{ type: "history-cleared" }];
+        await observer.handlePlacesEvent(args);
+        assert.calledWith(dispatch, { type: at.PLACES_HISTORY_CLEARED });
+      });
+    });
+
+    describe("#page-removed", () => {
+      it("should dispatch a PLACES_LINK_DELETED action with the right url", async () => {
+        const args = [
+          {
+            type: "page-removed",
+            url: "foo.com",
+            isRemovedFromStore: true,
+          },
+        ];
+        await observer.handlePlacesEvent(args);
+        assert.calledWith(dispatch, {
+          type: at.PLACES_LINK_DELETED,
+          data: { url: "foo.com" },
+        });
+      });
+    });
+
     describe("#bookmark-added", () => {
       it("should dispatch a PLACES_BOOKMARK_ADDED action with the bookmark data - http", async () => {
         const args = [
@@ -999,7 +1007,7 @@ describe("PlacesFeed", () => {
         await observer.handlePlacesEvent(args);
         assert.notCalled(dispatch);
       });
-      it("should not dispatch a PLACES_BOOKMARK_REMOVED action - has SYNC source", async () => {
+      it("should not dispatch a PLACES_BOOKMARKS_REMOVED action - has SYNC source", async () => {
         const args = [
           {
             id: null,
@@ -1017,7 +1025,7 @@ describe("PlacesFeed", () => {
 
         assert.notCalled(dispatch);
       });
-      it("should not dispatch a PLACES_BOOKMARK_REMOVED action - has IMPORT source", async () => {
+      it("should not dispatch a PLACES_BOOKMARKS_REMOVED action - has IMPORT source", async () => {
         const args = [
           {
             id: null,
@@ -1035,7 +1043,7 @@ describe("PlacesFeed", () => {
 
         assert.notCalled(dispatch);
       });
-      it("should not dispatch a PLACES_BOOKMARK_REMOVED action - has RESTORE source", async () => {
+      it("should not dispatch a PLACES_BOOKMARKS_REMOVED action - has RESTORE source", async () => {
         const args = [
           {
             id: null,
@@ -1053,7 +1061,7 @@ describe("PlacesFeed", () => {
 
         assert.notCalled(dispatch);
       });
-      it("should not dispatch a PLACES_BOOKMARK_REMOVED action - has RESTORE_ON_STARTUP source", async () => {
+      it("should not dispatch a PLACES_BOOKMARKS_REMOVED action - has RESTORE_ON_STARTUP source", async () => {
         const args = [
           {
             id: null,
@@ -1071,7 +1079,7 @@ describe("PlacesFeed", () => {
 
         assert.notCalled(dispatch);
       });
-      it("should dispatch a PLACES_BOOKMARK_REMOVED action with the right URL and bookmarkGuid", async () => {
+      it("should dispatch a PLACES_BOOKMARKS_REMOVED action with the right URL and bookmarkGuid", async () => {
         const args = [
           {
             id: null,
@@ -1087,8 +1095,8 @@ describe("PlacesFeed", () => {
         ];
         await observer.handlePlacesEvent(args);
         assert.calledWith(dispatch, {
-          type: at.PLACES_BOOKMARK_REMOVED,
-          data: { bookmarkGuid: "123foo", url: "foo.com" },
+          type: at.PLACES_BOOKMARKS_REMOVED,
+          data: { urls: ["foo.com"] },
         });
       });
     });
@@ -1108,7 +1116,6 @@ describe("PlacesFeed", () => {
       it("should have a various empty functions for xpconnect happiness", () => {
         observer.onBeginUpdateBatch();
         observer.onEndUpdateBatch();
-        observer.onItemVisited();
         observer.onItemMoved();
         observer.onItemChanged();
       });

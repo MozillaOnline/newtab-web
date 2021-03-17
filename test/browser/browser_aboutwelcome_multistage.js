@@ -1,10 +1,10 @@
 "use strict";
 
 const { ExperimentAPI } = ChromeUtils.import(
-  "resource://messaging-system/experiments/ExperimentAPI.jsm"
+  "resource://nimbus/ExperimentAPI.jsm"
 );
 const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/MSTestUtils.jsm"
+  "resource://testing-common/NimbusTestUtils.jsm"
 );
 
 const SEPARATE_ABOUT_WELCOME_PREF = "browser.aboutwelcome.enabled";
@@ -45,8 +45,10 @@ const TEST_MULTISTAGE_CONTENT = {
           },
         },
         secondary_button: {
+          label: "link",
+        },
+        secondary_button_top: {
           label: "link top",
-          position: "top",
           action: {
             type: "SHOW_FIREFOX_ACCOUNTS",
             data: { entrypoint: "test" },
@@ -60,7 +62,6 @@ const TEST_MULTISTAGE_CONTENT = {
       content: {
         zap: true,
         title: "Step 2 longzaptest",
-        disclaimer: "test",
         tiles: {
           type: "topsites",
           info: true,
@@ -73,7 +74,6 @@ const TEST_MULTISTAGE_CONTENT = {
         },
         secondary_button: {
           label: "link",
-          position: "bottom",
         },
       },
     },
@@ -82,11 +82,30 @@ const TEST_MULTISTAGE_CONTENT = {
       order: 2,
       content: {
         title: "Step 3",
+        tiles: {
+          type: "image",
+          media_type: "test-img",
+          source: {
+            default:
+              "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHBhdGggZmlsbD0iIzQ1YTFmZiIgZmlsbC1vcGFjaXR5PSJjb250ZXh0LWZpbGwtb3BhY2l0eSIgZD0iTTE1Ljg0NSA2LjA2NEExLjEgMS4xIDAgMCAwIDE1IDUuMzMxTDEwLjkxMSA0LjYgOC45ODUuNzM1YTEuMSAxLjEgMCAwIDAtMS45NjkgMEw1LjA4OSA0LjZsLTQuMDgxLjcyOWExLjEgMS4xIDAgMCAwLS42MTUgMS44MzRMMy4zMiAxMC4zMWwtLjYwOSA0LjM2YTEuMSAxLjEgMCAwIDAgMS42IDEuMTI3TDggMTMuODczbDMuNjkgMS45MjdhMS4xIDEuMSAwIDAgMCAxLjYtMS4xMjdsLS42MS00LjM2MyAyLjkyNi0zLjE0NmExLjEgMS4xIDAgMCAwIC4yMzktMS4xeiIvPjwvc3ZnPg==",
+          },
+        },
         primary_button: {
           label: "Next",
           action: {
             navigate: true,
           },
+        },
+        secondary_button: {
+          label: "Import",
+          action: {
+            type: "SHOW_MIGRATION_WIZARD",
+            data: { source: "chrome" },
+          },
+        },
+        help_text: {
+          text: "Here's some sample help text",
+          position: "default",
         },
       },
     },
@@ -186,10 +205,9 @@ async function onButtonClick(browser, elementId) {
  */
 add_task(async function test_multistage_zeroOnboarding_experimentAPI() {
   await setAboutWelcomePref(true);
-  let updatePromise = ExperimentFakes.waitForExperimentUpdate(
-    ExperimentAPI,
-    "mochitest-1-aboutwelcome"
-  );
+  let updatePromise = ExperimentFakes.waitForExperimentUpdate(ExperimentAPI, {
+    slug: "mochitest-1-aboutwelcome",
+  });
   ExperimentAPI._store.addExperiment({
     slug: "mochitest-1-aboutwelcome",
     branch: {
@@ -236,10 +254,9 @@ add_task(async function test_multistage_zeroOnboarding_experimentAPI() {
 add_task(async function test_multistage_aboutwelcome_experimentAPI() {
   await setAboutWelcomePref(true);
   await setAboutWelcomeMultiStage({});
-  let updatePromise = ExperimentFakes.waitForExperimentUpdate(
-    ExperimentAPI,
-    "mochitest-aboutwelcome"
-  );
+  let updatePromise = ExperimentFakes.waitForExperimentUpdate(ExperimentAPI, {
+    slug: "mochitest-aboutwelcome",
+  });
   ExperimentAPI._store.addExperiment({
     slug: "mochitest-aboutwelcome",
     branch: {
@@ -276,8 +293,10 @@ add_task(async function test_multistage_aboutwelcome_experimentAPI() {
       "main.AW_STEP1",
       "h1.welcomeZap",
       "span.zap.short",
+      "div.secondary-cta",
       "div.secondary-cta.top",
-      "button.secondary",
+      "button[value='secondary_button']",
+      "button[value='secondary_button_top']",
       "label.theme",
       "input[type='radio']",
       "div.indicator.current",
@@ -294,13 +313,13 @@ add_task(async function test_multistage_aboutwelcome_experimentAPI() {
     [
       "div.onboardingContainer",
       "main.AW_STEP2",
-      "button.secondary",
+      "button[value='secondary_button']",
       "h1.welcomeZap",
       "span.zap.long",
       "div.tiles-container.info",
     ],
     // Unexpected selectors:
-    ["main.AW_STEP1", "main.AW_STEP3", "div.secondary-cta.top"]
+    ["main.AW_STEP1", "main.AW_STEP3", "div.secondary-cta.top", "div.test-img"]
   );
   await onButtonClick(browser, "button.primary");
   await test_screen_content(
@@ -312,6 +331,8 @@ add_task(async function test_multistage_aboutwelcome_experimentAPI() {
       "main.AW_STEP3",
       "div.brand-logo",
       "div.welcome-text",
+      "p.helptext",
+      "div.test-img",
     ],
     // Unexpected selectors:
     ["main.AW_STEP1", "main.AW_STEP2"]
@@ -345,8 +366,10 @@ add_task(async function test_Multistage_About_Welcome_branches() {
       "main.AW_STEP1",
       "h1.welcomeZap",
       "span.zap.short",
+      "div.secondary-cta",
       "div.secondary-cta.top",
-      "button.secondary",
+      "button[value='secondary_button']",
+      "button[value='secondary_button_top']",
       "label.theme",
       "input[type='radio']",
       "div.indicator.current",
@@ -365,7 +388,7 @@ add_task(async function test_Multistage_About_Welcome_branches() {
       "main.AW_STEP2",
       "h1.welcomeZap",
       "span.zap.long",
-      "button.secondary",
+      "button[value='secondary_button']",
       "div.tiles-container.info",
     ],
     // Unexpected selectors:
@@ -413,8 +436,10 @@ add_task(async function test_Multistage_About_Welcome_navigation() {
     [
       "div.onboardingContainer",
       "main.AW_STEP1",
+      "div.secondary-cta",
       "div.secondary-cta.top",
-      "button.secondary",
+      "button[value='secondary_button']",
+      "button[value='secondary_button_top']",
       "div.indicator.current",
     ],
     // Unexpected selectors:
@@ -426,7 +451,11 @@ add_task(async function test_Multistage_About_Welcome_navigation() {
     browser,
     "multistage step 2",
     // Expected selectors:
-    ["div.onboardingContainer", "main.AW_STEP2", "button.secondary"],
+    [
+      "div.onboardingContainer",
+      "main.AW_STEP2",
+      "button[value='secondary_button']",
+    ],
     // Unexpected selectors:
     ["main.AW_STEP1", "main.AW_STEP3", "div.secondary-cta.top"]
   );
@@ -580,7 +609,7 @@ add_task(async function test_AWMultistage_Secondary_Open_URL_Action() {
     sandbox.restore();
   });
 
-  await onButtonClick(browser, "button.secondary");
+  await onButtonClick(browser, "button[value='secondary_button_top']");
   const { callCount } = aboutWelcomeActor.onContentMessage;
   ok(
     callCount >= 2,
@@ -631,14 +660,15 @@ add_task(async function test_AWMultistage_Secondary_Open_URL_Action() {
   );
   Assert.equal(
     eventCall.args[1].event_context.source,
-    "secondary_button",
-    "secondary button click source recorded in Telemetry"
+    "secondary_button_top",
+    "secondary_top button click source recorded in Telemetry"
   );
 });
 
 add_task(async function test_AWMultistage_Themes() {
   let browser = await openAboutWelcome();
   let aboutWelcomeActor = await getAboutWelcomeParent(browser);
+
   const sandbox = sinon.createSandbox();
   // Stub AboutWelcomeParent Content Message Handler
   sandbox
@@ -700,5 +730,61 @@ add_task(async function test_AWMultistage_Themes() {
     eventCall.args[1].event_context.source,
     "automatic",
     "automatic click source recorded in Telemetry"
+  );
+});
+
+add_task(async function test_AWMultistage_Import() {
+  let browser = await openAboutWelcome();
+  let aboutWelcomeActor = await getAboutWelcomeParent(browser);
+
+  // click twice to advance to screen 3
+  await onButtonClick(browser, "button.primary");
+  await onButtonClick(browser, "button.primary");
+
+  const sandbox = sinon.createSandbox();
+  // Stub AboutWelcomeParent Content Message Handler
+  sandbox
+    .stub(aboutWelcomeActor, "onContentMessage")
+    .resolves("")
+    .withArgs("AWPage:IMPORTABLE_SITES")
+    .resolves([]);
+  registerCleanupFunction(() => {
+    sandbox.restore();
+  });
+
+  await onButtonClick(browser, "button[value='secondary_button']");
+  const { callCount } = aboutWelcomeActor.onContentMessage;
+
+  let actionCall;
+  let eventCall;
+  for (let i = 0; i < callCount; i++) {
+    const call = aboutWelcomeActor.onContentMessage.getCall(i);
+    info(`Call #${i}: ${call.args[0]} ${JSON.stringify(call.args[1])}`);
+    if (call.calledWithMatch("SPECIAL")) {
+      actionCall = call;
+    } else if (call.calledWithMatch("", { event: "CLICK_BUTTON" })) {
+      eventCall = call;
+    }
+  }
+
+  Assert.equal(
+    actionCall.args[0],
+    "AWPage:SPECIAL_ACTION",
+    "Got call to handle special action"
+  );
+  Assert.equal(
+    actionCall.args[1].type,
+    "SHOW_MIGRATION_WIZARD",
+    "Special action SHOW_MIGRATION_WIZARD event handled"
+  );
+  Assert.equal(
+    actionCall.args[1].data.source,
+    "chrome",
+    "Source passed to event handler"
+  );
+  Assert.equal(
+    eventCall.args[0],
+    "AWPage:TELEMETRY_EVENT",
+    "Got call to handle Telemetry event"
   );
 });

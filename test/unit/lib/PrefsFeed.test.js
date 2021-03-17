@@ -28,6 +28,10 @@ describe("PrefsFeed", () => {
         getIntPref: sinon.spy(),
         getBoolPref: sinon.spy(),
       },
+      obs: {
+        removeObserver: sinon.spy(),
+        addObserver: sinon.spy(),
+      },
     };
     feed.store = {
       dispatch: sinon.spy(),
@@ -51,6 +55,7 @@ describe("PrefsFeed", () => {
     overrider.set({
       PrivateBrowsingUtils: { enabled: true },
       Services: ServicesStub,
+      aboutNewTabFeature: new global.ExperimentFeature(),
     });
   });
   afterEach(() => {
@@ -78,6 +83,28 @@ describe("PrefsFeed", () => {
     assert.equal(data.bar, 2);
     assert.isTrue(data.isPrivateBrowsingEnabled);
   });
+  it("should dispatch PREFS_INITIAL_VALUES with a .featureConfig", () => {
+    sandbox.stub(global.aboutNewTabFeature, "getValue").returns({
+      prefsButtonIcon: "icon-foo",
+    });
+    feed.onAction({ type: at.INIT });
+    assert.equal(
+      feed.store.dispatch.firstCall.args[0].type,
+      at.PREFS_INITIAL_VALUES
+    );
+    const [{ data }] = feed.store.dispatch.firstCall.args;
+    assert.deepEqual(data.featureConfig, { prefsButtonIcon: "icon-foo" });
+  });
+  it("should dispatch PREFS_INITIAL_VALUES with an empty object if no experiment is returned", () => {
+    sandbox.stub(global.aboutNewTabFeature, "getValue").returns(null);
+    feed.onAction({ type: at.INIT });
+    assert.equal(
+      feed.store.dispatch.firstCall.args[0].type,
+      at.PREFS_INITIAL_VALUES
+    );
+    const [{ data }] = feed.store.dispatch.firstCall.args;
+    assert.deepEqual(data.featureConfig, {});
+  });
   it("should add one branch observer on init", () => {
     feed.onAction({ type: at.INIT });
     assert.calledOnce(feed._prefs.observeBranch);
@@ -89,10 +116,33 @@ describe("PrefsFeed", () => {
     assert.calledOnce(feed.store.dbStorage.getDbTable);
     assert.calledWithExactly(feed.store.dbStorage.getDbTable, "sectionPrefs");
   });
+  it("should handle region on init", () => {
+    feed.init();
+    assert.equal(feed.geo, "US");
+  });
+  it("should add region observer on init", () => {
+    sandbox.stub(global.Region, "home").get(() => "");
+    feed.init();
+    assert.equal(feed.geo, "");
+    assert.calledWith(
+      ServicesStub.obs.addObserver,
+      feed,
+      global.Region.REGION_TOPIC
+    );
+  });
   it("should remove the branch observer on uninit", () => {
     feed.onAction({ type: at.UNINIT });
     assert.calledOnce(feed._prefs.ignoreBranch);
     assert.calledWith(feed._prefs.ignoreBranch, feed);
+  });
+  it("should call removeObserver", () => {
+    feed.geo = "";
+    feed.uninit();
+    assert.calledWith(
+      ServicesStub.obs.removeObserver,
+      feed,
+      global.Region.REGION_TOPIC
+    );
   });
   it("should send a PREF_CHANGED action when onPrefChanged is called", () => {
     feed.onPrefChanged("foo", 2);
@@ -104,6 +154,25 @@ describe("PrefsFeed", () => {
       })
     );
   });
+  it("should send a PREF_CHANGED actions when onExperimentUpdated is called", () => {
+    sandbox.stub(global.aboutNewTabFeature, "getValue").returns({
+      prefsButtonIcon: "icon-new",
+    });
+    feed.onExperimentUpdated();
+    assert.calledWith(
+      feed.store.dispatch,
+      ac.BroadcastToContent({
+        type: at.PREF_CHANGED,
+        data: {
+          name: "featureConfig",
+          value: {
+            prefsButtonIcon: "icon-new",
+          },
+        },
+      })
+    );
+  });
+
   it("should set storage pref on UPDATE_SECTION_PREFS", async () => {
     await feed.onAction({
       type: at.UPDATE_SECTION_PREFS,
@@ -138,5 +207,11 @@ describe("PrefsFeed", () => {
         data: { name: "baz", value: { value: 2, skipBroadcast: true } },
       })
     );
+  });
+  describe("#observe", () => {
+    it("should call dispatch from observe", () => {
+      feed.observe(undefined, global.Region.REGION_TOPIC);
+      assert.calledOnce(feed.store.dispatch);
+    });
   });
 });

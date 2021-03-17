@@ -403,14 +403,6 @@ body {
       .onboardingContainer .tiles-container.info:hover, .onboardingContainer .tiles-container.info:focus {
         background-color: rgba(217, 217, 227, 0.3);
         border-radius: 4px; }
-  .onboardingContainer .tiles-topsites-disclaimer {
-    display: flex;
-    flex-direction: column;
-    padding: 1em;
-    text-align: center;
-    color: var(--grey-subtitle-1);
-    font-size: 12px;
-    line-height: 18px; }
   .onboardingContainer .tiles-topsites-section {
     display: grid;
     grid-gap: 24px;
@@ -458,15 +450,19 @@ body {
     .onboardingContainer .tiles-media-section .media {
       height: 390px;
       width: 800px; }
-    @media (prefers-reduced-motion) {
-      .onboardingContainer .tiles-media-section {
-        height: 200px;
-        width: 800px;
-        margin: 0; }
-        .onboardingContainer .tiles-media-section.privacy {
-          background: top no-repeat url("chrome://activity-stream/content/data/content/assets/firefox-protections.svg"); }
-        .onboardingContainer .tiles-media-section .media {
-          opacity: 0; } }
+    .onboardingContainer .tiles-media-section.privacy {
+      background: top no-repeat url("chrome://activity-stream/content/data/content/assets/firefox-protections.svg");
+      height: 200px;
+      width: 800px;
+      margin: 0; }
+      .onboardingContainer .tiles-media-section.privacy.media {
+        opacity: 0; }
+  .onboardingContainer .tiles-delayed {
+    animation: fadein 0.4s; }
+
+@keyframes fadein {
+  from {
+    opacity: 0; } }
   .onboardingContainer button {
     font-family: inherit;
     cursor: pointer;
@@ -503,12 +499,12 @@ body {
         background-color: initial; }
   .onboardingContainer .secondary-cta {
     display: flex;
+    align-items: end;
     flex-direction: row;
     justify-content: center;
     font-size: 14px; }
     .onboardingContainer .secondary-cta.top {
       justify-content: end;
-      align-items: end;
       padding-inline-end: 30px;
       padding-top: 4px; }
       @media (max-width: 610px) {
@@ -517,6 +513,15 @@ body {
     .onboardingContainer .secondary-cta span {
       color: var(--grey-subtitle-1);
       margin: 0 4px; }
+  .onboardingContainer .helptext {
+    padding: 1em;
+    text-align: center;
+    color: var(--grey-subtitle-1);
+    font-size: 12px;
+    line-height: 18px; }
+    .onboardingContainer .helptext.default {
+      align-self: center;
+      max-width: 40%; }
   .onboardingContainer .steps {
     display: flex;
     flex-direction: row;
@@ -524,7 +529,7 @@ body {
     margin-top: auto;
     padding: 32px 0 66px;
     z-index: 1; }
-    .onboardingContainer .steps.has-disclaimer {
+    .onboardingContainer .steps.has-helptext {
       padding-bottom: 0; }
     .onboardingContainer .steps .indicator {
       width: 60px;

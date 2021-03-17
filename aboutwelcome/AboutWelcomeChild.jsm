@@ -12,9 +12,8 @@ const { XPCOMUtils } = ChromeUtils.import(
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   DEFAULT_SITES: "resource://activity-stream/lib/DefaultSites.jsm",
-  ExperimentAPI: "resource://messaging-system/experiments/ExperimentAPI.jsm",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.jsm",
   shortURL: "resource://activity-stream/lib/ShortURL.jsm",
-  Services: "resource://gre/modules/Services.jsm",
   TippyTopProvider: "resource://activity-stream/lib/TippyTopProvider.jsm",
 });
 
@@ -131,6 +130,11 @@ class AboutWelcomeChild extends JSWindowActorChild {
     };
 
     listener.onLocationChange = (aWebProgress, aRequest, aLocation, aFlags) => {
+      // Exit if actor 'AboutWelcome' has already been destroyed or
+      // content window doesn't exist
+      if (!this.manager || !this.contentWindow) {
+        return;
+      }
       log.debug(`onLocationChange handled: ${aWebProgress.DOMWindow}`);
       this.AWSendToParent("LOCATION_CHANGED");
     };
@@ -190,8 +194,12 @@ class AboutWelcomeChild extends JSWindowActorChild {
       defineAs: "AWGetSelectedTheme",
     });
 
-    Cu.exportFunction(this.AWWaitForRegionChange.bind(this), window, {
-      defineAs: "AWWaitForRegionChange",
+    Cu.exportFunction(this.AWGetRegion.bind(this), window, {
+      defineAs: "AWGetRegion",
+    });
+
+    Cu.exportFunction(this.AWIsDefaultBrowser.bind(this), window, {
+      defineAs: "AWIsDefaultBrowser",
     });
 
     Cu.exportFunction(this.AWSelectTheme.bind(this), window, {
@@ -302,16 +310,11 @@ class AboutWelcomeChild extends JSWindowActorChild {
    * Send initial data to page including experiment information
    */
   AWGetExperimentData() {
-    let experimentData;
-    try {
-      // Note that we specifically don't wait for experiments to be loaded from disk so if
-      // about:welcome loads outside of the "FirstStartup" scenario this will likely not be ready
-      experimentData = ExperimentAPI.getExperiment({
-        featureId: "aboutwelcome",
-      });
-    } catch (e) {
-      Cu.reportError(e);
-    }
+    // Note that we specifically don't wait for experiments to be loaded from disk so if
+    // about:welcome loads outside of the "FirstStartup" scenario this will likely not be ready
+    let experimentData = ExperimentAPI.getExperiment({
+      featureId: "aboutwelcome",
+    });
 
     if (experimentData?.slug) {
       log.debug(
@@ -337,6 +340,10 @@ class AboutWelcomeChild extends JSWindowActorChild {
 
   AWGetSelectedTheme() {
     return this.wrapPromise(getSelectedTheme(this));
+  }
+
+  AWIsDefaultBrowser() {
+    return this.wrapPromise(this.sendQuery("AWPage:IS_DEFAULT_BROWSER"));
   }
 
   /**
@@ -366,21 +373,8 @@ class AboutWelcomeChild extends JSWindowActorChild {
     return this.wrapPromise(this.sendQuery("AWPage:WAIT_FOR_MIGRATION_CLOSE"));
   }
 
-  AWWaitForRegionChange() {
-    return this.wrapPromise(
-      new Promise(resolve =>
-        Services.prefs.addObserver(SEARCH_REGION_PREF, function observer(
-          subject,
-          topic,
-          data
-        ) {
-          if (data === SEARCH_REGION_PREF && topic === "nsPref:changed") {
-            Services.prefs.removeObserver(SEARCH_REGION_PREF, observer);
-            resolve(searchRegion);
-          }
-        })
-      )
-    );
+  AWGetRegion() {
+    return this.wrapPromise(this.sendQuery("AWPage:GET_REGION"));
   }
 
   /**
