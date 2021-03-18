@@ -23,9 +23,12 @@ describe("ASRouterUtils", () => {
       assert.calledOnce(globals.ASRouterMessage);
       assert.calledWith(globals.ASRouterMessage, { foo: "bar" });
     });
-    it("throws if ASRouterMessage is not defined", () => {
+    it("not throws but log errors if ASRouterMessage is not defined", () => {
+      overrider.sandbox.stub(global.console, "error");
+
       overrider.set("ASRouterMessage", undefined);
-      assert.throws(() => ASRouterUtils.sendMessage({ foo: "bar" }));
+      assert.doesNotThrow(() => ASRouterUtils.sendMessage({ foo: "bar" }));
+      assert.calledOnce(global.console.error);
     });
   });
   describe("blockById", () => {
