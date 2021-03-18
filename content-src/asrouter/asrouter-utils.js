@@ -20,7 +20,13 @@ export const ASRouterUtils = {
     if (global.ASRouterMessage) {
       return global.ASRouterMessage(action);
     }
-    throw new Error(`Unexpected call:\n${JSON.stringify(action, null, 3)}`);
+
+    // `window.ASRouterMessage` might be undefined on Fx 84+, as a result
+    // of not up-to-date extension, see https://bugzil.la/1614465
+    global.console.error(
+      new Error(`Unexpected call:\n${JSON.stringify(action, null, 3)}`)
+    );
+    return global.Promise.resolve({ message: {} });
   },
   blockById(id, options) {
     return ASRouterUtils.sendMessage({
