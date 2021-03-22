@@ -131,8 +131,14 @@ export class _Search extends React.PureComponent {
       .filter(v => v)
       .join(" ");
 
-    const isNewNewtabExperienceEnabled = this.props.Prefs.values.featureConfig
-      .newNewtabExperienceEnabled;
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const { DiscoveryStream, Prefs: { values: prefs } } = this.props;
+    const isDiscoveryStream =
+      DiscoveryStream.config && DiscoveryStream.config.enabled;
+    const {
+      newNewtabExperienceEnabled: isNewNewtabExperienceEnabled,
+    } = isDiscoveryStream ? (prefs.featureConfig || {}) : {};
 
     return (
       <div className={wrapperClassName}>
@@ -207,4 +213,5 @@ export class _Search extends React.PureComponent {
 
 export const Search = connect(state => ({
   Prefs: state.Prefs,
+  DiscoveryStream: state.DiscoveryStream,
 }))(_Search);

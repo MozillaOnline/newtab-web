@@ -61,9 +61,17 @@ export class _SectionMenu extends React.PureComponent {
       ? [...WEBEXT_SECTION_MENU_OPTIONS]
       : [...contextMenuOptions];
 
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const { DiscoveryStream, Prefs: { values: prefs } } = this.props;
+    const isDiscoveryStream =
+      DiscoveryStream.config && DiscoveryStream.config.enabled;
+    const {
+      newNewtabExperienceEnabled
+    } = isDiscoveryStream ? (prefs.featureConfig || {}) : {};
     // Remove Collapse/Expand related option if the `newNewtabExperience.enabled`
     // pref is set to true.
-    if (props.Prefs.values.featureConfig.newNewtabExperienceEnabled) {
+    if (newNewtabExperienceEnabled) {
       if (props.isWebExtension) {
         propOptions.splice(2, 2);
       } else if (IS_MOCOCN_NEWTAB) {
@@ -135,4 +143,5 @@ export class _SectionMenu extends React.PureComponent {
 
 export const SectionMenu = connect(state => ({
   Prefs: state.Prefs,
+  DiscoveryStream: state.DiscoveryStream,
 }))(_SectionMenu);

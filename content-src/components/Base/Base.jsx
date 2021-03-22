@@ -254,7 +254,7 @@ export class BaseContent extends React.PureComponent {
       filteredSections.filter(section => section.enabled).length === 0;
     const searchHandoffEnabled = prefs["improvesearch.handoffToAwesomebar"];
     const { customizationMenuEnabled, newNewtabExperienceEnabled } =
-      prefs.featureConfig || {};
+      isDiscoveryStream ? (prefs.featureConfig || {}) : {};
     const canShowCustomizationMenu =
       customizationMenuEnabled || newNewtabExperienceEnabled;
     const showCustomizationMenu =

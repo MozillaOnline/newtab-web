@@ -151,9 +151,14 @@ export class _ContextMenuItem extends React.PureComponent {
 
   render() {
     const { option } = this.props;
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const { DiscoveryStream, Prefs: { values: prefs } } = this.props;
+    const isDiscoveryStream =
+      DiscoveryStream.config && DiscoveryStream.config.enabled;
     const {
-      newNewtabExperienceEnabled,
-    } = this.props.Prefs.values.featureConfig;
+      newNewtabExperienceEnabled
+    } = isDiscoveryStream ? (prefs.featureConfig || {}) : {};
     return (
       <li role="presentation" className="context-menu-item">
         <button
@@ -176,4 +181,5 @@ export class _ContextMenuItem extends React.PureComponent {
 
 export const ContextMenuItem = connect(state => ({
   Prefs: state.Prefs,
+  DiscoveryStream: state.DiscoveryStream,
 }))(_ContextMenuItem);
