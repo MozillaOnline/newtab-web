@@ -137,10 +137,15 @@ export class _TopSites extends React.PureComponent {
     const { editForm, showSearchShortcutsForm } = props.TopSites;
     const extraMenuOptions = ["AddTopSite"];
     const mococnNumRows = {max: 3, min: 1, pref: "topSitesRows", val: props.TopSitesRows};
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const { DiscoveryStream, Prefs: { values: prefs } } = this.props;
+    const isDiscoveryStream =
+      DiscoveryStream.config && DiscoveryStream.config.enabled;
     const {
       customizationMenuEnabled,
       newNewtabExperienceEnabled,
-    } = props.Prefs.values.featureConfig;
+    } = isDiscoveryStream ? (prefs.featureConfig || {}) : {};
     const colors = props.Prefs.values["newNewtabExperience.colors"];
 
     if (props.Prefs.values["improvesearch.topSiteSearchShortcuts"]) {
@@ -240,10 +245,15 @@ export const TopSites = connect((state, props) => {
       }
     });
 
-    // Prefer screenshot to large favicon for mococn-wide layout
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const { DiscoveryStream, Prefs: { values: prefs } } = state;
+    const isDiscoveryStream =
+      DiscoveryStream.config && DiscoveryStream.config.enabled;
     const {
-      newNewtabExperienceEnabled,
-    } = state.Prefs.values.featureConfig;
+      newNewtabExperienceEnabled
+    } = isDiscoveryStream ? (prefs.featureConfig || {}) : {};
+    // Prefer screenshot to large favicon for mococn-wide layout
     if (
       !newNewtabExperienceEnabled &&
       pinnedOnlyRows.length <= MOCOCN_MAX_TOP_SITES_FOR_WIDE_LAYOUT
@@ -264,5 +274,6 @@ export const TopSites = connect((state, props) => {
     TopSites: topSites,
     Prefs: state.Prefs,
     TopSitesRows: state.Prefs.values.topSitesRows,
+    DiscoveryStream: state.DiscoveryStream,
   };
 })(_TopSites);

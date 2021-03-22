@@ -4,6 +4,7 @@ import { _SectionMenu as SectionMenu } from "content-src/components/SectionMenu/
 import { shallow } from "enzyme";
 
 const DEFAULT_PROPS = {
+  DiscoveryStream: { config: { enabled: true } },
   Prefs: { values: { featureConfig: {} } },
   name: "Section Name",
   id: "sectionId",

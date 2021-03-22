@@ -34,6 +34,7 @@ const perfSvc = {
 };
 
 const DEFAULT_PROPS = {
+  DiscoveryStream: { config: { enabled: true } },
   Prefs: { values: { featureConfig: {} } },
   TopSites: { initialized: true, rows: [] },
   TopSitesRows: TOP_SITES_DEFAULT_ROWS,

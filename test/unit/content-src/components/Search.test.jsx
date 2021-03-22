@@ -5,6 +5,7 @@ import { _Search as Search } from "content-src/components/Search/Search";
 
 const DEFAULT_PROPS = {
   dispatch() {},
+  DiscoveryStream: { config: { enabled: true } },
   Prefs: { values: { featureConfig: {} } },
 };
 

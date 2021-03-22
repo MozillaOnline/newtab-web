@@ -17,6 +17,7 @@ const DEFAULT_PROPS = {
     visibilityState: "visible",
   },
   dispatch: () => {},
+  DiscoveryStream: { config: { enabled: true } },
   Prefs: { values: { featureConfig: {} } },
 };
 
