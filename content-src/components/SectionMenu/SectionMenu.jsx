@@ -61,9 +61,14 @@ export class _SectionMenu extends React.PureComponent {
       ? [...WEBEXT_SECTION_MENU_OPTIONS]
       : [...contextMenuOptions];
 
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const {
+      newNewtabExperienceEnabled
+    } = props.Prefs.values.featureConfig || {};
     // Remove Collapse/Expand related option if the `newNewtabExperience.enabled`
     // pref is set to true.
-    if (props.Prefs.values.featureConfig.newNewtabExperienceEnabled) {
+    if (newNewtabExperienceEnabled) {
       if (props.isWebExtension) {
         propOptions.splice(2, 2);
       } else if (IS_MOCOCN_NEWTAB) {

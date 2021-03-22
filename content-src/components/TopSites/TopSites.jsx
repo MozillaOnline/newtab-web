@@ -137,10 +137,12 @@ export class _TopSites extends React.PureComponent {
     const { editForm, showSearchShortcutsForm } = props.TopSites;
     const extraMenuOptions = ["AddTopSite"];
     const mococnNumRows = {max: 3, min: 1, pref: "topSitesRows", val: props.TopSitesRows};
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
     const {
       customizationMenuEnabled,
       newNewtabExperienceEnabled,
-    } = props.Prefs.values.featureConfig;
+    } = props.Prefs.values.featureConfig || {};
     const colors = props.Prefs.values["newNewtabExperience.colors"];
 
     if (props.Prefs.values["improvesearch.topSiteSearchShortcuts"]) {
@@ -240,10 +242,12 @@ export const TopSites = connect((state, props) => {
       }
     });
 
-    // Prefer screenshot to large favicon for mococn-wide layout
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
     const {
       newNewtabExperienceEnabled,
-    } = state.Prefs.values.featureConfig;
+    } = state.Prefs.values.featureConfig || {};
+    // Prefer screenshot to large favicon for mococn-wide layout
     if (
       !newNewtabExperienceEnabled &&
       pinnedOnlyRows.length <= MOCOCN_MAX_TOP_SITES_FOR_WIDE_LAYOUT

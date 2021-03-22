@@ -151,9 +151,11 @@ export class _ContextMenuItem extends React.PureComponent {
 
   render() {
     const { option } = this.props;
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
     const {
       newNewtabExperienceEnabled,
-    } = this.props.Prefs.values.featureConfig;
+    } = this.props.Prefs.values.featureConfig || {};
     return (
       <li role="presentation" className="context-menu-item">
         <button

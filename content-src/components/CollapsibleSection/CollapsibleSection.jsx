@@ -58,7 +58,12 @@ export class _CollapsibleSection extends React.PureComponent {
   }
 
   componentDidMount() {
-    if (!this.props.Prefs.values.featureConfig.newNewtabExperienceEnabled) {
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const {
+      newNewtabExperienceEnabled
+    } = this.props.Prefs.values.featureConfig || {};
+    if (!newNewtabExperienceEnabled) {
       this.contextMenuButtonRef.addEventListener(
         "mouseenter",
         this.onMenuButtonMouseEnter
@@ -76,7 +81,12 @@ export class _CollapsibleSection extends React.PureComponent {
       this.enableOrDisableAnimation
     );
 
-    if (!this.props.Prefs.values.featureConfig.newNewtabExperienceEnabled) {
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const {
+      newNewtabExperienceEnabled
+    } = this.props.Prefs.values.featureConfig || {};
+    if (!newNewtabExperienceEnabled) {
       this.contextMenuButtonRef.removeEventListener(
         "mouseenter",
         this.onMenuButtonMouseEnter
@@ -118,6 +128,11 @@ export class _CollapsibleSection extends React.PureComponent {
   }
 
   onHeaderClick() {
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const {
+      newNewtabExperienceEnabled
+    } = this.props.Prefs.values.featureConfig || {};
     // If the new new tab experience pref is turned on,
     // sections should not be collapsible.
     // If this.sectionBody is unset, it means that we're in some sort of error
@@ -125,7 +140,7 @@ export class _CollapsibleSection extends React.PureComponent {
     // compute the height, and we don't want to persist the preference.
     // If props.collapsed is undefined handler shouldn't do anything.
     if (
-      this.props.Prefs.values.featureConfig.newNewtabExperienceEnabled ||
+      newNewtabExperienceEnabled ||
       !this.sectionBody ||
       this.props.collapsed === undefined
     ) {
@@ -198,8 +213,11 @@ export class _CollapsibleSection extends React.PureComponent {
 
   render() {
     const isCollapsible = this.props.collapsed !== undefined;
-    const isNewNewtabExperienceEnabled = this.props.Prefs.values.featureConfig
-      .newNewtabExperienceEnabled;
+    // `featureConfig` only available in `Prefs` since Fx 85,
+    // see https://bugzil.la/1677180,1692227
+    const {
+      newNewtabExperienceEnabled: isNewNewtabExperienceEnabled,
+    } = this.props.Prefs.values.featureConfig || {};
 
     // If new new tab prefs are set to true, sections should not be
     // collapsible. Expand and make the section visible, if it has been
