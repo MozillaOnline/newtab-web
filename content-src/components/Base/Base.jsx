@@ -268,6 +268,8 @@ export const Base = connect(state => {
   let prefs = state.Prefs;
   // No search handoff, we want the different `tn` for `urlbar` & `newtab`
   prefs.values["improvesearch.handoffToAwesomebar"] = false;
+  // We have taller top sites and don't want the logo (always) shown
+  prefs.values["logowordmark.alwaysVisible"] = false;
 
   return {
     App: state.App,
