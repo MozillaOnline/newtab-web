@@ -266,6 +266,8 @@ export const Base = connect(state => {
   prefs.values["improvesearch.handoffToAwesomebar"] = false;
   // We have taller top sites and don't want the logo (always) shown
   prefs.values["logowordmark.alwaysVisible"] = false;
+  // Hide the sponsored topsites checkbox
+  prefs.values.mayHaveSponsoredTopSites = false;
 
   return {
     App: state.App,
