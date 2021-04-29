@@ -4,6 +4,7 @@
 
 import React from "react";
 import { actionCreators as ac } from "common/Actions.jsm";
+import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 
 export class ContentSection extends React.PureComponent {
   constructor(props) {
@@ -101,6 +102,13 @@ export class ContentSection extends React.PureComponent {
       showRecentSavesEnabled,
       topSitesRowsCount,
     } = enabledSections;
+
+    const topStoriesTitle = IS_MOCOCN_NEWTAB ?
+      "mococn-custom-topstories-title" :
+      "newtab-custom-pocket-title";
+    const topStoriesSubTitle = IS_MOCOCN_NEWTAB ?
+      "mococn-custom-topstories-subtitle" :
+      "newtab-custom-pocket-subtitle";
 
     return (
       <div className="home-section">
@@ -206,13 +214,13 @@ export class ContentSection extends React.PureComponent {
               <h2 id="custom-pocket-title" className="title">
                 <label
                   htmlFor="pocket-toggle"
-                  data-l10n-id="newtab-custom-pocket-title"
+                  data-l10n-id={topStoriesTitle}
                 ></label>
               </h2>
               <p
                 id="custom-pocket-subtitle"
                 className="subtitle"
-                data-l10n-id="newtab-custom-pocket-subtitle"
+                data-l10n-id={topStoriesSubTitle}
               />
               {(mayHaveSponsoredStories || mayHaveRecentSaves) && (
                 <div className="more-info-pocket-wrapper">
@@ -262,46 +270,50 @@ export class ContentSection extends React.PureComponent {
           </div>
         )}
 
-        <div id="recent-section" className="section">
-          <label className="switch">
-            <input
-              id="highlights-toggle"
-              checked={highlightsEnabled}
-              type="checkbox"
-              onChange={this.onPreferenceSelect}
-              preference="feeds.section.highlights"
-              eventSource="HIGHLIGHTS"
-              aria-labelledby="custom-recent-title"
-              aria-describedby="custom-recent-subtitle"
-            />
-            <span className="slider" role="presentation"></span>
-          </label>
-          <div>
-            <h2 id="custom-recent-title" className="title">
-              <label
-                htmlFor="highlights-toggle"
-                data-l10n-id="newtab-custom-recent-title"
-              ></label>
-            </h2>
+        {!IS_MOCOCN_NEWTAB && (
+          <React.Fragment>
+            <div id="recent-section" className="section">
+              <label className="switch">
+                <input
+                  id="highlights-toggle"
+                  checked={highlightsEnabled}
+                  type="checkbox"
+                  onChange={this.onPreferenceSelect}
+                  preference="feeds.section.highlights"
+                  eventSource="HIGHLIGHTS"
+                  aria-labelledby="custom-recent-title"
+                  aria-describedby="custom-recent-subtitle"
+                />
+                <span className="slider" role="presentation"></span>
+              </label>
+              <div>
+                <h2 id="custom-recent-title" className="title">
+                  <label
+                    htmlFor="highlights-toggle"
+                    data-l10n-id="newtab-custom-recent-title"
+                  ></label>
+                </h2>
 
-            <p
-              id="custom-recent-subtitle"
-              className="subtitle"
-              data-l10n-id="newtab-custom-recent-subtitle"
-            />
-          </div>
-        </div>
+                <p
+                  id="custom-recent-subtitle"
+                  className="subtitle"
+                  data-l10n-id="newtab-custom-recent-subtitle"
+                />
+              </div>
+            </div>
 
-        <span className="divider" role="separator"></span>
+            <span className="divider" role="separator"></span>
 
-        <div>
-          <button
-            id="settings-link"
-            className="external-link"
-            onClick={openPreferences}
-            data-l10n-id="newtab-custom-settings"
-          />
-        </div>
+            <div>
+              <button
+                id="settings-link"
+                className="external-link"
+                onClick={openPreferences}
+                data-l10n-id="newtab-custom-settings"
+              />
+            </div>
+          </React.Fragment>
+        )}
       </div>
     );
   }
