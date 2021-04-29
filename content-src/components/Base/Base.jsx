@@ -262,10 +262,16 @@ export class BaseContent extends React.PureComponent {
   }
 }
 
-export const Base = connect(state => ({
-  App: state.App,
-  Prefs: state.Prefs,
-  Sections: state.Sections,
-  DiscoveryStream: state.DiscoveryStream,
-  Search: state.Search,
-}))(_Base);
+export const Base = connect(state => {
+  let prefs = state.Prefs;
+  // No search handoff, we want the different `tn` for `urlbar` & `newtab`
+  prefs.values["improvesearch.handoffToAwesomebar"] = false;
+
+  return {
+    App: state.App,
+    Prefs: prefs,
+    Sections: state.Sections,
+    DiscoveryStream: state.DiscoveryStream,
+    Search: state.Search,
+  };
+})(_Base);
