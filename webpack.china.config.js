@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const child_process = require("child_process");
 const path = require("path");
 const webpack = require("webpack");
 
@@ -13,6 +14,10 @@ const WorkboxPlugin = require("workbox-webpack-plugin");
 const absolute = relPath => path.join(__dirname, relPath);
 
 const resourcePathRegEx = /^resource:\/\/activity-stream\//;
+
+function git(command) {
+  return child_process.execSync(`git ${command}`, { encoding: "utf8" }).trim();
+}
 
 module.exports = (env = {}) => ({
   mode: "none",
@@ -58,6 +63,12 @@ module.exports = (env = {}) => ({
     }),
     new SriPlugin({
       hashFuncNames: ["sha512"],
+    }),
+    new webpack.DefinePlugin({
+      SENTRY_DSN: JSON.stringify(process.env.SENTRY_DSN),
+      SENTRY_ENVIRONMENT: JSON.stringify(process.env.NODE_ENV),
+      SENTRY_RELEASE: JSON.stringify(git("describe --dirty")),
+      SENTRY_SAMPLE_RATE: JSON.parse(process.env.SENTRY_SAMPLE_RATE),
     }),
     new WorkboxPlugin.GenerateSW(),
   ],
@@ -161,6 +172,6 @@ module.exports = (env = {}) => ({
   // This resolve config allows us to import with paths relative to the root directory, e.g. "lib/ActivityStream.jsm"
   resolve: {
     extensions: [".js", ".jsx"],
-    modules: ["node_modules", "."],
+    modules: ["node_modules", __dirname],
   },
 });

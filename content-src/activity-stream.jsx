@@ -19,6 +19,16 @@ import { Provider } from "react-redux";
 import React from "react";
 import ReactDOM from "react-dom";
 import { reducers } from "common/Reducers.jsm";
+import * as Sentry from "@sentry/react";
+
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: SENTRY_ENVIRONMENT,
+    release: SENTRY_RELEASE,
+    sampleRate: SENTRY_SAMPLE_RATE,
+  });
+}
 
 export const NewTab = ({ store }) => (
   <Provider store={store}>
