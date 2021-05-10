@@ -19,6 +19,41 @@ import { Provider } from "react-redux";
 import React from "react";
 import ReactDOM from "react-dom";
 import { reducers } from "common/Reducers.jsm";
+import * as Sentry from "@sentry/react";
+
+if (SENTRY_DSN) {
+  Sentry.init({
+    beforeSend(event, hint) {
+      try {
+        if (
+          hint &&
+          hint.originalException &&
+          hint.originalException.message === "Element is not a row"
+        ) {
+          let [arg0] = event.extra.arguments;
+          if (
+            arg0.type === "mouseout" && [
+              "table#searchSuggestionTable.contentSearchSuggestionTable",
+              "table.contentSearchOneOffsTable.contentSearchSuggestionsContainer",
+            ].includes(arg0.target)
+          ) {
+            return null;
+          }
+        }
+      } catch (ex) {
+        global.console.error(ex);
+      }
+      return event;
+    },
+    denyUrls: [
+      /^moz-extension:\/\//i,
+    ],
+    dsn: SENTRY_DSN,
+    environment: SENTRY_ENVIRONMENT,
+    release: SENTRY_RELEASE,
+    sampleRate: SENTRY_SAMPLE_RATE,
+  });
+}
 
 export const NewTab = ({ store }) => (
   <Provider store={store}>
