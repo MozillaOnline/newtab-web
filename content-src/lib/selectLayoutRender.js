@@ -72,8 +72,12 @@ export const selectLayoutRender = ({ state = {}, prefs = {}, locale = "" }) => {
     filterArray.push("Navigation");
   }
 
+  // prefs["feeds.system.topstories"] is `undefined` before Fx 78
+  // see https://bugzil.la/1446276,1634279
   const pocketEnabled =
-    prefs["feeds.section.topstories"] && prefs["feeds.system.topstories"];
+    prefs["feeds.section.topstories"] && (
+      prefs["feeds.system.topstories"] !== false
+    );
   if (!pocketEnabled) {
     filterArray.push(...DS_COMPONENTS);
   }
