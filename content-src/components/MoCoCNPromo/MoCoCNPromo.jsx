@@ -92,6 +92,7 @@ export class _MoCoCNPromo extends React.PureComponent {
   render() {
     const {
       MoCoCNPrefs,
+      Prefs,
       Sections,
       TopSites,
       options,
@@ -107,14 +108,21 @@ export class _MoCoCNPromo extends React.PureComponent {
     const currentHours = Date.now() / 3600e3;
     const shouldHide = (shownUntil && currentHours > shownUntil) || currentHours < hideUntil;
 
+    const topSitesShown = Prefs.values["feeds.topsites"] && (
+      TopSites.pref && TopSites.pref.collapsed !== true
+    );
     const [topStories] = Sections.filter(section => section.id === "topstories");
-    const showAside = !(TopSites.pref && TopSites.pref.collapsed) || !(topStories.pref && topStories.pref.collapsed);
+    const topStoriesShown = topStories.enabled && (
+      topStories.pref && topStories.pref.collapsed !== true
+    );
+    const showAside = topSitesShown || topStoriesShown;
 
     let asideChildren = [];
     switch (type) {
       case "float":
         asideChildren.push(
           <a className="float_promo" href={url} onClick={this.onClick} style={{
+            "--mococn-promo-float-bgimage": `url(${options.image})`,
             "--mococn-promo-float-height": options.imageHeight,
             "--mococn-promo-float-width": options.imageWidth,
           }}>
@@ -148,6 +156,8 @@ export class _MoCoCNPromo extends React.PureComponent {
 
         asideChildren.push(
           <ul className="skin_promo" style={{
+            "--mococn-promo-skin-background": `url(${options.imageBg})`,
+            "--mococn-promo-skin-foreground": `url(${options.imageFg})`,
             "--mococn-promo-skin-height": options.imageHeight,
             "--mococn-promo-skin-width": options.imageWidth,
           }}>
@@ -174,6 +184,7 @@ export class _MoCoCNPromo extends React.PureComponent {
 
 export const MoCoCNPromo = connect(state => ({
   MoCoCNPrefs: state.MoCoCNPrefs,
+  Prefs: state.Prefs,
   Sections: state.Sections,
   TopSites: state.TopSites,
 }))(_MoCoCNPromo);
