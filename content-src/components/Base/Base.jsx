@@ -225,8 +225,12 @@ export class BaseContent extends React.PureComponent {
       section => section.id !== "topstories"
     );
 
+    // prefs["feeds.system.topstories"] is `undefined` before Fx 78
+    // see https://bugzil.la/1446276,1634279
     const pocketEnabled =
-      prefs["feeds.section.topstories"] && prefs["feeds.system.topstories"];
+      prefs["feeds.section.topstories"] && (
+        prefs["feeds.system.topstories"] !== false
+      );
     const noSectionsEnabled =
       !prefs["feeds.topsites"] &&
       !pocketEnabled &&
@@ -242,7 +246,10 @@ export class BaseContent extends React.PureComponent {
       showSponsoredPocketEnabled: prefs.showSponsored,
       topSitesRowsCount: prefs.topSitesRows,
     };
-    const pocketRegion = prefs["feeds.system.topstories"];
+
+    // prefs["feeds.system.topstories"] is `undefined` before Fx 78
+    // see https://bugzil.la/1446276,1634279
+    const pocketRegion = prefs["feeds.system.topstories"] !== false;
     const { mayHaveSponsoredTopSites } = prefs;
 
     const outerClassName = [
