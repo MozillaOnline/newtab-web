@@ -340,7 +340,7 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             {this.renderLayout(layoutRender)}
           </CollapsibleSection>
         )}
-        {this.renderLayout([
+        {!IS_MOCOCN_NEWTAB && this.renderLayout([
           {
             width: 12,
             components: [{ type: "Highlights" }],
