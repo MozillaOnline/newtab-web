@@ -23,6 +23,29 @@ import * as Sentry from "@sentry/react";
 
 if (SENTRY_DSN) {
   Sentry.init({
+    beforeSend(event, hint) {
+      try {
+        if (
+          hint &&
+          hint.originalException &&
+          hint.originalException.message === "Element is not a row"
+        ) {
+          let [arg0] = event.extra.arguments;
+          if (
+            arg0.type === "mouseout" &&
+            arg0.target === "table.contentSearchOneOffsTable.contentSearchSuggestionsContainer"
+          ) {
+            return null;
+          }
+        }
+      } catch (ex) {
+        global.console.error(ex);
+      }
+      return event;
+    },
+    denyUrls: [
+      /^moz-extension:\/\//i,
+    ],
     dsn: SENTRY_DSN,
     environment: SENTRY_ENVIRONMENT,
     release: SENTRY_RELEASE,
