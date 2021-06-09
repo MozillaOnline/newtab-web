@@ -63,19 +63,21 @@ export class _Card extends React.PureComponent {
           .catch();
       }
 
-      // Wait for the image whether just started loading or reused promise
-      await gImageLoading.get(imageUrl);
+      try {
+        // Wait for the image whether just started loading or reused promise
+        await gImageLoading.get(imageUrl);
 
-      // Only update state if we're still waiting to load the original image
-      if (
-        ScreenshotUtils.isRemoteImageLocal(
-          this.state.cardImage,
-          this.props.link.image
-        ) &&
-        !this.state.imageLoaded
-      ) {
-        this.setState({ imageLoaded: true });
-      }
+        // Only update state if we're still waiting to load the original image
+        if (
+          ScreenshotUtils.isRemoteImageLocal(
+            this.state.cardImage,
+            this.props.link.image
+          ) &&
+          !this.state.imageLoaded
+        ) {
+          this.setState({ imageLoaded: true });
+        }
+      } catch (ex) {}
     }
   }
 

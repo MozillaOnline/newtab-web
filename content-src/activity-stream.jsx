@@ -32,8 +32,10 @@ if (SENTRY_DSN) {
         ) {
           let [arg0] = event.extra.arguments;
           if (
-            arg0.type === "mouseout" &&
-            arg0.target === "table.contentSearchOneOffsTable.contentSearchSuggestionsContainer"
+            arg0.type === "mouseout" && [
+              "table#searchSuggestionTable.contentSearchSuggestionTable",
+              "table.contentSearchOneOffsTable.contentSearchSuggestionsContainer",
+            ].includes(arg0.target)
           ) {
             return null;
           }
