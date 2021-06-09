@@ -8,7 +8,7 @@ import { ASRouterUISurface } from "../../asrouter/asrouter-content";
 import { ConfirmDialog } from "content-src/components/ConfirmDialog/ConfirmDialog";
 import { connect } from "react-redux";
 import { DiscoveryStreamBase } from "content-src/components/DiscoveryStreamBase/DiscoveryStreamBase";
-import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
+import { MoCoCNEB as ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
 import { IS_MOCOCN_NEWTAB } from "content-src/lib/constants";
 import { CustomizeMenu } from "content-src/components/CustomizeMenu/CustomizeMenu";
 import React from "react";

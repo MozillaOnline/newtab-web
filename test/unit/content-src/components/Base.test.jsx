@@ -4,7 +4,7 @@ import {
   PrefsButton,
 } from "content-src/components/Base/Base";
 import { ASRouterAdmin } from "content-src/components/ASRouterAdmin/ASRouterAdmin";
-import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
+import { MoCoCNEB as ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
 import { shallow } from "enzyme";

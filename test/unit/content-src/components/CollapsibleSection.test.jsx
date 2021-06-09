@@ -1,6 +1,6 @@
 import { actionTypes as at } from "common/Actions.jsm";
 import { _CollapsibleSection as CollapsibleSection } from "content-src/components/CollapsibleSection/CollapsibleSection";
-import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
+import { MoCoCNEB as ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
 import { mount } from "enzyme";
 import React from "react";
 
