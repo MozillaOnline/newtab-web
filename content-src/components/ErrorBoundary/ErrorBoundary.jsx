@@ -3,6 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { A11yLinkButton } from "content-src/components/A11yLinkButton/A11yLinkButton";
+import { ErrorBoundary as SentryEB } from "@sentry/react";
 import React from "react";
 
 export class ErrorBoundaryFallback extends React.PureComponent {
@@ -66,3 +67,16 @@ export class ErrorBoundary extends React.PureComponent {
 }
 
 ErrorBoundary.defaultProps = { FallbackComponent: ErrorBoundaryFallback };
+
+// Sentry.ErrorBoundary with own fallback rendering
+export class MoCoCNEB extends SentryEB {
+  render() {
+    if (!this.state.error) {
+      return this.props.children;
+    }
+
+    return <this.props.FallbackComponent className={this.props.className} />;
+  }
+}
+
+MoCoCNEB.defaultProps = { FallbackComponent: ErrorBoundaryFallback };
