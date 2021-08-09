@@ -8,6 +8,9 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.import(
   "resource://activity-stream/common/Actions.jsm"
 );
+const { shortURL } = ChromeUtils.import(
+  "resource://activity-stream/lib/ShortURL.jsm"
+);
 
 ChromeUtils.defineModuleGetter(
   this,
@@ -24,14 +27,14 @@ ChromeUtils.defineModuleGetter(
   "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "PrivateBrowsingUtils",
-  "resource://gre/modules/PrivateBrowsingUtils.jsm"
-);
 
 const LINK_BLOCKED_EVENT = "newtab-linkBlocked";
 const PLACES_LINKS_CHANGED_DELAY_TIME = 1000; // time in ms to delay timer for places links changed events
+
+// The pref to store the blocked sponsors of the sponsored Top Sites.
+// The value of this pref is an array (JSON serialized) of hostnames of the
+// blocked sponsors.
+const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
 
 /**
  * Observer - a wrapper around history/bookmark observers to add the QueryInterface.
@@ -55,9 +58,7 @@ class BookmarksObserver extends Observer {
     this.skipTags = true;
   }
 
-  // Empty functions to make xpconnect happy
-  onItemMoved() {}
-
+  // Empty functions to make xpconnect happy.
   // Disabled due to performance cost, see Issue 3203 /
   // https://bugzilla.mozilla.org/show_bug.cgi?id=1392267.
   onItemChanged() {}
@@ -384,35 +385,14 @@ class PlacesFeed {
     });
   }
 
-  _getDefaultSearchEngine(isPrivateWindow) {
-    return Services.search[
-      isPrivateWindow ? "defaultPrivateEngine" : "defaultEngine"
-    ];
-  }
-
-  _getSearchPrefix(searchEngine) {
-    const searchAliases = searchEngine.aliases;
-    if (searchAliases && searchAliases.length) {
-      return `${searchAliases[0]} `;
-    }
-    return "";
-  }
-
   handoffSearchToAwesomebar({ _target, data, meta }) {
-    const searchEngine = this._getDefaultSearchEngine(
-      PrivateBrowsingUtils.isBrowserPrivate(_target.browser)
-    );
-    const searchAlias = this._getSearchPrefix(searchEngine);
     const urlBar = _target.browser.ownerGlobal.gURLBar;
     let isFirstChange = true;
 
     if (!data || !data.text) {
       urlBar.setHiddenFocus();
     } else {
-      urlBar.search(searchAlias + data.text, {
-        searchEngine,
-        searchModeEntry: "handoff",
-      });
+      urlBar.search(data.text);
       isFirstChange = false;
     }
 
@@ -422,13 +402,10 @@ class PlacesFeed {
       // in-content search.
       if (isFirstChange) {
         isFirstChange = false;
-        urlBar.removeHiddenFocus();
-        urlBar.search(searchAlias, {
-          searchEngine,
-          searchModeEntry: "handoff",
-        });
+        urlBar.removeHiddenFocus(true);
+        urlBar.search("");
         this.store.dispatch(
-          ac.OnlyToOneContent({ type: at.HIDE_SEARCH }, meta.fromTarget)
+          ac.OnlyToOneContent({ type: at.DISABLE_SEARCH }, meta.fromTarget)
         );
         urlBar.removeEventListener("compositionstart", checkFirstChange);
         urlBar.removeEventListener("paste", checkFirstChange);
@@ -446,12 +423,14 @@ class PlacesFeed {
       }
     };
 
-    const onDone = () => {
+    const onDone = ev => {
       // We are done. Show in-content search again and cleanup.
       this.store.dispatch(
         ac.OnlyToOneContent({ type: at.SHOW_SEARCH }, meta.fromTarget)
       );
-      urlBar.removeHiddenFocus();
+
+      const forceSuppressFocusBorder = ev?.type === "mousedown";
+      urlBar.removeHiddenFocus(forceSuppressFocusBorder);
 
       urlBar.removeEventListener("keydown", onKeydown);
       urlBar.removeEventListener("mousedown", onDone);
@@ -465,6 +444,24 @@ class PlacesFeed {
     urlBar.addEventListener("blur", onDone);
     urlBar.addEventListener("compositionstart", checkFirstChange);
     urlBar.addEventListener("paste", checkFirstChange);
+  }
+
+  /**
+   * Add the hostnames of the given urls to the Top Sites sponsor blocklist.
+   *
+   * @param {array} urls
+   *   An array of the objects structured as `{ url }`
+   */
+  addToBlockedTopSitesSponsors(urls) {
+    const blockedPref = JSON.parse(
+      Services.prefs.getStringPref(TOP_SITES_BLOCKED_SPONSORS_PREF, "[]")
+    );
+    const merged = new Set([...blockedPref, ...urls.map(url => shortURL(url))]);
+
+    Services.prefs.setStringPref(
+      TOP_SITES_BLOCKED_SPONSORS_PREF,
+      JSON.stringify([...merged])
+    );
   }
 
   onAction(action) {
@@ -486,10 +483,17 @@ class PlacesFeed {
       }
       case at.BLOCK_URL: {
         if (action.data) {
+          let sponsoredTopSites = [];
           action.data.forEach(site => {
-            const { url, pocket_id } = site;
+            const { url, pocket_id, isSponsoredTopSite } = site;
             NewTabUtils.activityStreamLinks.blockURL({ url, pocket_id });
+            if (isSponsoredTopSite) {
+              sponsoredTopSites.push({ url });
+            }
           });
+          if (sponsoredTopSites.length) {
+            this.addToBlockedTopSitesSponsors(sponsoredTopSites);
+          }
         }
         break;
       }

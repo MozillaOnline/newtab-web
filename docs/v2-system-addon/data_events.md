@@ -688,7 +688,11 @@ These pings record user interaction with the save to Pocket button.
   "version": "83.0a1",
   "release_channel": "default",
   "model": "",
-  "events": [{"action":"click|impression|unpin","position":0,"source":"save_button|on_save_recs|learn_more|sign_up_1|sign_up_2|log_in"}],
+  "events": [{
+    "action":"click|impression|unpin",
+    "position":0,
+    "source":"recs_learn_more|view_list|home_view_list|home_topic|home_discover|save_button|home_button|on_save_recs|learn_more|sign_up_1|sign_up_2|log_in"
+  }],
   "pocket_logged_in_state": true|false,
   "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
   "profile_creation_date": 18550
@@ -1130,7 +1134,7 @@ These record the telemetry metrics during the Firefox onboarding experience.
   "event": "SESSION_END",
   "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "event_context": { "page": "about:welcome", "reason":
-    ["welcome-window-closed" | "welcome-tab-closed" | "app-shut-down" | "address-bar-navigated" | "unknown"]},
+    ["welcome-window-closed" | "welcome-tab-closed" | "app-shut-down" | "address-bar-navigated"]},
   "attribution": {
     "source": "mozilla.org",
     "medium": "referral",

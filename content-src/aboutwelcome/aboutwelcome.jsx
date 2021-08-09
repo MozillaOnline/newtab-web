@@ -19,7 +19,16 @@ class AboutWelcome extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.fetchFxAFlowUri();
+    if (!this.props.skipFxA) {
+      this.fetchFxAFlowUri();
+    }
+
+    // Rely on shared proton in-content styling for consistency.
+    if (this.props.design === "proton") {
+      const sheet = document.head.appendChild(document.createElement("link"));
+      sheet.rel = "stylesheet";
+      sheet.href = "chrome://global/skin/in-content/common.css";
+    }
 
     // Record impression with performance data after allowing the page to load
     const recordImpression = domState => {
@@ -74,6 +83,9 @@ class AboutWelcome extends React.PureComponent {
         metricsFlowUri={this.state.metricsFlowUri}
         message_id={props.messageId}
         utm_term={props.UTMTerm}
+        design={props.design}
+        transitions={props.transitions}
+        background_url={props.background_url}
       />
     );
   }
@@ -101,10 +113,10 @@ function ComputeTelemetryInfo(welcomeContent, experimentId, branchId) {
 }
 
 async function retrieveRenderContent() {
-  // Feature config includes:
+  // Feature config includes RTAMO attribution data if exists
+  // else below data in order specified
   // user prefs
   // experiment data
-  // attribution data
   // defaults
   let featureConfig = await window.AWGetFeatureConfig();
 

@@ -72,6 +72,8 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/Region.jsm"
 );
 
+XPCOMUtils.defineLazyGlobalGetters(this, ["fetch"]);
+
 const DEFAULT_SITES_PREF = "default.sites";
 const SHOWN_ON_NEWTAB_PREF = "feeds.topsites";
 const DEFAULT_TOP_SITES = [];
@@ -86,6 +88,7 @@ const PINNED_FAVICON_PROPS_TO_MIGRATE = [
 const SECTION_ID = "topsites";
 const ROWS_PREF = "topSitesRows";
 const SHOW_SPONSORED_PREF = "showSponsoredTopSites";
+const MAX_NUM_SPONSORED = 2;
 
 // Search experiment stuff
 const FILTER_DEFAULT_SEARCH_PREF = "improvesearch.noDefaultSearchTile";
@@ -103,13 +106,108 @@ const DEFAULT_SITES_OVERRIDE_PREF =
   "browser.newtabpage.activity-stream.default.sites";
 const DEFAULT_SITES_EXPERIMENTS_PREF_BRANCH = "browser.topsites.experiment.";
 
+// Mozilla Tiles Service (Contile) prefs
+const CONTILE_ENABLED_PREF = "browser.topsites.contile.enabled";
+const CONTILE_ENDPOINT_PREF = "browser.topsites.contile.endpoint";
+const CONTILE_UPDATE_INTERVAL = 15 * 60 * 1000; // 15 minutes
+const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
+
 function getShortURLForCurrentSearch() {
   const url = shortURL({ url: Services.search.defaultEngine.searchForm });
   return url;
 }
 
+class ContileIntegration {
+  constructor(topSitesFeed) {
+    this._topSitesFeed = topSitesFeed;
+    this._lastPeriodicUpdate = 0;
+    this._sites = [];
+  }
+
+  get sites() {
+    return this._sites;
+  }
+
+  periodicUpdate() {
+    let now = Date.now();
+    if (now - this._lastPeriodicUpdate >= CONTILE_UPDATE_INTERVAL) {
+      this._lastPeriodicUpdate = now;
+      this.refresh();
+    }
+  }
+
+  async refresh() {
+    let updateDefaultSites = await this._fetchSites();
+    if (updateDefaultSites) {
+      this._topSitesFeed._readDefaults();
+    }
+  }
+
+  /**
+   * Filter the tiles whose sponsor is on the Top Sites sponsor blocklist.
+   *
+   * @param {array} tiles
+   *   An array of the tile objects
+   */
+  _filterBlockedSponsors(tiles) {
+    const blocklist = JSON.parse(
+      Services.prefs.getStringPref(TOP_SITES_BLOCKED_SPONSORS_PREF, "[]")
+    );
+    return tiles.filter(tile => !blocklist.includes(shortURL(tile)));
+  }
+
+  async _fetchSites() {
+    if (
+      !Services.prefs.getBoolPref(CONTILE_ENABLED_PREF) ||
+      !this._topSitesFeed.store.getState().Prefs.values[SHOW_SPONSORED_PREF]
+    ) {
+      if (this._sites.length) {
+        this._sites = [];
+        return true;
+      }
+      return false;
+    }
+    try {
+      let url = Services.prefs.getStringPref(CONTILE_ENDPOINT_PREF);
+      const response = await fetch(url, { credentials: "omit" });
+      if (!response.ok) {
+        Cu.reportError(
+          `Contile endpoint returned unexpected status: ${response.status}`
+        );
+      }
+
+      // Contile returns 204 indicating there is no content at the moment.
+      // If this happens, just return without signifying the change so that the
+      // existing tiles (`this._sites`) could retain. We might want to introduce
+      // other handling for this in the future.
+      if (response.status === 204) {
+        return false;
+      }
+      const body = await response.json();
+      if (body?.tiles && Array.isArray(body.tiles)) {
+        let { tiles } = body;
+        tiles = this._filterBlockedSponsors(tiles);
+        if (tiles.length > MAX_NUM_SPONSORED) {
+          Cu.reportError(
+            `Contile provided more links than permitted. (${tiles.length} received, limit is ${MAX_NUM_SPONSORED})`
+          );
+          tiles.length = MAX_NUM_SPONSORED;
+        }
+        this._sites = tiles;
+        return true;
+      }
+    } catch (error) {
+      Cu.reportError(
+        `Failed to fetch data from Contile server: ${error.message}`
+      );
+    }
+    return false;
+  }
+}
+
 this.TopSitesFeed = class TopSitesFeed {
   constructor() {
+    this._contile = new ContileIntegration(this);
     this._tippyTopProvider = new TippyTopProvider();
     XPCOMUtils.defineLazyGetter(
       this,
@@ -136,11 +234,13 @@ this.TopSitesFeed = class TopSitesFeed {
     // If the feed was previously disabled PREFS_INITIAL_VALUES was never received
     this._readDefaults({ isStartup: true });
     this._storage = this.store.dbStorage.getDbTable("sectionPrefs");
+    this._contile.refresh();
     Services.obs.addObserver(this, "browser-search-engine-modified");
     Services.obs.addObserver(this, "browser-region-updated");
     Services.prefs.addObserver(REMOTE_SETTING_DEFAULTS_PREF, this);
     Services.prefs.addObserver(DEFAULT_SITES_OVERRIDE_PREF, this);
     Services.prefs.addObserver(DEFAULT_SITES_EXPERIMENTS_PREF_BRANCH, this);
+    Services.prefs.addObserver(CONTILE_ENABLED_PREF, this);
   }
 
   uninit() {
@@ -150,6 +250,7 @@ this.TopSitesFeed = class TopSitesFeed {
     Services.prefs.removeObserver(REMOTE_SETTING_DEFAULTS_PREF, this);
     Services.prefs.removeObserver(DEFAULT_SITES_OVERRIDE_PREF, this);
     Services.prefs.removeObserver(DEFAULT_SITES_EXPERIMENTS_PREF_BRANCH, this);
+    Services.prefs.removeObserver(CONTILE_ENABLED_PREF, this);
   }
 
   observe(subj, topic, data) {
@@ -157,14 +258,15 @@ this.TopSitesFeed = class TopSitesFeed {
       case "browser-search-engine-modified":
         // We should update the current top sites if the search engine has been changed since
         // the search engine that gets filtered out of top sites has changed.
+        // We also need to drop search shortcuts when their engine gets removed / hidden.
         if (
           data === "engine-default" &&
           this.store.getState().Prefs.values[FILTER_DEFAULT_SEARCH_PREF]
         ) {
           delete this._currentSearchHostname;
           this._currentSearchHostname = getShortURLForCurrentSearch();
-          this.refresh({ broadcast: true });
         }
+        this.refresh({ broadcast: true });
         break;
       case "browser-region-updated":
         this._readDefaults();
@@ -176,6 +278,8 @@ this.TopSitesFeed = class TopSitesFeed {
           data.startsWith(DEFAULT_SITES_EXPERIMENTS_PREF_BRANCH)
         ) {
           this._readDefaults();
+        } else if (data === CONTILE_ENABLED_PREF) {
+          this._contile.refresh();
         }
         break;
     }
@@ -211,18 +315,69 @@ this.TopSitesFeed = class TopSitesFeed {
       return;
     }
 
+    // Clear out the array of any previous defaults.
+    DEFAULT_TOP_SITES.length = 0;
+
+    // Read defaults from contile.
+    const contileEnabled = Services.prefs.getBoolPref(CONTILE_ENABLED_PREF);
+    let hasContileTiles = false;
+    if (contileEnabled) {
+      let sponsoredPosition = 1;
+      for (let site of this._contile.sites) {
+        let hostname = shortURL(site);
+        let link = {
+          isDefault: true,
+          url: site.url,
+          hostname,
+          sendAttributionRequest: false,
+          label: site.name,
+          show_sponsored_label: hostname !== "yandex",
+          sponsored_position: sponsoredPosition++,
+          sponsored_click_url: site.click_url,
+          sponsored_impression_url: site.impression_url,
+          sponsored_tile_id: site.id,
+        };
+        if (site.image_url && site.image_size >= MIN_FAVICON_SIZE) {
+          // Only use the image from Contile if it's hi-res, otherwise, fallback
+          // to the built-in favicons.
+          link.favicon = site.image_url;
+          link.faviconSize = site.image_size;
+        }
+        DEFAULT_TOP_SITES.push(link);
+      }
+      hasContileTiles = sponsoredPosition > 1;
+    }
+
     // Read defaults from remote settings.
     this._useRemoteSetting = true;
     let remoteSettingData = await this._getRemoteConfig();
 
-    // Clear out the array of any previous defaults.
-    DEFAULT_TOP_SITES.length = 0;
+    const sponsoredBlocklist = JSON.parse(
+      Services.prefs.getStringPref(TOP_SITES_BLOCKED_SPONSORS_PREF, "[]")
+    );
 
     for (let siteData of remoteSettingData) {
+      let hostname = shortURL(siteData);
+      // Drop default sites when Contile already provided a sponsored one with
+      // the same host name.
+      if (
+        contileEnabled &&
+        DEFAULT_TOP_SITES.findIndex(site => site.hostname === hostname) > -1
+      ) {
+        continue;
+      }
+      // Also drop those sponsored sites that were blocked by the user before
+      // with the same hostname.
+      if (
+        siteData.sponsored_position &&
+        sponsoredBlocklist.includes(hostname)
+      ) {
+        continue;
+      }
       let link = {
         isDefault: true,
         url: siteData.url,
-        hostname: shortURL(siteData),
+        hostname,
         sendAttributionRequest: !!siteData.send_attribution_request,
       };
       if (siteData.url_urlbar_override) {
@@ -234,6 +389,9 @@ this.TopSitesFeed = class TopSitesFeed {
       if (siteData.search_shortcut) {
         link = await this.topSiteToSearchTopSite(link);
       } else if (siteData.sponsored_position) {
+        if (contileEnabled && hasContileTiles) {
+          continue;
+        }
         const {
           sponsored_position,
           sponsored_tile_id,
@@ -245,6 +403,7 @@ this.TopSitesFeed = class TopSitesFeed {
           sponsored_tile_id,
           sponsored_impression_url,
           sponsored_click_url,
+          show_sponsored_label: link.hostname !== "yandex",
           ...link,
         };
       }
@@ -509,7 +668,13 @@ this.TopSitesFeed = class TopSitesFeed {
     let notBlockedDefaultSites = [];
     let sponsored = [];
     for (let link of DEFAULT_TOP_SITES) {
-      if (this.shouldFilterSearchTile(link.hostname)) {
+      // For sponsored Yandex links, default filtering is reversed: we only
+      // show them if Yandex is the default search engine.
+      if (link.sponsored_position && link.hostname === "yandex") {
+        if (link.hostname !== this._currentSearchHostname) {
+          continue;
+        }
+      } else if (this.shouldFilterSearchTile(link.hostname)) {
         continue;
       }
       // Drop blocked default sites.
@@ -580,6 +745,17 @@ this.TopSitesFeed = class TopSitesFeed {
       plainPinned.map(async link => {
         if (!link) {
           return link;
+        }
+
+        // Drop pinned search shortcuts when their engine has been removed / hidden.
+        if (link.searchTopSite) {
+          const searchProvider = getSearchProvider(shortURL(link));
+          if (
+            !searchProvider ||
+            !(await checkHasSearchEngine(searchProvider.keyword))
+          ) {
+            return null;
+          }
         }
 
         // Copy all properties from a frecent link and add more
@@ -1121,6 +1297,7 @@ this.TopSitesFeed = class TopSitesFeed {
         break;
       case at.SYSTEM_TICK:
         this.refresh({ broadcast: false });
+        this._contile.periodicUpdate();
         break;
       // All these actions mean we need new top sites
       case at.PLACES_HISTORY_CLEARED:
@@ -1147,8 +1324,14 @@ this.TopSitesFeed = class TopSitesFeed {
           case ROWS_PREF:
           case FILTER_DEFAULT_SEARCH_PREF:
           case SEARCH_SHORTCUTS_SEARCH_ENGINES_PREF:
-          case SHOW_SPONSORED_PREF:
             this.refresh({ broadcast: true });
+            break;
+          case SHOW_SPONSORED_PREF:
+            if (Services.prefs.getBoolPref(CONTILE_ENABLED_PREF)) {
+              this._contile.refresh();
+            } else {
+              this.refresh({ broadcast: true });
+            }
             break;
           case SEARCH_SHORTCUTS_EXPERIMENT:
             if (action.data.value) {
@@ -1192,4 +1375,8 @@ this.TopSitesFeed = class TopSitesFeed {
 };
 
 this.DEFAULT_TOP_SITES = DEFAULT_TOP_SITES;
-const EXPORTED_SYMBOLS = ["TopSitesFeed", "DEFAULT_TOP_SITES"];
+const EXPORTED_SYMBOLS = [
+  "TopSitesFeed",
+  "DEFAULT_TOP_SITES",
+  "ContileIntegration",
+];

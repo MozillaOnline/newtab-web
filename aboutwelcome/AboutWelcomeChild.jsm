@@ -17,6 +17,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   TippyTopProvider: "resource://activity-stream/lib/TippyTopProvider.jsm",
   AboutWelcomeDefaults:
     "resource://activity-stream/aboutwelcome/lib/AboutWelcomeDefaults.jsm",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(this, "log", () => {
@@ -24,13 +25,6 @@ XPCOMUtils.defineLazyGetter(this, "log", () => {
     "resource://messaging-system/lib/Logger.jsm"
   );
   return new Logger("AboutWelcomeChild");
-});
-
-XPCOMUtils.defineLazyGetter(this, "aboutWelcomeFeature", () => {
-  const { ExperimentFeature } = ChromeUtils.import(
-    "resource://nimbus/ExperimentAPI.jsm"
-  );
-  return new ExperimentFeature("aboutwelcome");
 });
 
 XPCOMUtils.defineLazyGetter(this, "tippyTopProvider", () =>
@@ -104,35 +98,6 @@ async function getSelectedTheme(child) {
 class AboutWelcomeChild extends JSWindowActorChild {
   actorCreated() {
     this.exportFunctions();
-    this.initWebProgressListener();
-  }
-
-  initWebProgressListener() {
-    const webProgress = this.manager.browsingContext.top.docShell
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIWebProgress);
-
-    const listener = {
-      QueryInterface: ChromeUtils.generateQI([
-        "nsIWebProgressListener",
-        "nsISupportsWeakReference",
-      ]),
-    };
-
-    listener.onLocationChange = (aWebProgress, aRequest, aLocation, aFlags) => {
-      // Exit if actor 'AboutWelcome' has already been destroyed or
-      // content window doesn't exist
-      if (!this.manager || !this.contentWindow) {
-        return;
-      }
-      log.debug(`onLocationChange handled: ${aWebProgress.DOMWindow}`);
-      this.AWSendToParent("LOCATION_CHANGED");
-    };
-
-    webProgress.addProgressListener(
-      listener,
-      Ci.nsIWebProgress.NOTIFY_LOCATION
-    );
   }
 
   /**
@@ -218,39 +183,41 @@ class AboutWelcomeChild extends JSWindowActorChild {
    * Send initial data to page including experiment information
    */
   async getAWContent() {
+    let attributionData = await this.sendQuery("AWPage:GET_ATTRIBUTION_DATA");
+
+    // Return to AMO gets returned early.
+    if (attributionData?.template) {
+      log.debug("Loading about:welcome with RTAMO attribution data");
+      return Cu.cloneInto(attributionData, this.contentWindow);
+    } else if (attributionData?.ua) {
+      log.debug("Loading about:welcome with UA attribution");
+    }
+
     let experimentMetadata =
       ExperimentAPI.getExperimentMetaData({
         featureId: "aboutwelcome",
       }) || {};
-    let featureConfig = aboutWelcomeFeature.getValue() || {};
 
-    if (experimentMetadata?.slug) {
-      log.debug(
-        `Loading about:welcome with experiment: ${experimentMetadata.slug}`
-      );
-    } else {
-      log.debug("Loading about:welcome without experiment");
-      let attributionData = await this.sendQuery("AWPage:GET_ATTRIBUTION_DATA");
-      if (attributionData) {
-        log.debug("Loading about:welcome with attribution data");
-        featureConfig = { ...attributionData, ...featureConfig };
-      } else {
-        log.debug("Loading about:welcome with default data");
-        let defaults = AboutWelcomeDefaults.getDefaults();
-        // FeatureConfig (from prefs or experiments) has higher precendence
-        // to defaults. But the `screens` property isn't defined we shouldn't
-        // override the default with `null`
-        let screens = featureConfig.screens || defaults.screens;
-        featureConfig = {
-          ...defaults,
-          ...featureConfig,
-          screens,
-        };
-      }
-    }
+    log.debug(
+      `Loading about:welcome with ${experimentMetadata?.slug ??
+        "no"} experiment`
+    );
 
+    let featureConfig = NimbusFeatures.aboutwelcome.getValue();
+    featureConfig.needDefault = await this.sendQuery("AWPage:NEED_DEFAULT");
+    featureConfig.needPin = await this.sendQuery("AWPage:DOES_APP_NEED_PIN");
+    let defaults = AboutWelcomeDefaults.getDefaults(featureConfig);
+    // FeatureConfig (from prefs or experiments) has higher precendence
+    // to defaults. But the `screens` property isn't defined we shouldn't
+    // override the default with `null`
     return Cu.cloneInto(
-      { ...experimentMetadata, ...featureConfig },
+      await AboutWelcomeDefaults.prepareContentForReact({
+        ...attributionData,
+        ...experimentMetadata,
+        ...defaults,
+        ...featureConfig,
+        screens: featureConfig.screens ?? defaults.screens,
+      }),
       this.contentWindow
     );
   }

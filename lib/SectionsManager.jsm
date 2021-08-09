@@ -17,18 +17,9 @@ const { getDefaultOptions } = ChromeUtils.import(
   "resource://activity-stream/lib/ActivityStreamStorage.jsm"
 );
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "PlacesUtils",
-  "resource://gre/modules/PlacesUtils.jsm"
-);
-
-XPCOMUtils.defineLazyGetter(this, "aboutNewTabFeature", () => {
-  const { ExperimentFeature } = ChromeUtils.import(
-    "resource://nimbus/ExperimentAPI.jsm"
-  );
-
-  return new ExperimentFeature("newtab");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
+  PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
 });
 
 /*
@@ -84,8 +75,6 @@ const BUILT_IN_SECTIONS = ({
         message: { id: "newtab-pocket-learn-more" },
       },
     },
-    privacyNoticeURL:
-      "https://www.mozilla.org/privacy/firefox/#suggest-relevant-content",
     compactCards: false,
     rowsPref: "section.topstories.rows",
     maxRows: 4,
@@ -148,7 +137,7 @@ const BUILT_IN_SECTIONS = ({
     },
     shouldHidePref: false,
     eventSource: "HIGHLIGHTS",
-    icon: "highlights",
+    icon: "chrome://global/skin/icons/highlights.svg",
     title: {
       id:
         newNewtabExperienceEnabled || customizationMenuEnabled
@@ -160,7 +149,7 @@ const BUILT_IN_SECTIONS = ({
     maxRows: 4,
     emptyState: {
       message: { id: "newtab-empty-section-highlights" },
-      icon: "highlights",
+      icon: "chrome://global/skin/icons/highlights.svg",
     },
     shouldSendImpressionStats: false,
   }),
@@ -214,7 +203,7 @@ const SectionsManager = {
   sections: new Map(),
   async init(prefs = {}, storage) {
     this._storage = storage;
-    const featureConfig = aboutNewTabFeature.getValue() || {};
+    const featureConfig = NimbusFeatures.newtab.getValue() || {};
 
     for (const feedPrefName of Object.keys(BUILT_IN_SECTIONS(featureConfig))) {
       const optionsPrefName = `${feedPrefName}.options`;
@@ -263,7 +252,7 @@ const SectionsManager = {
   async addBuiltInSection(feedPrefName, optionsPrefValue = "{}") {
     let options;
     let storedPrefs;
-    const featureConfig = aboutNewTabFeature.getValue() || {};
+    const featureConfig = NimbusFeatures.newtab.getValue() || {};
     try {
       options = JSON.parse(optionsPrefValue);
     } catch (e) {

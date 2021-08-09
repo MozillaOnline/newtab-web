@@ -145,7 +145,7 @@ const PREFS_CONFIG = new Map([
           api_key_pref: "extensions.pocket.oAuthConsumerKey",
           // Use the opposite value as what default value the feed would have used
           hidden: !PREFS_CONFIG.get("feeds.system.topstories").getValue(args),
-          provider_icon: "pocket",
+          provider_icon: "chrome://global/skin/icons/pocket.svg",
           provider_name: "Pocket",
           read_more_endpoint:
             "https://getpocket.com/explore/trending?src=fx_new_tab",
@@ -220,7 +220,7 @@ const PREFS_CONFIG = new Map([
     "feeds.snippets",
     {
       title: "Show snippets on activity stream",
-      value: true,
+      value: false,
     },
   ],
   [
@@ -515,7 +515,7 @@ const FEEDS_DATA = [
     name: "section.highlights",
     factory: () => new HighlightsFeed(),
     title: "Fetches content recommendations from places db",
-    value: true,
+    value: false,
   },
   {
     name: "system.topstories",

@@ -41,11 +41,8 @@ const { E10SUtils } = ChromeUtils.import(
   "resource://gre/modules/E10SUtils.jsm"
 );
 
-XPCOMUtils.defineLazyGetter(this, "awExperimentFeature", () => {
-  const { ExperimentFeature } = ChromeUtils.import(
-    "resource://nimbus/ExperimentAPI.jsm"
-  );
-  return new ExperimentFeature("aboutwelcome");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
 });
 
 /**
@@ -57,8 +54,6 @@ XPCOMUtils.defineLazyGetter(this, "awExperimentFeature", () => {
  * Constants are fine in the global scope.
  */
 
-const PREF_ABOUT_HOME_CACHE_ENABLED =
-  "browser.startup.homepage.abouthome_cache.enabled";
 const PREF_ABOUT_HOME_CACHE_TESTING =
   "browser.startup.homepage.abouthome_cache.testing";
 const ABOUT_WELCOME_URL =
@@ -130,7 +125,7 @@ const AboutHomeStartupCacheChild = {
       );
     }
 
-    if (!Services.prefs.getBoolPref(PREF_ABOUT_HOME_CACHE_ENABLED, false)) {
+    if (!NimbusFeatures.abouthomecache.isEnabled()) {
       return;
     }
 
@@ -449,7 +444,7 @@ class BaseAboutNewTabService {
      */
 
     if (
-      awExperimentFeature.isEnabled({
+      NimbusFeatures.aboutwelcome.isEnabled({
         defaultValue: true,
         sendExposureEvent: true,
       })

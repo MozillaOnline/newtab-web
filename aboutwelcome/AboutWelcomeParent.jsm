@@ -24,6 +24,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
     "resource://activity-stream/aboutwelcome/lib/AboutWelcomeDefaults.jsm",
   PromiseUtils: "resource://gre/modules/PromiseUtils.jsm",
   Region: "resource://gre/modules/Region.jsm",
+  ShellService: "resource:///modules/ShellService.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(this, "log", () => {
@@ -41,7 +42,6 @@ XPCOMUtils.defineLazyGetter(
 
 const DID_SEE_ABOUT_WELCOME_PREF = "trailhead.firstrun.didSeeAboutWelcome";
 const AWTerminate = {
-  UNKNOWN: "unknown",
   WINDOW_CLOSED: "welcome-window-closed",
   TAB_CLOSED: "welcome-tab-closed",
   APP_SHUT_DOWN: "app-shut-down",
@@ -104,7 +104,7 @@ class AboutWelcomeObserver {
       return;
     }
 
-    this.terminateReason = AWTerminate.UNKNOWN;
+    this.terminateReason = AWTerminate.ADDRESS_BAR_NAVIGATED;
 
     this.onWindowClose = () => {
       this.terminateReason = AWTerminate.WINDOW_CLOSED;
@@ -229,10 +229,6 @@ class AboutWelcomeParent extends JSWindowActorParent {
       case "AWPage:TELEMETRY_EVENT":
         Telemetry.sendTelemetry(data);
         break;
-      case "AWPage:LOCATION_CHANGED":
-        this.AboutWelcomeObserver.terminateReason =
-          AWTerminate.ADDRESS_BAR_NAVIGATED;
-        break;
       case "AWPage:GET_ATTRIBUTION_DATA":
         let attributionData = await AboutWelcomeDefaults.getAttributionContent();
         return attributionData;
@@ -258,8 +254,16 @@ class AboutWelcomeParent extends JSWindowActorParent {
           this.RegionHomeObserver = new RegionHomeObserver(this);
         }
         return this.RegionHomeObserver.promiseRegionHome();
+      case "AWPage:DOES_APP_NEED_PIN":
+        return ShellService.doesAppNeedPin();
       case "AWPage:IS_DEFAULT_BROWSER":
-        return window.getShellService().isDefaultBrowser();
+        return ShellService.isDefaultBrowser();
+      case "AWPage:NEED_DEFAULT":
+        // Only need to set default if we're supposed to check and not default.
+        return (
+          Services.prefs.getBoolPref("browser.shell.checkDefaultBrowser") &&
+          !ShellService.isDefaultBrowser()
+        );
       case "AWPage:WAIT_FOR_MIGRATION_CLOSE":
         return new Promise(resolve =>
           Services.ww.registerNotification(function observer(subject, topic) {
