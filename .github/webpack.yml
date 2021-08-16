@@ -1,0 +1,72 @@
+name: NodeJS with Webpack
+
+on:
+  push:
+    branches: [ 'mococn*' ]
+
+jobs:
+  build-for-stage:
+    environment: stage
+    if: ${{ github.ref != 'refs/heads/mococn' }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Build
+      env:
+        NODE_ENV: stage
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        SENTRY_SAMPLE_RATE: ${{ secrets.SENTRY_SAMPLE_RATE }}
+      run: |
+        npm install
+        npx webpack -c webpack.china.config.js --mode production
+
+    - name: Upload built files
+      uses: actions/upload-artifact@v2
+      with:
+        name: stage
+        path: dist/
+
+  build-for-prod:
+    environment: prod
+    if: ${{ github.ref == 'refs/heads/mococn' }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Build
+      env:
+        NODE_ENV: production
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        SENTRY_SAMPLE_RATE: ${{ secrets.SENTRY_SAMPLE_RATE }}
+      run: |
+        npm install
+        npx webpack -c webpack.china.config.js --mode production
+
+    - name: Upload built files
+      uses: actions/upload-artifact@v2
+      with:
+        name: prod
+        path: dist/
