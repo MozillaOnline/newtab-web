@@ -1,0 +1,46 @@
+name: NodeJS with Webpack
+
+on:
+  push:
+    branches: [ 'mococn*' ]
+
+jobs:
+  build:
+    environment: prod
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 128
+
+    - name: Fetch necessary tags
+      run: git fetch --depth=1 origin 'refs/tags/firefox-*b:refs/tags/firefox-*b'
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Webpack
+      env:
+        NODE_ENV: production
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        SENTRY_SAMPLE_RATE: ${{ secrets.SENTRY_SAMPLE_RATE }}
+      run: |
+        git describe --dirty
+        npx webpack -c webpack.china.config.js --mode production
+
+    - name: Upload built files
+      uses: actions/upload-artifact@v2
+      with:
+        name: prod
+        path: dist/
