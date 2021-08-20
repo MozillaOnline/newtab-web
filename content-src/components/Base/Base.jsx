@@ -166,6 +166,17 @@ export class BaseContent extends React.PureComponent {
 
     const isDiscoveryStream =
       props.DiscoveryStream.config && props.DiscoveryStream.config.enabled;
+    if (!isDiscoveryStream) {
+      this.setPref("discoverystream.config", JSON.stringify({
+        "collapsible": true,
+        "enabled": true,
+        "show_spocs": false,
+        "hardcoded_layout": false,
+        "personalized": false,
+        "layout_endpoint": "https://newtab.firefoxchina.cn/newtab/ds/china-basic.json",
+      }));
+      this.setPref("discoverystream.enabled", true);
+    }
     let filteredSections = props.Sections.filter(
       section => section.id !== "topstories"
     );
