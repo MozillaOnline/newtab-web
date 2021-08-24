@@ -205,6 +205,70 @@
   }
 }
 
+// `tab-size` support introduced in Fx 91
+@supports not (tab-size: initial) {
+  .icon {
+    &.icon-delete {
+      background-image: url('#{$image-path}glyph-delete-16.svg');
+    }
+
+    &.icon-dismiss {
+      background-image: url('#{$image-path}glyph-dismiss-16.svg');
+    }
+
+    &.icon-info {
+      background-image: url('#{$image-path}glyph-info-16.svg');
+    }
+
+    &.icon-pocket {
+      background-image: url('#{$image-path}glyph-pocket-16.svg');
+    }
+
+    &.icon-pocket-save {
+      background-image: url('#{$image-path}glyph-pocket-save-16.svg');
+    }
+
+    &.icon-pin-small {
+      background-image: url('#{$image-path}glyph-pin-12.svg');
+    }
+
+    &.icon-highlights {
+      background-image: url('#{$image-path}glyph-highlights-16.svg');
+    }
+
+    &.icon-arrowhead-down {
+      background-image: url('#{$image-path}glyph-arrowhead-down-16.svg');
+    }
+
+    &.icon-arrowhead-down-small {
+      background-image: url('#{$image-path}glyph-arrowhead-down-12.svg');
+    }
+
+    &.icon-arrowhead-forward-small {
+      background-image: url('#{$image-path}glyph-arrowhead-down-12.svg');
+      transform: rotate(-90deg);
+
+      &:dir(rtl) {
+        background-image: url('#{$image-path}glyph-arrowhead-down-12.svg');
+        transform: rotate(90deg);
+      }
+    }
+
+    &.icon-arrowhead-up {
+      background-image: url('#{$image-path}glyph-arrowhead-down-16.svg');
+      transform: rotate(180deg);
+    }
+
+    &.icon-add {
+      background-image: url('#{$image-path}glyph-add-16.svg');
+    }
+
+    &.icon-arrow {
+      background-image: url('#{$image-path}glyph-arrow.svg');
+    }
+  }
+}
+
 // Work around from https://stackoverflow.com/questions/62665318/using-supports-selector-despite-sass-not-supporting-it
 @supports not ((user-select: auto) and #{'\selector(input::file-selector-button)'}) {
   .icon {
@@ -298,10 +362,17 @@
 
     &.icon-arrowhead-forward-small {
       background-image: url('#{$b4fx82-image-path}glyph-arrowhead-down-12.svg');
+      transform: rotate(-90deg);
+
+      &:dir(rtl) {
+        background-image: url('#{$b4fx82-image-path}glyph-arrowhead-down-12.svg');
+        transform: rotate(90deg);
+      }
     }
 
     &.icon-arrowhead-up {
       background-image: url('#{$b4fx82-image-path}glyph-arrowhead-down-16.svg');
+      transform: rotate(180deg);
     }
 
     &.icon-add {
