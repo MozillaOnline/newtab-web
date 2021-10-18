@@ -17,184 +17,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 });
 
 const DEFAULT_WELCOME_CONTENT = {
-  template: "multistage",
-  screens: [
-    {
-      id: "AW_SET_DEFAULT",
-      order: 0,
-      content: {
-        zap: true,
-        title: {
-          string_id: "onboarding-multistage-set-default-header",
-        },
-        subtitle: {
-          string_id: "onboarding-multistage-set-default-subtitle",
-        },
-        primary_button: {
-          label: {
-            string_id: "onboarding-multistage-set-default-primary-button-label",
-          },
-          action: {
-            navigate: true,
-            type: "SET_DEFAULT_BROWSER",
-          },
-        },
-        secondary_button: {
-          label: {
-            string_id:
-              "onboarding-multistage-set-default-secondary-button-label",
-          },
-          action: {
-            navigate: true,
-          },
-        },
-        secondary_button_top: {
-          text: {
-            string_id: "onboarding-multistage-welcome-secondary-button-text",
-          },
-          label: {
-            string_id: "onboarding-multistage-welcome-secondary-button-label",
-          },
-          action: {
-            data: {
-              entrypoint: "activity-stream-firstrun",
-            },
-            type: "SHOW_FIREFOX_ACCOUNTS",
-            addFlowParams: true,
-          },
-        },
-      },
-    },
-    {
-      id: "AW_IMPORT_SETTINGS",
-      order: 1,
-      content: {
-        zap: true,
-        help_text: {
-          text: {
-            string_id: "onboarding-import-sites-disclaimer",
-          },
-        },
-        title: {
-          string_id: "onboarding-multistage-import-header",
-        },
-        subtitle: {
-          string_id: "onboarding-multistage-import-subtitle",
-        },
-        tiles: {
-          type: "topsites",
-          showTitles: true,
-        },
-        primary_button: {
-          label: {
-            string_id: "onboarding-multistage-import-primary-button-label",
-          },
-          action: {
-            type: "SHOW_MIGRATION_WIZARD",
-            navigate: true,
-          },
-        },
-        secondary_button: {
-          label: {
-            string_id: "onboarding-multistage-import-secondary-button-label",
-          },
-          action: {
-            navigate: true,
-          },
-        },
-      },
-    },
-    {
-      id: "AW_CHOOSE_THEME",
-      order: 2,
-      content: {
-        zap: true,
-        title: {
-          string_id: "onboarding-multistage-theme-header",
-        },
-        subtitle: {
-          string_id: "onboarding-multistage-theme-subtitle",
-        },
-        tiles: {
-          type: "theme",
-          action: {
-            theme: "<event>",
-          },
-          data: [
-            {
-              theme: "automatic",
-              label: {
-                string_id: "onboarding-multistage-theme-label-automatic",
-              },
-              tooltip: {
-                string_id: "onboarding-multistage-theme-tooltip-automatic-2",
-              },
-              description: {
-                string_id:
-                  "onboarding-multistage-theme-description-automatic-2",
-              },
-            },
-            {
-              theme: "light",
-              label: {
-                string_id: "onboarding-multistage-theme-label-light",
-              },
-              tooltip: {
-                string_id: "onboarding-multistage-theme-tooltip-light-2",
-              },
-              description: {
-                string_id: "onboarding-multistage-theme-description-light",
-              },
-            },
-            {
-              theme: "dark",
-              label: {
-                string_id: "onboarding-multistage-theme-label-dark",
-              },
-              tooltip: {
-                string_id: "onboarding-multistage-theme-tooltip-dark-2",
-              },
-              description: {
-                string_id: "onboarding-multistage-theme-description-dark",
-              },
-            },
-            {
-              theme: "alpenglow",
-              label: {
-                string_id: "onboarding-multistage-theme-label-alpenglow",
-              },
-              tooltip: {
-                string_id: "onboarding-multistage-theme-tooltip-alpenglow-2",
-              },
-              description: {
-                string_id: "onboarding-multistage-theme-description-alpenglow",
-              },
-            },
-          ],
-        },
-        primary_button: {
-          label: {
-            string_id: "onboarding-multistage-theme-primary-button-label2",
-          },
-          action: {
-            navigate: true,
-          },
-        },
-        secondary_button: {
-          label: {
-            string_id: "onboarding-multistage-theme-secondary-button-label",
-          },
-          action: {
-            theme: "automatic",
-            navigate: true,
-          },
-        },
-      },
-    },
-  ],
-};
-
-const DEFAULT_PROTON_WELCOME_CONTENT = {
   id: "DEFAULT_ABOUTWELCOME_PROTON",
   template: "multistage",
   transitions: true,
@@ -308,35 +130,25 @@ const DEFAULT_PROTON_WELCOME_CONTENT = {
       },
     },
     {
-      id: "AW_CHOOSE_THEME",
+      id: "AW_CHOOSE_COLORWAY",
       order: 3,
       content: {
         title: {
-          string_id: "mr1-onboarding-theme-header",
+          string_id: "mr2-onboarding-colorway-header",
         },
         subtitle: {
-          string_id: "mr1-onboarding-theme-subtitle",
+          string_id: "mr2-onboarding-colorway-subtitle",
         },
+        hideLogo: true,
         tiles: {
-          type: "theme",
+          type: "colorway",
           action: {
             theme: "<event>",
           },
-          data: [
+          defaultVariationIndex: 1,
+          systemVariations: [
             {
-              theme: "automatic",
-              label: {
-                string_id: "mr1-onboarding-theme-label-system",
-              },
-              tooltip: {
-                string_id: "mr1-onboarding-theme-tooltip-system",
-              },
-              description: {
-                string_id: "mr1-onboarding-theme-description-system",
-              },
-            },
-            {
-              theme: "light",
+              id: "light",
               label: {
                 string_id: "mr1-onboarding-theme-label-light",
               },
@@ -348,7 +160,19 @@ const DEFAULT_PROTON_WELCOME_CONTENT = {
               },
             },
             {
-              theme: "dark",
+              id: "automatic",
+              label: {
+                string_id: "mr2-onboarding-theme-label-auto",
+              },
+              tooltip: {
+                string_id: "mr1-onboarding-theme-tooltip-system",
+              },
+              description: {
+                string_id: "mr1-onboarding-theme-description-system",
+              },
+            },
+            {
+              id: "dark",
               label: {
                 string_id: "mr1-onboarding-theme-label-dark",
               },
@@ -359,23 +183,123 @@ const DEFAULT_PROTON_WELCOME_CONTENT = {
                 string_id: "mr1-onboarding-theme-description-dark",
               },
             },
+          ],
+          variations: [
             {
-              theme: "alpenglow",
+              id: "soft",
               label: {
-                string_id: "mr1-onboarding-theme-label-alpenglow",
+                string_id: "mr2-onboarding-colorway-label-soft",
               },
               tooltip: {
-                string_id: "mr1-onboarding-theme-tooltip-alpenglow",
+                string_id: "mr2-onboarding-theme-tooltip",
               },
               description: {
-                string_id: "mr1-onboarding-theme-description-alpenglow",
+                string_id: "mr2-onboarding-theme-description",
+              },
+            },
+            {
+              id: "balanced",
+              label: {
+                string_id: "mr2-onboarding-colorway-label-balanced",
+              },
+              tooltip: {
+                string_id: "mr2-onboarding-theme-tooltip",
+              },
+              description: {
+                string_id: "mr2-onboarding-theme-description",
+              },
+            },
+            {
+              id: "bold",
+              label: {
+                string_id: "mr2-onboarding-colorway-label-bold",
+              },
+              tooltip: {
+                string_id: "mr2-onboarding-theme-tooltip",
+              },
+              description: {
+                string_id: "mr2-onboarding-theme-description",
+              },
+            },
+          ],
+          colorways: [
+            {
+              id: "default",
+              label: {
+                string_id: "mr2-onboarding-theme-label-default",
+              },
+              tooltip: {
+                string_id: "mr2-onboarding-default-theme-tooltip",
+              },
+              description: {
+                string_id: "mr2-onboarding-default-theme-description",
+              },
+            },
+            {
+              id: "abstract",
+              label: "Abstract",
+              tooltip: {
+                string_id: "mr2-onboarding-colorway-tooltip",
+              },
+              description: {
+                string_id: "mr2-onboarding-colorway-description",
+              },
+            },
+            {
+              id: "cheers",
+              label: "Cheers",
+              tooltip: {
+                string_id: "mr2-onboarding-colorway-tooltip",
+              },
+              description: {
+                string_id: "mr2-onboarding-colorway-description",
+              },
+            },
+            {
+              id: "foto",
+              label: "Foto",
+              tooltip: {
+                string_id: "mr2-onboarding-colorway-tooltip",
+              },
+              description: {
+                string_id: "mr2-onboarding-colorway-description",
+              },
+            },
+            {
+              id: "lush",
+              label: "Lush",
+              tooltip: {
+                string_id: "mr2-onboarding-colorway-tooltip",
+              },
+              description: {
+                string_id: "mr2-onboarding-colorway-description",
+              },
+            },
+            {
+              id: "graffiti",
+              label: "Graffiti",
+              tooltip: {
+                string_id: "mr2-onboarding-colorway-tooltip",
+              },
+              description: {
+                string_id: "mr2-onboarding-colorway-description",
+              },
+            },
+            {
+              id: "elemental",
+              label: "Elemental",
+              tooltip: {
+                string_id: "mr2-onboarding-colorway-tooltip",
+              },
+              description: {
+                string_id: "mr2-onboarding-colorway-description",
               },
             },
           ],
         },
         primary_button: {
           label: {
-            string_id: "mr1-onboarding-theme-primary-button-label",
+            string_id: "mr2-onboarding-colorway-primary-button-label",
           },
           action: {
             navigate: true,
@@ -383,10 +307,30 @@ const DEFAULT_PROTON_WELCOME_CONTENT = {
         },
         secondary_button: {
           label: {
-            string_id: "mr1-onboarding-theme-secondary-button-label",
+            string_id: "mr2-onboarding-colorway-secondary-button-label",
           },
           action: {
             theme: "automatic",
+            navigate: true,
+          },
+        },
+      },
+    },
+    {
+      id: "AW_THANKS",
+      order: 4,
+      autoClose: true,
+      content: {
+        hasFancyTitle: true,
+        title: { string_id: "mr2-onboarding-thank-you-header" },
+        subtitle: {
+          string_id: "mr2-onboarding-thank-you-text",
+        },
+        primary_button: {
+          label: {
+            string_id: "mr2-onboarding-start-browsing-button-label",
+          },
+          action: {
             navigate: true,
           },
         },
@@ -457,94 +401,9 @@ async function getAttributionContent() {
   return null;
 }
 
-const RULES = [
-  {
-    description: "Proton Default AW content",
-    getDefaults(featureConfig) {
-      if (featureConfig?.isProton) {
-        return DEFAULT_PROTON_WELCOME_CONTENT;
-      }
-      return null;
-    },
-  },
-  {
-    description: "Windows pin to task bar screen",
-    getDefaults(featureConfig) {
-      if (featureConfig.needPin) {
-        return {
-          template: "multistage",
-          screens: [
-            {
-              id: "AW_PIN_AND_DEFAULT",
-              order: 0,
-              content: {
-                ...DEFAULT_WELCOME_CONTENT.screens[0].content,
-                title: {
-                  string_id: "onboarding-multistage-pin-default-header",
-                },
-                subtitle: {
-                  string_id: "onboarding-multistage-pin-default-subtitle",
-                },
-                help_text: {
-                  position: "default",
-                  text: {
-                    string_id: "onboarding-multistage-pin-default-help-text",
-                  },
-                },
-                primary_button: {
-                  label: {
-                    string_id:
-                      "onboarding-multistage-pin-default-primary-button-label",
-                  },
-                  action: {
-                    navigate: true,
-                    type: "PIN_AND_DEFAULT",
-                    waitForDefault: true,
-                  },
-                },
-                waiting_for_default: {
-                  subtitle: {
-                    string_id:
-                      "onboarding-multistage-pin-default-waiting-subtitle",
-                  },
-                  help_text: null,
-                  primary_button: null,
-                  tiles: {
-                    media_type: "tiles-delayed",
-                    type: "image",
-                    source: {
-                      default:
-                        "chrome://activity-stream/content/data/content/assets/remote/windows-default-browser.gif",
-                    },
-                  },
-                },
-              },
-            },
-            ...DEFAULT_WELCOME_CONTENT.screens.slice(1),
-          ],
-        };
-      }
-
-      return null;
-    },
-  },
-  {
-    description: "Default AW content",
-    getDefaults() {
-      return DEFAULT_WELCOME_CONTENT;
-    },
-  },
-];
-
-function getDefaults(featureConfig) {
-  for (const rule of RULES) {
-    const result = rule.getDefaults(featureConfig);
-    if (result) {
-      // Make a deep copy of the object to avoid editing the original default.
-      return Cu.cloneInto(result, {});
-    }
-  }
-  return null;
+// Return default multistage welcome content
+function getDefaults() {
+  return Cu.cloneInto(DEFAULT_WELCOME_CONTENT, {});
 }
 
 let gSourceL10n = null;
@@ -568,10 +427,6 @@ async function prepareContentForReact(content) {
     return content;
   }
 
-  if (content.isProton) {
-    content.design = "proton";
-  }
-
   // Helper to find screens to remove and adjust screen order.
   function removeScreens(check) {
     const { screens } = content;
@@ -588,7 +443,7 @@ async function prepareContentForReact(content) {
 
   // Change content for Windows 7 because non-light themes aren't quite right.
   if (AppConstants.isPlatformAndVersionAtMost("win", "6.1")) {
-    removeScreens(screen => screen.content?.tiles?.type === "theme");
+    removeScreens(screen => ["theme"].includes(screen.content?.tiles?.type));
   }
 
   // Set the primary import button source based on attribution.

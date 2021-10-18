@@ -13,9 +13,9 @@ const { XPCOMUtils } = ChromeUtils.import(
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
+  BuiltInThemes: "resource:///modules/BuiltInThemes.jsm",
   FxAccounts: "resource://gre/modules/FxAccounts.jsm",
   MigrationUtils: "resource:///modules/MigrationUtils.jsm",
-  OS: "resource://gre/modules/osfile.jsm",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.jsm",
   AboutWelcomeTelemetry:
@@ -52,6 +52,24 @@ const LIGHT_WEIGHT_THEMES = {
   LIGHT: "firefox-compact-light@mozilla.org",
   AUTOMATIC: "default-theme@mozilla.org",
   ALPENGLOW: "firefox-alpenglow@mozilla.org",
+  "ABSTRACT-SOFT": "abstract-soft-colorway@mozilla.org",
+  "ABSTRACT-BALANCED": "abstract-balanced-colorway@mozilla.org",
+  "ABSTRACT-BOLD": "abstract-bold-colorway@mozilla.org",
+  "CHEERS-SOFT": "cheers-soft-colorway@mozilla.org",
+  "CHEERS-BALANCED": "cheers-balanced-colorway@mozilla.org",
+  "CHEERS-BOLD": "cheers-bold-colorway@mozilla.org",
+  "ELEMENTAL-SOFT": "elemental-soft-colorway@mozilla.org",
+  "ELEMENTAL-BALANCED": "elemental-balanced-colorway@mozilla.org",
+  "ELEMENTAL-BOLD": "elemental-bold-colorway@mozilla.org",
+  "FOTO-SOFT": "foto-soft-colorway@mozilla.org",
+  "FOTO-BALANCED": "foto-balanced-colorway@mozilla.org",
+  "FOTO-BOLD": "foto-bold-colorway@mozilla.org",
+  "GRAFFITI-SOFT": "graffiti-soft-colorway@mozilla.org",
+  "GRAFFITI-BALANCED": "graffiti-balanced-colorway@mozilla.org",
+  "GRAFFITI-BOLD": "graffiti-bold-colorway@mozilla.org",
+  "LUSH-SOFT": "lush-soft-colorway@mozilla.org",
+  "LUSH-BALANCED": "lush-balanced-colorway@mozilla.org",
+  "LUSH-BOLD": "lush-bold-colorway@mozilla.org",
 };
 
 async function getImportableSites() {
@@ -68,9 +86,9 @@ async function getImportableSites() {
     // Check each profile for top sites
     const dataPath = await migrator.wrappedJSObject._getChromeUserDataPathIfExists();
     for (const profile of await migrator.getSourceProfiles()) {
-      let path = OS.Path.join(dataPath, profile.id, "Top Sites");
+      let path = PathUtils.join(dataPath, profile.id, "Top Sites");
       // Skip if top sites data is missing
-      if (!(await OS.File.exists(path))) {
+      if (!(await IOUtils.exists(path))) {
         Cu.reportError(`Missing file at ${path}`);
         continue;
       }
@@ -183,6 +201,16 @@ class AboutWelcomeParent extends JSWindowActorParent {
     this.AboutWelcomeObserver = new AboutWelcomeObserver(this);
   }
 
+  // Static methods that calls into ShellService to check
+  // if Firefox is pinned or already default
+  static doesAppNeedPin() {
+    return ShellService.doesAppNeedPin();
+  }
+
+  static isDefaultBrowser() {
+    return ShellService.isDefaultBrowser();
+  }
+
   didDestroy() {
     if (this.AboutWelcomeObserver) {
       this.AboutWelcomeObserver.stop();
@@ -233,6 +261,7 @@ class AboutWelcomeParent extends JSWindowActorParent {
         let attributionData = await AboutWelcomeDefaults.getAttributionContent();
         return attributionData;
       case "AWPage:SELECT_THEME":
+        await BuiltInThemes.ensureBuiltInThemes();
         return AddonManager.getAddonByID(
           LIGHT_WEIGHT_THEMES[data]
         ).then(addon => addon.enable());
@@ -255,14 +284,12 @@ class AboutWelcomeParent extends JSWindowActorParent {
         }
         return this.RegionHomeObserver.promiseRegionHome();
       case "AWPage:DOES_APP_NEED_PIN":
-        return ShellService.doesAppNeedPin();
-      case "AWPage:IS_DEFAULT_BROWSER":
-        return ShellService.isDefaultBrowser();
+        return AboutWelcomeParent.doesAppNeedPin();
       case "AWPage:NEED_DEFAULT":
         // Only need to set default if we're supposed to check and not default.
         return (
           Services.prefs.getBoolPref("browser.shell.checkDefaultBrowser") &&
-          !ShellService.isDefaultBrowser()
+          !AboutWelcomeParent.isDefaultBrowser()
         );
       case "AWPage:WAIT_FOR_MIGRATION_CLOSE":
         return new Promise(resolve =>

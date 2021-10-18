@@ -66,6 +66,14 @@ class JSWindowActorChild {
   }
 }
 
+class Logger {
+  constructor(name) {
+    this.name = name;
+  }
+
+  warn() {}
+}
+
 const TEST_GLOBAL = {
   JSWindowActorParent,
   JSWindowActorChild,
@@ -306,6 +314,11 @@ const TEST_GLOBAL = {
       scalarSet: () => {},
       keyedScalarAdd: () => {},
     },
+    uuid: {
+      generateUUID() {
+        return "{foo-123-foo}";
+      },
+    },
     console: { logStringMessage: () => {} },
     prefs: {
       addObserver() {},
@@ -465,7 +478,8 @@ const TEST_GLOBAL = {
   NimbusFeatures: {
     newtab: {
       isEnabled() {},
-      getValue() {},
+      getVariable() {},
+      getAllVariables() {},
       onUpdate() {},
       off() {},
     },
@@ -505,10 +519,9 @@ const TEST_GLOBAL = {
     addExpirationFilter() {},
     removeExpirationFilter() {},
   },
-  gUUIDGenerator: {
-    generateUUID: () => "{foo-123-foo}",
-  },
+  Logger,
 };
+TEST_GLOBAL.NimbusFeatures.pocketNewtab = TEST_GLOBAL.NimbusFeatures.newtab;
 overrider.set(TEST_GLOBAL);
 
 describe("activity-stream", () => {

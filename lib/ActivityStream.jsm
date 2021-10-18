@@ -50,8 +50,8 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
-  "RecommendationProviderSwitcher",
-  "resource://activity-stream/lib/RecommendationProviderSwitcher.jsm"
+  "RecommendationProvider",
+  "resource://activity-stream/lib/RecommendationProvider.jsm"
 );
 ChromeUtils.defineModuleGetter(
   this,
@@ -200,13 +200,6 @@ const PREFS_CONFIG = new Map([
         cta_url: "",
         use_cta: false,
       }),
-    },
-  ],
-  [
-    "filterAdult",
-    {
-      title: "Remove adult pages from sites, highlights, etc.",
-      value: true,
     },
   ],
   [
@@ -367,19 +360,6 @@ const PREFS_CONFIG = new Map([
       }),
     },
   ],
-  [
-    "asrouter.providers.cfr-fxa",
-    {
-      title: "Configuration for CFR FxA Messages provider",
-      value: JSON.stringify({
-        id: "cfr-fxa",
-        enabled: true,
-        type: "remote-settings",
-        bucket: "cfr-fxa",
-        updateCycleInMs: 3600000,
-      }),
-    },
-  ],
   // See browser/app/profile/firefox.js for other ASR preferences. They must be defined there to enable roll-outs.
   [
     "discoverystream.flight.blocks",
@@ -400,7 +380,6 @@ const PREFS_CONFIG = new Map([
           enabled: true,
           show_spocs: showSpocs({ geo }),
           hardcoded_layout: true,
-          personalized: true,
           // This is currently an exmple layout used for dev purposes.
           layout_endpoint:
             "https://getpocket.cdn.mozilla.net/v3/newtab/layout?version=1&consumer_key=$apiKey&layout_variant=basic",
@@ -595,9 +574,9 @@ const FEEDS_DATA = [
     value: true,
   },
   {
-    name: "recommendationproviderswitcher",
-    factory: () => new RecommendationProviderSwitcher(),
-    title: "Handles switching between two types of personality providers",
+    name: "recommendationprovider",
+    factory: () => new RecommendationProvider(),
+    title: "Handles setup and interaction for the personality provider",
     value: true,
   },
   {

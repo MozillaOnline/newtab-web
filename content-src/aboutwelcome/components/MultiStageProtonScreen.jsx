@@ -4,6 +4,7 @@
 
 import React from "react";
 import { Localized } from "./MSLocalized";
+import { Colorways } from "./Colorways";
 import { Themes } from "./Themes";
 import { SecondaryCTA, StepsIndicator } from "./MultiStageAboutWelcome";
 
@@ -13,8 +14,11 @@ export class MultiStageProtonScreen extends React.PureComponent {
   }
 
   render() {
-    const { content, totalNumberOfScreens: total } = this.props;
+    const { autoClose, content, totalNumberOfScreens: total } = this.props;
+    const windowObj = this.props.windowObj || window;
     const isWelcomeScreen = this.props.order === 0;
+    const isLastScreen = this.props.order === total;
+    const autoCloseTime = 20000;
     // Assign proton screen style 'screen-1' or 'screen-2' by checking
     // if screen order is even or odd.
     const screenClassName = isWelcomeScreen
@@ -22,6 +26,20 @@ export class MultiStageProtonScreen extends React.PureComponent {
       : `${this.props.order === 1 ? `dialog-initial` : ``} ${
           this.props.order === total ? `dialog-last` : ``
         } screen-${this.props.order % 2 !== 0 ? 1 : 2}`;
+
+    if (isLastScreen && autoClose) {
+      let currentURL = windowObj.location.href;
+      setTimeout(function() {
+        // set the timer to close last screen and redirect to about:home after 20 seconds
+        const screenEl = windowObj.document.querySelector(".screen");
+        if (
+          windowObj.location.href === currentURL &&
+          screenEl.className.includes("dialog-last")
+        ) {
+          windowObj.location.href = "about:home";
+        }
+      }, autoCloseTime);
+    }
 
     return (
       <main className={`screen ${this.props.id} ${screenClassName}`}>
@@ -55,51 +73,68 @@ export class MultiStageProtonScreen extends React.PureComponent {
           <div className={`noodle outline-L`} />
           <div className={`noodle yellow-circle`} />
           <div className="main-content">
-            <div className="brand-logo" />
-            <div className="welcome-text">
-              <Localized text={content.title}>
-                <h1
-                  tabIndex="-1"
-                  ref={input => {
-                    this.mainContentHeader = input;
-                  }}
-                />
-              </Localized>
-              {!isWelcomeScreen ? (
-                <Localized text={content.subtitle}>
-                  <h2 />
-                </Localized>
-              ) : null}
-            </div>
-            {content.tiles &&
-            content.tiles.type === "theme" &&
-            content.tiles.data ? (
-              <Themes
-                content={content}
-                activeTheme={this.props.activeTheme}
-                handleAction={this.props.handleAction}
-                design={this.props.design}
-              />
+            <div className={`brand-logo ${content.hideLogo ? "hide" : ""}`} />
+            {isLastScreen && content.hasFancyTitle ? (
+              <div className="confetti" />
             ) : null}
-            <div>
-              <Localized
-                text={
-                  content.primary_button ? content.primary_button.label : null
-                }
+            <div className="main-content-inner">
+              <div
+                className={`welcome-text ${
+                  content.hasFancyTitle ? "fancy-headings" : ""
+                }`}
               >
-                <button
-                  className="primary"
-                  value="primary_button"
-                  onClick={this.props.handleAction}
+                <Localized text={content.title}>
+                  <h1
+                    tabIndex="-1"
+                    ref={input => {
+                      this.mainContentHeader = input;
+                    }}
+                  />
+                </Localized>
+                {!isWelcomeScreen ? (
+                  <Localized text={content.subtitle}>
+                    <h2 />
+                  </Localized>
+                ) : null}
+              </div>
+              {content.tiles &&
+              content.tiles.type === "colorway" &&
+              content.tiles.colorways ? (
+                <Colorways
+                  content={content}
+                  activeTheme={this.props.activeTheme}
+                  handleAction={this.props.handleAction}
                 />
-              </Localized>
+              ) : null}
+              {content.tiles &&
+              content.tiles.type === "theme" &&
+              content.tiles.data ? (
+                <Themes
+                  content={content}
+                  activeTheme={this.props.activeTheme}
+                  handleAction={this.props.handleAction}
+                />
+              ) : null}
+              <div>
+                <Localized
+                  text={
+                    content.primary_button ? content.primary_button.label : null
+                  }
+                >
+                  <button
+                    className="primary"
+                    value="primary_button"
+                    onClick={this.props.handleAction}
+                  />
+                </Localized>
+                {content.secondary_button ? (
+                  <SecondaryCTA
+                    content={content}
+                    handleAction={this.props.handleAction}
+                  />
+                ) : null}
+              </div>
             </div>
-            {content.secondary_button ? (
-              <SecondaryCTA
-                content={content}
-                handleAction={this.props.handleAction}
-              />
-            ) : null}
             {!isWelcomeScreen ? (
               <nav
                 className="steps"
