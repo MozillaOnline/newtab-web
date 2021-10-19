@@ -6,9 +6,18 @@
 
 {
   const prefersDarkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const rgbaBlack = { r: 0, g: 0, b: 0, a: 1 };
+  const rgbaWhite = { r: 255, g: 255, b: 255, a: 1 };
 
   function _isTextColorDark(r, g, b) {
     return 0.2125 * r + 0.7154 * g + 0.0721 * b <= 110;
+  }
+
+  function _opaqueColorMix(rgb1, rgb2, weight1) {
+    const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * (100 - weight1) / 100);
+    const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * (100 - weight1) / 100);
+    const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * (100 - weight1) / 100);
+    return `rgb(${r}, ${g}, ${b})`;
   }
 
   const inContentVariableMap = [
@@ -66,6 +75,87 @@
           return `rgba(${r}, ${g}, ${b}, ${a})`;
         },
       },
+    ],
+    [
+      "--newtab-text-secondary-color",
+      {
+        lwtProperty: "ntp_text",
+        processColor(rgbaChannels) {
+          if (!rgbaChannels) {
+            return null;
+          }
+
+          const { r, g, b, a } = rgbaChannels;
+          // See `content-src/styles/_theme.scss`, 80% mix with `transparent`
+          return `rgba(${r}, ${g}, ${b}, ${a * 0.8})`;
+        }
+      }
+    ],
+    [
+      "--newtab-element-hover-color",
+      {
+        lwtProperty: "ntp_background",
+        processColor(rgbaChannels, element) {
+          if (!rgbaChannels) {
+            return null;
+          }
+
+          const colorToMix =
+            element.hasAttribute("lwt-newtab-brighttext") ?
+            rgbaWhite : rgbaBlack;
+          // See `content-src/styles/_theme.scss`
+          return _opaqueColorMix(rgbaChannels, colorToMix, 95);
+        }
+      }
+    ],
+    [
+      "--newtab-element-active-color",
+      {
+        lwtProperty: "ntp_background",
+        processColor(rgbaChannels, element) {
+          if (!rgbaChannels) {
+            return null;
+          }
+
+          const colorToMix =
+            element.hasAttribute("lwt-newtab-brighttext") ?
+            rgbaWhite : rgbaBlack;
+          // See `content-src/styles/_theme.scss`
+          return _opaqueColorMix(rgbaChannels, colorToMix, 90);
+        }
+      }
+    ],
+    [
+      "--newtab-border-color",
+      {
+        lwtProperty: "ntp_background",
+        processColor(rgbaChannels, element) {
+          if (!rgbaChannels) {
+            return null;
+          }
+
+          const colorToMix =
+            element.hasAttribute("lwt-newtab-brighttext") ?
+            rgbaWhite : rgbaBlack;
+          // See `content-src/styles/_theme.scss`
+          return _opaqueColorMix(rgbaChannels, colorToMix, 75);
+        }
+      }
+    ],
+    [
+      "--newtab-overlay-color",
+      {
+        lwtProperty: "ntp_background",
+        processColor(rgbaChannels) {
+          if (!rgbaChannels) {
+            return null;
+          }
+
+          const { r, g, b } = rgbaChannels;
+          // See `content-src/styles/_theme.scss`, 85% mix with `transparent`
+          return `rgba(${r}, ${g}, ${b}, 0.85)`;
+        }
+      }
     ],
     [
       "--lwt-sidebar-background-color",
