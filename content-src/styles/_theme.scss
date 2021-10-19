@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 @function textbox-shadow($color) {
   @return 0 0 0 1px $color, 0 0 0 $textbox-shadow-size rgba($color, 0.3);
 }
@@ -89,6 +91,34 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
     --newtab-primary-element-text-color: #{$primary-text-color-dark};
     --newtab-wordmark-color: #{$newtab-wordmark-darktheme-color};
     --newtab-status-success: #{$status-dark-green};
+  }
+}
+
+@supports not (color: color-mix(in srgb, rebeccapurple, transparent)) {
+  :root {
+    --newtab-text-secondary-color: #{color.mix($in-content-page-color, transparent, 70%)};
+  
+    --newtab-element-hover-color: #{color.mix($in-content-page-background, $black, 90%)};
+    --newtab-element-active-color: #{color.mix($in-content-page-background, $black, 80%)};
+
+    --newtab-primary-element-hover-color: #{color.mix($primary-blue, $black, 90%)};
+    --newtab-primary-element-active-color: #{color.mix($primary-blue, $black, 80%)};
+    --newtab-primary-action-background-dimmed: #{color.mix($primary-blue, transparent, 25%)};
+    --newtab-border-color: #{color.mix($in-content-page-background, $black, 75%)};
+    --newtab-overlay-color: #{color.mix($in-content-page-background, transparent, 85%)};
+    
+    &[lwt-newtab-brighttext] {
+      --newtab-text-secondary-color: #{color.mix($in-content-page-color-dark, transparent, 70%)};
+
+      --newtab-element-hover-color: #{color.mix($in-content-page-background-dark, $white, 80%)};
+      --newtab-element-active-color: #{color.mix($in-content-page-background-dark, $white, 60%)};
+
+      --newtab-primary-element-hover-color: #{color.mix($primary-blue-dark, $black, 90%)};
+      --newtab-primary-element-active-color: #{color.mix($primary-blue-dark, $black, 80%)};
+      --newtab-primary-action-background-dimmed: #{color.mix($primary-blue-dark, transparent, 25%)};
+      --newtab-border-color: #{color.mix($in-content-page-background-dark, $white, 75%)};
+      --newtab-overlay-color: #{color.mix($in-content-page-background-dark, transparent, 85%)};
+    }
   }
 }
 
