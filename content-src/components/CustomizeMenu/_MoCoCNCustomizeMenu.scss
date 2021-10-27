@@ -1,0 +1,18 @@
+// `tab-size` support introduced in Fx 91
+@supports not (tab-size: initial) {
+  .home-section .section .selector {
+    background-image: url('#{$image-path}glyph-arrowhead-down-12.svg');
+  }
+}
+
+@supports not (appearance: none) {
+  .home-section .section .selector {
+    -moz-appearance: none;
+  }
+}
+
+@supports not ((user-select: auto) and selector(input::file-selector-button)) {
+  .home-section .section .selector {
+    background-image: url('#{$b4fx82-image-path}glyph-arrowhead-down-12.svg');
+  }
+}
