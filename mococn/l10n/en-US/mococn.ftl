@@ -3,10 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 ## Strings added for MoCoCN customization
-mococn-custom-topstories-title = Recommended news
+mococn-custom-topstories-title = More Readings
 mococn-custom-topstories-subtitle =
 
 mococn-menu-dismiss = Dismiss
 mococn-menu-unpin = Delete
 
-mococn-section-header-topstories = Recommended news
+mococn-section-header-topstories = 📰 More
