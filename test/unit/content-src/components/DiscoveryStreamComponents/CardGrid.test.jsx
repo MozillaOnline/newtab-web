@@ -51,13 +51,35 @@ describe("<CardGrid>", () => {
     assert.ok(wrapper.find(".ds-card-grid-compact-variant").exists());
   });
 
-  it("should add description classname to card grid", () => {
+  it("should render sub header in the middle of the card grid for both regular and compact", () => {
     wrapper.setProps({
-      include_descriptions: true,
+      essentialReadsHeader: true,
+      editorsPicksHeader: true,
+      data: { recommendations: [{}, {}] },
+    });
+
+    assert.ok(wrapper.find(".ds-sub-header").exists());
+
+    wrapper.setProps({
+      compact: true,
+    });
+
+    assert.ok(wrapper.find(".ds-sub-header").exists());
+  });
+
+  it("should add/hide description classname to card grid", () => {
+    wrapper.setProps({
       data: { recommendations: [{}, {}] },
     });
 
     assert.ok(wrapper.find(".ds-card-grid-include-descriptions").exists());
+
+    wrapper.setProps({
+      hideDescriptions: true,
+      data: { recommendations: [{}, {}] },
+    });
+
+    assert.ok(!wrapper.find(".ds-card-grid-include-descriptions").exists());
   });
 
   it("should show last card and more loaded state", () => {
@@ -67,7 +89,10 @@ describe("<CardGrid>", () => {
       compact: true,
       loadMoreEnabled: true,
       lastCardMessageEnabled: true,
-      data: { recommendations: [{}, {}] },
+      loadMoreThreshold: 2,
+      data: {
+        recommendations: [{}, {}, {}],
+      },
     });
 
     const loadMoreButton = wrapper.find(".ds-card-grid-load-more-button");
@@ -85,5 +110,25 @@ describe("<CardGrid>", () => {
 
     const lastCard = wrapper.find(LastCardMessage);
     assert.ok(lastCard.exists());
+  });
+
+  it("should only show load more with more than threshold number of stories", () => {
+    wrapper.setProps({
+      loadMoreEnabled: true,
+      loadMoreThreshold: 2,
+      data: {
+        recommendations: [{}, {}, {}],
+      },
+    });
+
+    let loadMoreButton = wrapper.find(".ds-card-grid-load-more-button");
+    assert.ok(loadMoreButton.exists());
+
+    wrapper.setProps({
+      loadMoreThreshold: 3,
+    });
+
+    loadMoreButton = wrapper.find(".ds-card-grid-load-more-button");
+    assert.ok(!loadMoreButton.exists());
   });
 });

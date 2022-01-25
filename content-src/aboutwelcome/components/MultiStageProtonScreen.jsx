@@ -42,7 +42,15 @@ export class MultiStageProtonScreen extends React.PureComponent {
     }
 
     return (
-      <main className={`screen ${this.props.id} ${screenClassName}`}>
+      <main
+        className={`screen ${this.props.id} ${screenClassName}`}
+        role="dialog"
+        tabIndex="-1"
+        aria-labelledby="mainContentHeader"
+        ref={input => {
+          this.mainContentHeader = input;
+        }}
+      >
         {isWelcomeScreen ? (
           <div className="section-left">
             <div className="message-text">
@@ -72,7 +80,11 @@ export class MultiStageProtonScreen extends React.PureComponent {
           {isWelcomeScreen ? <div className={`noodle solid-L`} /> : null}
           <div className={`noodle outline-L`} />
           <div className={`noodle yellow-circle`} />
-          <div className="main-content">
+          <div
+            className={`main-content ${
+              isLastScreen && autoClose ? "no-steps" : ""
+            }`}
+          >
             <div className={`brand-logo ${content.hideLogo ? "hide" : ""}`} />
             {isLastScreen && content.hasFancyTitle ? (
               <div className="confetti" />
@@ -84,12 +96,7 @@ export class MultiStageProtonScreen extends React.PureComponent {
                 }`}
               >
                 <Localized text={content.title}>
-                  <h1
-                    tabIndex="-1"
-                    ref={input => {
-                      this.mainContentHeader = input;
-                    }}
-                  />
+                  <h1 id="mainContentHeader" />
                 </Localized>
                 {!isWelcomeScreen ? (
                   <Localized text={content.subtitle}>
@@ -135,7 +142,7 @@ export class MultiStageProtonScreen extends React.PureComponent {
                 ) : null}
               </div>
             </div>
-            {!isWelcomeScreen ? (
+            {!(isWelcomeScreen || (autoClose && isLastScreen)) ? (
               <nav
                 className="steps"
                 data-l10n-id={"onboarding-welcome-steps-indicator"}

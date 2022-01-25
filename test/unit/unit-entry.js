@@ -218,6 +218,27 @@ const TEST_GLOBAL = {
     writeJSON() {
       return Promise.resolve(0);
     },
+    readJSON() {
+      return Promise.resolve({});
+    },
+    read() {
+      return Promise.resolve(new Uint8Array());
+    },
+    makeDirectory() {
+      return Promise.resolve(0);
+    },
+    write() {
+      return Promise.resolve(0);
+    },
+    exists() {
+      return Promise.resolve(0);
+    },
+    remove() {
+      return Promise.resolve(0);
+    },
+    stat() {
+      return Promise.resolve(0);
+    },
   },
   NewTabUtils: {
     activityStreamProvider: {
@@ -249,6 +270,9 @@ const TEST_GLOBAL = {
   },
   PathUtils: {
     join(...parts) {
+      return parts[parts.length - 1];
+    },
+    joinRelative(...parts) {
       return parts[parts.length - 1];
     },
     getProfileDir() {
@@ -483,6 +507,13 @@ const TEST_GLOBAL = {
       onUpdate() {},
       off() {},
     },
+    pocketNewtab: {
+      isEnabled() {},
+      getVariable() {},
+      getAllVariables() {},
+      onUpdate() {},
+      off() {},
+    },
   },
   TelemetryEnvironment: {
     setExperimentActive() {},
@@ -521,7 +552,6 @@ const TEST_GLOBAL = {
   },
   Logger,
 };
-TEST_GLOBAL.NimbusFeatures.pocketNewtab = TEST_GLOBAL.NimbusFeatures.newtab;
 overrider.set(TEST_GLOBAL);
 
 describe("activity-stream", () => {
