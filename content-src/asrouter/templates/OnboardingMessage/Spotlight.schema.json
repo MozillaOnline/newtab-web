@@ -22,19 +22,34 @@
         "template": {
           "type": "string",
           "description": "Specify the layout template for the Spotlight",
-          "enum": ["logo-and-content"]
+          "enum": ["logo-and-content", "multistage"]
+        },
+        "backdrop": {
+          "type": "string",
+          "description": "Background css behind modal content"
+        },
+        "logoImageURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "(Deprecated by logo.imageURL)"
         },
         "logo": {
+          "type": "object",
           "properties": {
             "imageURL": {
               "type": "string",
               "description": "URL for image to use with the content"
+            },
+            "imageId": {
+              "type": "string",
+              "description": "The ID for a remotely hosted image"
+            },
+            "size": {
+              "type": "string",
+              "description": "The logo size."
             }
-          }
-        },
-        "logoImageURL": {
-          "type": "string",
-          "description": "URL for image to use with the content"
+          },
+          "additionalProperties": false
         },
         "body": {
           "properties": {
@@ -185,10 +200,37 @@
             }
           },
           "additionalProperties": false
+        },
+        "screens": {
+          "type": "array",
+          "description": "Collection of individual screen content"
+        },
+        "transitions": {
+          "type": "boolean",
+          "description": "Show transitions within and between screens"
         }
       },
       "additionalProperties": false,
-      "required": ["body", "template"]
+      "if": {
+        "properties": {
+          "logoImageURL": { "type": "null" }
+        }
+      },
+      "then": {
+        "properties": {
+          "logo": {
+            "oneOf": [
+              {
+                "required": ["imageURL"]
+              },
+              {
+                "required": ["imageId"]
+              }
+            ]
+          }
+        }
+      },
+      "required": ["template"]
     },
     "frequency": {
       "type": "object",

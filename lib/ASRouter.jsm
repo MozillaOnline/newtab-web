@@ -1432,8 +1432,22 @@ class _ASRouter {
     }
     // Update storage
     this._storage.set("groupImpressions", newGroupImpressions);
+    // The groups parameter below can be removed once this method has test coverage
     return this.setState(({ groups }) => ({
       groupImpressions: newGroupImpressions,
+    }));
+  }
+
+  // Until this method has test coverage, it should only be used for testing
+  _resetMessageState() {
+    const newMessageImpressions = {};
+    for (let { id } of this.state.messages) {
+      newMessageImpressions[id] = [];
+    }
+    // Update storage
+    this._storage.set("messageImpressions", newMessageImpressions);
+    return this.setState(() => ({
+      messageImpressions: newMessageImpressions,
     }));
   }
 
@@ -1582,6 +1596,28 @@ class _ASRouter {
     return this.loadMessagesFromAllProviders();
   }
 
+  async sendPBNewTabMessage({ tabId }) {
+    let message = null;
+
+    await this.loadMessagesFromAllProviders();
+
+    const telemetryObject = { tabId };
+    TelemetryStopwatch.start("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
+    message = await this.handleMessageRequest({ template: "pb_newtab" });
+    TelemetryStopwatch.finish("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
+
+    // Format urls if any are defined
+    ["infoLinkUrl", "promoLinkUrl"].forEach(key => {
+      if (message?.content?.[key]) {
+        message.content[key] = Services.urlFormatter.formatURL(
+          message.content[key]
+        );
+      }
+    });
+
+    return { message };
+  }
+
   async sendNewTabMessage({ endpoint, tabId, browser }) {
     let message;
 
@@ -1662,6 +1698,7 @@ class _ASRouter {
         spotlight: "spotlight",
         infobar: "infobar",
         update_action: "moments-page",
+        pb_newtab: "pbNewtab",
       };
       let feature = featureMap[nonReachMessages[0].template];
       if (feature) {
