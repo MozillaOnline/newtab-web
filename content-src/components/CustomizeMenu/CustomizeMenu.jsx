@@ -48,6 +48,7 @@ export class _CustomizeMenu extends React.PureComponent {
           timeout={250}
           classNames="customize-animate"
           in={this.props.showing}
+          mountOnEnter={true}
           onEntered={this.onEntered}
           onExited={this.onExited}
           appear={true}

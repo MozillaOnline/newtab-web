@@ -49,6 +49,7 @@ module.exports = (env = {}) => ({
   plugins: [
     new HtmlWebpackPlugin({
       filename: "activity-stream.html",
+      inject: "body",
       minify: {
         collapseWhitespace: true,
         maxLineLength: 80,
