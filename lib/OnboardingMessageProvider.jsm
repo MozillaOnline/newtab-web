@@ -56,7 +56,6 @@ const ONBOARDING_MESSAGES = () => [
       screens: [
         {
           id: "UPGRADE_PIN_FIREFOX",
-          order: 0,
           content: {
             logo: {
               imageURL:
@@ -65,11 +64,12 @@ const ONBOARDING_MESSAGES = () => [
             },
             has_noodles: true,
             title: {
+              fontSize: "36px",
               string_id: "fx100-upgrade-thanks-header",
             },
-            title_style: "fancy larger",
+            title_style: "fancy shine",
             background:
-              "url(chrome://activity-stream/content/data/content/assets/confetti.svg) top / 100% no-repeat var(--in-content-page-background)",
+              "url('chrome://activity-stream/content/data/content/assets/confetti.svg') top / 100% no-repeat var(--in-content-page-background)",
             subtitle: {
               string_id: "fx100-upgrade-thanks-keep-body",
             },
@@ -108,12 +108,12 @@ const ONBOARDING_MESSAGES = () => [
       infoTitleEnabled: false,
       promoEnabled: true,
       promoType: "FOCUS",
-      promoHeader: "fluent:about-private-browsing-focus-promo-header",
+      promoHeader: "fluent:about-private-browsing-focus-promo-header-c",
       promoImageLarge: "chrome://browser/content/assets/focus-promo.png",
       promoLinkText: "fluent:about-private-browsing-focus-promo-cta",
       promoLinkType: "button",
       promoSectionStyle: "below-search",
-      promoTitle: "fluent:about-private-browsing-focus-promo-text",
+      promoTitle: "fluent:about-private-browsing-focus-promo-text-c",
       promoTitleEnabled: true,
       promoButton: {
         action: {
@@ -128,7 +128,6 @@ const ONBOARDING_MESSAGES = () => [
               screens: [
                 {
                   id: "DEFAULT_MODAL_UI",
-                  order: 0,
                   content: {
                     logo: {
                       imageURL:
@@ -197,13 +196,13 @@ const ONBOARDING_MESSAGES = () => [
     frequency: {
       custom: [
         {
-          cap: 1,
-          period: 604800000, // Max 1 per week
+          cap: 3,
+          period: 604800000, // Max 3 per week
         },
       ],
-      lifetime: 3,
+      lifetime: 12,
     },
-    targeting: "!(region == 'DE' && localeLanguageCode == 'en')",
+    targeting: "!(region in [ 'DE', 'AT', 'CH'] && localeLanguageCode == 'en')",
   },
   {
     id: "PB_NEWTAB_KLAR_PROMO",
@@ -218,12 +217,13 @@ const ONBOARDING_MESSAGES = () => [
       infoTitleEnabled: false,
       promoEnabled: true,
       promoType: "FOCUS",
-      promoHeader: "Firefox Klar: Private browsing on-the-go",
+      promoHeader: "fluent:about-private-browsing-focus-promo-header-c",
       promoImageLarge: "chrome://browser/content/assets/focus-promo.png",
       promoLinkText: "Download Firefox Klar",
       promoLinkType: "button",
       promoSectionStyle: "below-search",
-      promoTitle: "fluent:about-private-browsing-focus-promo-text",
+      promoTitle:
+        "Firefox Klar clears your history every time while blocking ads and trackers.",
       promoTitleEnabled: true,
       promoButton: {
         action: {
@@ -301,13 +301,13 @@ const ONBOARDING_MESSAGES = () => [
     frequency: {
       custom: [
         {
-          cap: 1,
-          period: 604800000, // Max 1 per week
+          cap: 3,
+          period: 604800000, // Max 3 per week
         },
       ],
-      lifetime: 3,
+      lifetime: 12,
     },
-    targeting: "region == 'DE' && localeLanguageCode == 'en'",
+    targeting: "region in [ 'DE', 'AT', 'CH'] && localeLanguageCode == 'en'",
   },
   {
     id: "PB_NEWTAB_INFO_SECTION",
