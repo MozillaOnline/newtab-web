@@ -48,6 +48,17 @@ $mococn-newtab-topsites-background-color: #F9F9FA;
   }
 }
 
+// `glyph-edit-16.svg` removed since Fx 101 in https://bugzil.la/1765459
+// `edit.svg` available since Fx 87 in https://bugzil.la/1524836
+// Check for `ruby-position: alternate` here, which was introduced in Fx 88
+@supports (ruby-position: alternate) {
+  .top-site-outer {
+    .edit-button {
+      background-image: url('chrome://global/skin/icons/edit.svg');
+    }
+  }
+}
+
 @supports not ((user-select: auto) and selector(input::file-selector-button)) {
   .top-site-outer {
     .edit-button {
