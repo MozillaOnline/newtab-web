@@ -205,6 +205,17 @@
   }
 }
 
+// The icon was moved to `close-fill.svg` in Fx 101 with https://bugzil.la/1765456
+// No idea how to test with `@supports`, use `prefers-contrast` (introduced in Fx 101)
+// instead, hopefully `no-preference` alone covers enough/most users.
+@media (prefers-contrast: no-preference) {
+  .icon {
+    &.icon-clear-input {
+      background-image: url('chrome://global/skin/icons/close-fill.svg');
+    }
+  }
+}
+
 // `tab-size` support introduced in Fx 91
 @supports not (tab-size: initial) {
   .icon {
