@@ -9,19 +9,29 @@ import React from "react";
 export class DSLinkMenu extends React.PureComponent {
   render() {
     const { index, dispatch } = this.props;
-    const TOP_STORIES_CONTEXT_MENU_OPTIONS = [
-      "CheckBookmark",
-      "CheckArchiveFromPocket",
-      ...(this.props.saveToPocketCard
-        ? ["CheckDeleteFromPocket"]
-        : ["CheckSavedToPocket"]),
-      "Separator",
+    let pocketMenuOptions = [];
+    let TOP_STORIES_CONTEXT_MENU_OPTIONS = [
       "OpenInNewWindow",
       "OpenInPrivateWindow",
-      "Separator",
-      "BlockUrl",
-      ...(this.props.showPrivacyInfo ? ["ShowPrivacyInfo"] : []),
     ];
+    if (!this.props.isRecentSave) {
+      if (this.props.pocket_button_enabled) {
+        pocketMenuOptions = this.props.saveToPocketCard
+          ? ["CheckDeleteFromPocket"]
+          : ["CheckSavedToPocket"];
+      }
+      TOP_STORIES_CONTEXT_MENU_OPTIONS = [
+        "CheckBookmark",
+        "CheckArchiveFromPocket",
+        ...pocketMenuOptions,
+        "Separator",
+        "OpenInNewWindow",
+        "OpenInPrivateWindow",
+        "Separator",
+        "BlockUrl",
+        ...(this.props.showPrivacyInfo ? ["ShowPrivacyInfo"] : []),
+      ];
+    }
     const type = this.props.type || "DISCOVERY_STREAM";
     const title = this.props.title || this.props.source;
 

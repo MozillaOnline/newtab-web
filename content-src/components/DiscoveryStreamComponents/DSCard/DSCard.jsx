@@ -85,6 +85,7 @@ export const DefaultMeta = ({
   sponsor,
   sponsored_by_override,
   saveToPocketCard,
+  isRecentSave,
 }) => (
   <div className="meta">
     <div className="info-wrap">
@@ -250,6 +251,8 @@ export class _DSCard extends React.PureComponent {
             ? "CARDGRID_VIDEO"
             : this.props.type.toUpperCase(),
           click: 0,
+          window_inner_width: this.props.windowObj.innerWidth,
+          window_inner_height: this.props.windowObj.innerHeight,
           tiles: [
             {
               id: this.props.id,
@@ -416,6 +419,7 @@ export class _DSCard extends React.PureComponent {
       titleLines = 3,
       descLines = 3,
       displayReadTime,
+      isRecentSave,
     } = this.props;
     const excerpt = !hideDescriptions ? this.props.excerpt : "";
 
@@ -538,6 +542,8 @@ export class _DSCard extends React.PureComponent {
                 onMenuUpdate={this.onMenuUpdate}
                 onMenuShow={this.onMenuShow}
                 saveToPocketCard={saveToPocketCard}
+                pocket_button_enabled={this.props.pocket_button_enabled}
+                isRecentSave={isRecentSave}
               />
             </div>
           </div>
@@ -561,6 +567,8 @@ export class _DSCard extends React.PureComponent {
             hostRef={this.contextMenuButtonHostRef}
             onMenuUpdate={this.onMenuUpdate}
             onMenuShow={this.onMenuShow}
+            pocket_button_enabled={this.props.pocket_button_enabled}
+            isRecentSave={isRecentSave}
           />
         )}
       </div>

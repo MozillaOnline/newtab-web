@@ -4,34 +4,57 @@
 "use strict";
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-
-const { actionCreators: ac, actionTypes: at } = ChromeUtils.import(
-  "resource://activity-stream/common/Actions.jsm"
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
 );
+
+const {
+  actionCreators: ac,
+  actionTypes: at,
+  actionUtils: au,
+} = ChromeUtils.import("resource://activity-stream/common/Actions.jsm");
 const { shortURL } = ChromeUtils.import(
   "resource://activity-stream/lib/ShortURL.jsm"
 );
+const { AboutNewTab } = ChromeUtils.import(
+  "resource:///modules/AboutNewTab.jsm"
+);
+
+const lazy = {};
 
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "NewTabUtils",
   "resource://gre/modules/NewTabUtils.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "PartnerLinkAttribution",
   "resource:///modules/PartnerLinkAttribution.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm"
 );
 ChromeUtils.defineModuleGetter(
-  this,
+  lazy,
   "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm"
 );
+ChromeUtils.defineModuleGetter(
+  lazy,
+  "pktApi",
+  "chrome://pocket/content/pktApi.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  lazy,
+  "ExperimentAPI",
+  "resource://nimbus/ExperimentAPI.jsm"
+);
+XPCOMUtils.defineLazyModuleGetters(lazy, {
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
+});
 
 const LINK_BLOCKED_EVENT = "newtab-linkBlocked";
 const PLACES_LINKS_CHANGED_DELAY_TIME = 1000; // time in ms to delay timer for places links changed events
@@ -107,11 +130,11 @@ class PlacesObserver extends Observer {
           // default bookmarks, added when the profile is created.
           if (
             isTagging ||
-            itemType !== PlacesUtils.bookmarks.TYPE_BOOKMARK ||
-            source === PlacesUtils.bookmarks.SOURCES.IMPORT ||
-            source === PlacesUtils.bookmarks.SOURCES.RESTORE ||
-            source === PlacesUtils.bookmarks.SOURCES.RESTORE_ON_STARTUP ||
-            source === PlacesUtils.bookmarks.SOURCES.SYNC ||
+            itemType !== lazy.PlacesUtils.bookmarks.TYPE_BOOKMARK ||
+            source === lazy.PlacesUtils.bookmarks.SOURCES.IMPORT ||
+            source === lazy.PlacesUtils.bookmarks.SOURCES.RESTORE ||
+            source === lazy.PlacesUtils.bookmarks.SOURCES.RESTORE_ON_STARTUP ||
+            source === lazy.PlacesUtils.bookmarks.SOURCES.SYNC ||
             (!url.startsWith("http://") && !url.startsWith("https://"))
           ) {
             return;
@@ -131,11 +154,12 @@ class PlacesObserver extends Observer {
         case "bookmark-removed":
           if (
             isTagging ||
-            (itemType === PlacesUtils.bookmarks.TYPE_BOOKMARK &&
-              source !== PlacesUtils.bookmarks.SOURCES.IMPORT &&
-              source !== PlacesUtils.bookmarks.SOURCES.RESTORE &&
-              source !== PlacesUtils.bookmarks.SOURCES.RESTORE_ON_STARTUP &&
-              source !== PlacesUtils.bookmarks.SOURCES.SYNC)
+            (itemType === lazy.PlacesUtils.bookmarks.TYPE_BOOKMARK &&
+              source !== lazy.PlacesUtils.bookmarks.SOURCES.IMPORT &&
+              source !== lazy.PlacesUtils.bookmarks.SOURCES.RESTORE &&
+              source !==
+                lazy.PlacesUtils.bookmarks.SOURCES.RESTORE_ON_STARTUP &&
+              source !== lazy.PlacesUtils.bookmarks.SOURCES.SYNC)
           ) {
             removedBookmarks.push(url);
           }
@@ -176,7 +200,7 @@ class PlacesFeed {
     Cc["@mozilla.org/browser/nav-bookmarks-service;1"]
       .getService(Ci.nsINavBookmarksService)
       .addObserver(this.bookmarksObserver, true);
-    PlacesUtils.observers.addListener(
+    lazy.PlacesUtils.observers.addListener(
       ["bookmark-added", "bookmark-removed", "history-cleared", "page-removed"],
       this.placesObserver.handlePlacesEvent
     );
@@ -218,8 +242,8 @@ class PlacesFeed {
       this.placesChangedTimer.cancel();
       this.placesChangedTimer = null;
     }
-    PlacesUtils.bookmarks.removeObserver(this.bookmarksObserver);
-    PlacesUtils.observers.removeListener(
+    lazy.PlacesUtils.bookmarks.removeObserver(this.bookmarksObserver);
+    lazy.PlacesUtils.observers.removeListener(
       ["bookmark-added", "bookmark-removed", "history-cleared", "page-removed"],
       this.placesObserver.handlePlacesEvent
     );
@@ -291,7 +315,7 @@ class PlacesFeed {
 
     // Mark the page as typed for frecency bonus before opening the link
     if (typedBonus) {
-      PlacesUtils.history.markPageAsTyped(Services.io.newURI(urlToOpen));
+      lazy.PlacesUtils.history.markPageAsTyped(Services.io.newURI(urlToOpen));
     }
 
     const win = action._target.browser.ownerGlobal;
@@ -304,17 +328,45 @@ class PlacesFeed {
     // If there's an original URL e.g. using the unprocessed %YYYYMMDDHH% tag,
     // add a visit for that so it may become a frecent top site.
     if (action.data.original_url) {
-      PlacesUtils.history.insert({
+      lazy.PlacesUtils.history.insert({
         url: action.data.original_url,
-        visits: [{ transition: PlacesUtils.history.TRANSITION_TYPED }],
+        visits: [{ transition: lazy.PlacesUtils.history.TRANSITION_TYPED }],
       });
     }
   }
 
   async saveToPocket(site, browser) {
+    const sendToPocket = lazy.NimbusFeatures.pocketNewtab.getVariable(
+      "sendToPocket"
+    );
+    // An experiment to send the user directly to Pocket's signup page.
+    if (sendToPocket && !lazy.pktApi.isUserLoggedIn()) {
+      const pocketNewtabExperiment = lazy.ExperimentAPI.getExperiment({
+        featureId: "pocketNewtab",
+      });
+      const pocketSiteHost = Services.prefs.getStringPref(
+        "extensions.pocket.site"
+      ); // getpocket.com
+      let utmSource = "firefox_newtab_save_button";
+      // We want to know if the user is in a Pocket newtab related experiment.
+      let utmCampaign = pocketNewtabExperiment?.slug;
+      let utmContent = pocketNewtabExperiment?.branch?.slug;
+
+      const url = new URL(`https://${pocketSiteHost}/ff_signup`);
+      url.searchParams.append("utmSource", utmSource);
+      if (utmCampaign && utmContent) {
+        url.searchParams.append("utmCampaign", utmCampaign);
+        url.searchParams.append("utmContent", utmContent);
+      }
+
+      const win = browser.ownerGlobal;
+      win.openTrustedLinkIn(url.href, "tab");
+      return;
+    }
+
     const { url, title } = site;
     try {
-      let data = await NewTabUtils.activityStreamLinks.addPocketEntry(
+      let data = await lazy.NewTabUtils.activityStreamLinks.addPocketEntry(
         url,
         title,
         browser
@@ -344,7 +396,7 @@ class PlacesFeed {
    */
   async deleteFromPocket(itemID) {
     try {
-      await NewTabUtils.activityStreamLinks.deletePocketEntry(itemID);
+      await lazy.NewTabUtils.activityStreamLinks.deletePocketEntry(itemID);
       this.store.dispatch({ type: at.POCKET_LINK_DELETED_OR_ARCHIVED });
     } catch (err) {
       Cu.reportError(err);
@@ -358,7 +410,7 @@ class PlacesFeed {
    */
   async archiveFromPocket(itemID) {
     try {
-      await NewTabUtils.activityStreamLinks.archivePocketEntry(itemID);
+      await lazy.NewTabUtils.activityStreamLinks.archivePocketEntry(itemID);
       this.store.dispatch({ type: at.POCKET_LINK_DELETED_OR_ARCHIVED });
     } catch (err) {
       Cu.reportError(err);
@@ -379,7 +431,7 @@ class PlacesFeed {
       },
       data
     );
-    PartnerLinkAttribution.makeRequest(args);
+    lazy.PartnerLinkAttribution.makeRequest(args);
   }
 
   async fillSearchTopSiteTerm({ _target, data }) {
@@ -396,17 +448,21 @@ class PlacesFeed {
     ];
   }
 
-  handoffSearchToAwesomebar({ _target, data, meta }) {
+  handoffSearchToAwesomebar(action) {
+    const { _target, data, meta } = action;
     const searchEngine = this._getDefaultSearchEngine(
-      PrivateBrowsingUtils.isBrowserPrivate(_target.browser)
+      lazy.PrivateBrowsingUtils.isBrowserPrivate(_target.browser)
     );
     const urlBar = _target.browser.ownerGlobal.gURLBar;
     let isFirstChange = true;
 
+    const newtabSession = AboutNewTab.activityStream.store.feeds
+      .get("feeds.telemetry")
+      ?.sessions.get(au.getPortIdOfSender(action));
     if (!data || !data.text) {
       urlBar.setHiddenFocus();
     } else {
-      urlBar.handoff(data.text, searchEngine);
+      urlBar.handoff(data.text, searchEngine, newtabSession?.session_id);
       isFirstChange = false;
     }
 
@@ -417,7 +473,7 @@ class PlacesFeed {
       if (isFirstChange) {
         isFirstChange = false;
         urlBar.removeHiddenFocus(true);
-        urlBar.handoff("", searchEngine);
+        urlBar.handoff("", searchEngine, newtabSession?.session_id);
         this.store.dispatch(
           ac.OnlyToOneContent({ type: at.DISABLE_SEARCH }, meta.fromTarget)
         );
@@ -500,7 +556,7 @@ class PlacesFeed {
           let sponsoredTopSites = [];
           action.data.forEach(site => {
             const { url, pocket_id, isSponsoredTopSite } = site;
-            NewTabUtils.activityStreamLinks.blockURL({ url, pocket_id });
+            lazy.NewTabUtils.activityStreamLinks.blockURL({ url, pocket_id });
             if (isSponsoredTopSite) {
               sponsoredTopSites.push({ url });
             }
@@ -512,19 +568,19 @@ class PlacesFeed {
         break;
       }
       case at.BOOKMARK_URL:
-        NewTabUtils.activityStreamLinks.addBookmark(
+        lazy.NewTabUtils.activityStreamLinks.addBookmark(
           action.data,
           action._target.browser.ownerGlobal
         );
         break;
       case at.DELETE_BOOKMARK_BY_ID:
-        NewTabUtils.activityStreamLinks.deleteBookmark(action.data);
+        lazy.NewTabUtils.activityStreamLinks.deleteBookmark(action.data);
         break;
       case at.DELETE_HISTORY_URL: {
         const { url, forceBlock, pocket_id } = action.data;
-        NewTabUtils.activityStreamLinks.deleteHistoryEntry(url);
+        lazy.NewTabUtils.activityStreamLinks.deleteHistoryEntry(url);
         if (forceBlock) {
-          NewTabUtils.activityStreamLinks.blockURL({ url, pocket_id });
+          lazy.NewTabUtils.activityStreamLinks.blockURL({ url, pocket_id });
         }
         break;
       }
@@ -559,8 +615,6 @@ class PlacesFeed {
     }
   }
 }
-
-this.PlacesFeed = PlacesFeed;
 
 // Exported for testing only
 PlacesFeed.BookmarksObserver = BookmarksObserver;

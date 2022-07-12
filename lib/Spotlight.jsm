@@ -7,7 +7,9 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyModuleGetters(this, {
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   AboutWelcomeTelemetry:
     "resource://activity-stream/aboutwelcome/lib/AboutWelcomeTelemetry.jsm",
   RemoteImages: "resource://activity-stream/lib/RemoteImages.jsm",
@@ -15,16 +17,31 @@ XPCOMUtils.defineLazyModuleGetters(this, {
     "resource://messaging-system/lib/SpecialMessageActions.jsm",
 });
 
+XPCOMUtils.defineLazyGetter(
+  lazy,
+  "AWTelemetry",
+  () => new lazy.AboutWelcomeTelemetry()
+);
+
 const Spotlight = {
   sendUserEventTelemetry(event, message, dispatch) {
+    const message_id =
+      message.template === "multistage" ? message.content.id : message.id;
     const ping = {
-      message_id: message.id,
+      message_id,
       event,
     };
     dispatch({
       type: "SPOTLIGHT_TELEMETRY",
       data: { action: "spotlight_user_event", ...ping },
     });
+  },
+
+  defaultDispatch(message) {
+    if (message.type === "SPOTLIGHT_TELEMETRY") {
+      const { message_id, event } = message.data;
+      lazy.AWTelemetry.sendTelemetry({ message_id, event });
+    }
   },
 
   /**
@@ -34,7 +51,7 @@ const Spotlight = {
    * @param dispatchCFRAction   A function to dispatch resulting actions
    * @return                    boolean value capturing if spotlight was displayed
    */
-  async showSpotlightDialog(browser, message, dispatch) {
+  async showSpotlightDialog(browser, message, dispatch = this.defaultDispatch) {
     const win = browser.ownerGlobal;
     if (win.gDialogBox.isOpen) {
       return false;
@@ -43,9 +60,7 @@ const Spotlight = {
 
     const dispatchCFRAction =
       // This also blocks CFR impressions, which is fine for current use cases.
-      message.content?.metrics === "block"
-        ? () => {}
-        : dispatch ?? (msg => new AboutWelcomeTelemetry().sendTelemetry(msg));
+      message.content?.metrics === "block" ? () => {} : dispatch;
     let params = { primaryBtn: false, secondaryBtn: false };
 
     // There are two events named `IMPRESSION` the first one refers to telemetry
@@ -53,7 +68,7 @@ const Spotlight = {
     this.sendUserEventTelemetry("IMPRESSION", message, dispatchCFRAction);
     dispatchCFRAction({ type: "IMPRESSION", data: message });
 
-    const unload = await RemoteImages.patchMessage(message.content.logo);
+    const unload = await lazy.RemoteImages.patchMessage(message.content.logo);
 
     if (message.content?.modal === "tab") {
       let { closedPromise } = win.gBrowser.getTabDialogBox(browser).open(
@@ -81,7 +96,7 @@ const Spotlight = {
 
     if (params.secondaryBtn) {
       this.sendUserEventTelemetry("DISMISS", message, dispatchCFRAction);
-      SpecialMessageActions.handleAction(
+      lazy.SpecialMessageActions.handleAction(
         message.content.body.secondary.action,
         browser
       );
@@ -89,7 +104,7 @@ const Spotlight = {
 
     if (params.primaryBtn) {
       this.sendUserEventTelemetry("CLICK", message, dispatchCFRAction);
-      SpecialMessageActions.handleAction(
+      lazy.SpecialMessageActions.handleAction(
         message.content.body.primary.action,
         browser
       );
@@ -98,7 +113,5 @@ const Spotlight = {
     return true;
   },
 };
-
-this.Spotlight = Spotlight;
 
 const EXPORTED_SYMBOLS = ["Spotlight"];

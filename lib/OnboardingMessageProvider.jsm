@@ -7,9 +7,11 @@
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm",
+const lazy = {};
+
+XPCOMUtils.defineLazyModuleGetters(lazy, {
   ShellService: "resource:///modules/ShellService.jsm",
 });
 
@@ -97,6 +99,7 @@ const ONBOARDING_MESSAGES = () => [
   },
   {
     id: "PB_NEWTAB_FOCUS_PROMO",
+    type: "default",
     template: "pb_newtab",
     groups: ["pbNewtab"],
     content: {
@@ -123,7 +126,6 @@ const ONBOARDING_MESSAGES = () => [
               id: "FOCUS_PROMO",
               template: "multistage",
               modal: "tab",
-              metrics: "block",
               backdrop: "transparent",
               screens: [
                 {
@@ -206,6 +208,7 @@ const ONBOARDING_MESSAGES = () => [
   },
   {
     id: "PB_NEWTAB_KLAR_PROMO",
+    type: "default",
     template: "pb_newtab",
     groups: ["pbNewtab"],
     content: {
@@ -233,7 +236,6 @@ const ONBOARDING_MESSAGES = () => [
               id: "KLAR_PROMO",
               template: "multistage",
               modal: "tab",
-              metrics: "block",
               backdrop: "transparent",
               screens: [
                 {
@@ -372,7 +374,7 @@ const OnboardingMessageProvider = {
     return translatedMessages;
   },
   async _doesAppNeedPin() {
-    const needPin = await ShellService.doesAppNeedPin();
+    const needPin = await lazy.ShellService.doesAppNeedPin();
     return needPin;
   },
   async _doesAppNeedDefault() {
@@ -380,7 +382,7 @@ const OnboardingMessageProvider = {
       "browser.shell.checkDefaultBrowser",
       false
     );
-    let isDefault = await ShellService.isDefaultBrowser();
+    let isDefault = await lazy.ShellService.isDefaultBrowser();
     return checkDefault && !isDefault;
   },
   async getUpgradeMessage() {
@@ -414,6 +416,5 @@ const OnboardingMessageProvider = {
     return message;
   },
 };
-this.OnboardingMessageProvider = OnboardingMessageProvider;
 
 const EXPORTED_SYMBOLS = ["OnboardingMessageProvider"];

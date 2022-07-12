@@ -34,10 +34,6 @@ newtab-search-box-handoff-input-no-engine =
     .placeholder = 搜索或输入网址
     .title = 搜索或输入网址
     .aria-label = 搜索或输入网址
-newtab-search-box-search-the-web-input =
-    .placeholder = 在网络上搜索
-    .title = 在网络上搜索
-    .aria-label = 在网络上搜索
 newtab-search-box-text = 网上搜索
 newtab-search-box-input =
     .placeholder = 网上搜索
@@ -46,7 +42,6 @@ newtab-search-box-input =
 ## Top Sites - General form dialog.
 
 newtab-topsites-add-search-engine-header = 添加搜索引擎
-newtab-topsites-add-topsites-header = 新建常用网站
 newtab-topsites-add-shortcut-header = 新建快捷方式
 newtab-topsites-edit-topsites-header = 编辑常用网站
 newtab-topsites-edit-shortcut-header = 编辑快捷方式
@@ -195,7 +190,6 @@ newtab-section-expand-section-label =
 ## Section Headers.
 
 newtab-section-header-topsites = 常用网站
-newtab-section-header-highlights = 集锦
 newtab-section-header-recent-activity = 近期动态
 # Variables:
 #  $provider (String): Name of the corresponding content provider.
@@ -260,6 +254,7 @@ newtab-custom-sponsored-sites = 赞助商网站
 newtab-custom-pocket-title = 由 { -pocket-brand-name } 推荐
 newtab-custom-pocket-subtitle = 由 { -brand-product-name } 旗下 { -pocket-brand-name } 策划的特别内容
 newtab-custom-pocket-sponsored = 赞助内容
+newtab-custom-pocket-show-recent-saves = 显示近期保存内容
 newtab-custom-recent-title = 近期动态
 newtab-custom-recent-subtitle = 近期访问的网站与内容精选
 newtab-custom-close-button = 关闭
