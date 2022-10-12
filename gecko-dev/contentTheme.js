@@ -103,8 +103,11 @@
           const colorToMix =
             element.hasAttribute("lwt-newtab-brighttext") ?
             rgbaWhite : rgbaBlack;
+          const weight1 = 
+            element.hasAttribute("lwt-newtab-brighttext") ?
+            80 : 90;
           // See `content-src/styles/_theme.scss`
-          return _opaqueColorMix(rgbaChannels, colorToMix, 95);
+          return _opaqueColorMix(rgbaChannels, colorToMix, weight1);
         }
       }
     ],
@@ -120,8 +123,11 @@
           const colorToMix =
             element.hasAttribute("lwt-newtab-brighttext") ?
             rgbaWhite : rgbaBlack;
+          const weight1 = 
+            element.hasAttribute("lwt-newtab-brighttext") ?
+            60 : 80;
           // See `content-src/styles/_theme.scss`
-          return _opaqueColorMix(rgbaChannels, colorToMix, 90);
+          return _opaqueColorMix(rgbaChannels, colorToMix, weight1);
         }
       }
     ],

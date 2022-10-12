@@ -98,8 +98,8 @@ body {
   body {
     --newtab-text-secondary-color: #{color.mix($in-content-page-color, transparent, 80%)};
   
-    --newtab-element-hover-color: #{color.mix($in-content-page-background, $black, 95%)};
-    --newtab-element-active-color: #{color.mix($in-content-page-background, $black, 90%)};
+    --newtab-element-hover-color: #{color.mix($in-content-page-background, $black, 90%)};
+    --newtab-element-active-color: #{color.mix($in-content-page-background, $black, 80%)};
 
     --newtab-primary-element-hover-color: #{color.mix($primary-blue, $black, 90%)};
     --newtab-primary-element-active-color: #{color.mix($primary-blue, $black, 80%)};
@@ -110,8 +110,8 @@ body {
     &[lwt-newtab-brighttext] {
       --newtab-text-secondary-color: #{color.mix($in-content-page-color-dark, transparent, 80%)};
 
-      --newtab-element-hover-color: #{color.mix($in-content-page-background-dark, $white, 95%)};
-      --newtab-element-active-color: #{color.mix($in-content-page-background-dark, $white, 90%)};
+      --newtab-element-hover-color: #{color.mix($in-content-page-background-dark, $white, 80%)};
+      --newtab-element-active-color: #{color.mix($in-content-page-background-dark, $white, 60%)};
 
       --newtab-primary-element-hover-color: #{color.mix($primary-blue-dark, $black, 90%)};
       --newtab-primary-element-active-color: #{color.mix($primary-blue-dark, $black, 80%)};
