@@ -53,6 +53,13 @@ Please note that some targeting attributes require stricter controls on the tele
 * [userMonthlyActivity](#usermonthlyactivity)
 * [doesAppNeedPin](#doesappneedpin)
 * [doesAppNeedPrivatePin](#doesappneedprivatepin)
+* [isBackgroundTaskMode](#isbackgroundtaskmode)
+* [backgroundTaskName](#backgroundtaskname)
+* [userPrefersReducedMotion](#userPrefersReducedMotion)
+* [colorwaysActive](#colorwaysActive)
+* [userEnabledActiveColorway](#userEnabledActiveColorway)
+* [inMr2022Holdback](#inMr2022Holdback)
+* [distributionId](#distributionId)
 
 ## Detailed usage
 
@@ -832,3 +839,33 @@ Checks if Firefox app can be and isn't pinned to OS taskbar/dock.
 ### `doesAppNeedPrivatePin`
 
 Checks if Firefox Private Browsing Mode can be and isn't pinned to OS taskbar/dock. Currently this only works on certain Windows versions.
+
+### `isBackgroundTaskMode`
+
+Checks if this invocation is running in background task mode.
+
+### `backgroundTaskName`
+
+A non-empty string task name if this invocation is running in background task
+mode, or `null` if this invocation is not running in background task mode.
+
+### `userPrefersReducedMotion`
+
+Checks if user prefers reduced motion as indicated by the value of a media query for `prefers-reduced-motion`.
+
+### `colorwaysActive`
+
+A boolean. `true` when there are Colorways available.
+
+### `userEnabledActiveColorway`
+
+A boolean. `true` when user has an active Colorway theme enabled.
+
+### `inMr2022Holdback`
+
+A boolean. `true` when the user is in the Major Release 2022 holdback study.
+
+### `distributionId`
+
+A string containing the id of the distribution, or the empty string if there
+is no distribution associated with the build.

@@ -22,7 +22,6 @@ ChromeUtils.defineModuleGetter(
 const { setTimeout, clearTimeout } = ChromeUtils.import(
   "resource://gre/modules/Timer.jsm"
 );
-const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { actionTypes: at, actionCreators: ac } = ChromeUtils.import(
   "resource://activity-stream/common/Actions.jsm"
 );
@@ -207,15 +206,7 @@ class DiscoveryStreamFeed {
     return this._recommendationProvider;
   }
 
-  setupPrefs(isStartup = false) {
-    const pocketNewtabExperiment = lazy.ExperimentAPI.getExperiment({
-      featureId: "pocketNewtab",
-    });
-
-    let utmSource = "pocket-newtab";
-    let utmCampaign = pocketNewtabExperiment?.slug;
-    let utmContent = pocketNewtabExperiment?.branch?.slug;
-
+  setupConfig(isStartup = false) {
     // Send the initial state of the pref on our reducer
     this.store.dispatch(
       ac.BroadcastToContent({
@@ -226,6 +217,17 @@ class DiscoveryStreamFeed {
         },
       })
     );
+  }
+
+  setupPrefs(isStartup = false) {
+    const pocketNewtabExperiment = lazy.ExperimentAPI.getExperiment({
+      featureId: "pocketNewtab",
+    });
+
+    let utmSource = "pocket-newtab";
+    let utmCampaign = pocketNewtabExperiment?.slug;
+    let utmContent = pocketNewtabExperiment?.branch?.slug;
+
     this.store.dispatch(
       ac.BroadcastToContent({
         type: at.DISCOVERY_STREAM_EXPERIMENT_DATA,
@@ -239,18 +241,53 @@ class DiscoveryStreamFeed {
         },
       })
     );
+
+    const pocketButtonEnabled = Services.prefs.getBoolPref(PREF_POCKET_BUTTON);
+
     const nimbusConfig = this.store.getState().Prefs.values?.pocketConfig || {};
+    const { region } = this.store.getState().Prefs.values;
+
+    this.setupSpocsCacheUpdateTime();
+    const saveToPocketCardRegions = nimbusConfig.saveToPocketCardRegions
+      ?.split(",")
+      .map(s => s.trim());
+    const saveToPocketCard =
+      pocketButtonEnabled &&
+      (nimbusConfig.saveToPocketCard ||
+        saveToPocketCardRegions?.includes(region));
+
+    const hideDescriptionsRegions = nimbusConfig.hideDescriptionsRegions
+      ?.split(",")
+      .map(s => s.trim());
+    const hideDescriptions =
+      nimbusConfig.hideDescriptions ||
+      hideDescriptionsRegions?.includes(region);
+
+    // We don't BroadcastToContent for this, as the changes may
+    // shift around elements on an open newtab the user is currently reading.
+    // So instead we AlsoToPreloaded so the next tab is updated.
+    // This is because setupPrefs is called by the system and not a user interaction.
     this.store.dispatch(
-      ac.BroadcastToContent({
+      ac.AlsoToPreloaded({
         type: at.DISCOVERY_STREAM_PREFS_SETUP,
         data: {
           recentSavesEnabled: nimbusConfig.recentSavesEnabled,
+          pocketButtonEnabled,
+          saveToPocketCard,
+          hideDescriptions,
+          compactImages: nimbusConfig.compactImages,
+          imageGradient: nimbusConfig.imageGradient,
+          newSponsoredLabel: nimbusConfig.newSponsoredLabel,
+          titleLines: nimbusConfig.titleLines,
+          descLines: nimbusConfig.descLines,
+          readTime: nimbusConfig.readTime,
         },
         meta: {
           isStartup,
         },
       })
     );
+
     this.store.dispatch(
       ac.BroadcastToContent({
         type: at.DISCOVERY_STREAM_COLLECTION_DISMISSIBLE_TOGGLE,
@@ -361,6 +398,34 @@ class DiscoveryStreamFeed {
     return null;
   }
 
+  get spocsCacheUpdateTime() {
+    if (this._spocsCacheUpdateTime) {
+      return this._spocsCacheUpdateTime;
+    }
+    this.setupSpocsCacheUpdateTime();
+    return this._spocsCacheUpdateTime;
+  }
+
+  setupSpocsCacheUpdateTime() {
+    const nimbusConfig = this.store.getState().Prefs.values?.pocketConfig || {};
+    const { spocsCacheTimeout } = nimbusConfig;
+    const MAX_TIMEOUT = 30;
+    const MIN_TIMEOUT = 5;
+    // We do a bit of min max checking the the configured value is between
+    // 5 and 30 minutes, to protect against unreasonable values.
+    if (
+      spocsCacheTimeout &&
+      spocsCacheTimeout <= MAX_TIMEOUT &&
+      spocsCacheTimeout >= MIN_TIMEOUT
+    ) {
+      // This value is in minutes, but we want ms.
+      this._spocsCacheUpdateTime = spocsCacheTimeout * 60 * 1000;
+    } else {
+      // The const is already in ms.
+      this._spocsCacheUpdateTime = SPOCS_FEEDS_UPDATE_TIME;
+    }
+  }
+
   /**
    * Returns true if data in the cache for a particular key has expired or is missing.
    * @param {object} cachedData data returned from cache.get()
@@ -372,7 +437,7 @@ class DiscoveryStreamFeed {
     const { layout, spocs, feeds } = cachedData;
     const updateTimePerComponent = {
       layout: LAYOUT_UPDATE_TIME,
-      spocs: SPOCS_FEEDS_UPDATE_TIME,
+      spocs: this.spocsCacheUpdateTime,
       feed: COMPONENT_FEEDS_UPDATE_TIME,
     };
     const EXPIRATION_TIME = isStartup
@@ -534,10 +599,6 @@ class DiscoveryStreamFeed {
         PREF_COLLECTIONS_ENABLED
       ];
 
-      const pocketButtonEnabled = Services.prefs.getBoolPref(
-        PREF_POCKET_BUTTON
-      );
-
       const pocketConfig =
         this.store.getState().Prefs.values?.pocketConfig || {};
 
@@ -546,11 +607,27 @@ class DiscoveryStreamFeed {
         items = isBasicLayout ? 4 : 24;
       }
 
+      const spocAdTypes = pocketConfig.spocAdTypes
+        ?.split(",")
+        .map(item => parseInt(item, 10));
+      const spocZoneIds = pocketConfig.spocZoneIds
+        ?.split(",")
+        .map(item => parseInt(item, 10));
+      let spocPlacementData;
+
+      if (spocAdTypes?.length && spocZoneIds?.length) {
+        spocPlacementData = {
+          ad_types: spocAdTypes,
+          zone_ids: spocZoneIds,
+        };
+      }
+
       // Set a hardcoded layout if one is needed.
       // Changing values in this layout in memory object is unnecessary.
       layoutResp = getHardcodedLayout({
         items,
         sponsoredCollectionsEnabled,
+        spocPlacementData,
         spocPositions: this.parseGridPositions(
           pocketConfig.spocPositions?.split(`,`)
         ),
@@ -563,24 +640,13 @@ class DiscoveryStreamFeed {
         hybridLayout: pocketConfig.hybridLayout,
         hideCardBackground: pocketConfig.hideCardBackground,
         fourCardLayout: pocketConfig.fourCardLayout,
-        loadMore: pocketConfig.loadMore,
-        lastCardMessageEnabled: pocketConfig.lastCardMessageEnabled,
-        pocketButtonEnabled,
-        saveToPocketCard: pocketButtonEnabled && pocketConfig.saveToPocketCard,
         newFooterSection: pocketConfig.newFooterSection,
-        hideDescriptions: pocketConfig.hideDescriptions,
         compactGrid: pocketConfig.compactGrid,
-        compactImages: pocketConfig.compactImages,
-        imageGradient: pocketConfig.imageGradient,
-        newSponsoredLabel: pocketConfig.newSponsoredLabel,
-        titleLines: pocketConfig.titleLines,
-        descLines: pocketConfig.descLines,
         // For now essentialReadsHeader and editorsPicksHeader are English only.
         essentialReadsHeader:
           this.locale.startsWith("en-") && pocketConfig.essentialReadsHeader,
         editorsPicksHeader:
           this.locale.startsWith("en-") && pocketConfig.editorsPicksHeader,
-        readTime: pocketConfig.readTime,
       });
     }
 
@@ -618,8 +684,8 @@ class DiscoveryStreamFeed {
             isStartup,
           },
         });
-        this.updatePlacements(sendUpdate, layoutResp.layout, isStartup);
       }
+      this.updatePlacements(sendUpdate, layoutResp.layout, isStartup);
     }
   }
 
@@ -1572,6 +1638,7 @@ class DiscoveryStreamFeed {
     this.store.dispatch(
       ac.BroadcastToContent({ type: at.DISCOVERY_STREAM_LAYOUT_RESET })
     );
+    this.setupPrefs(false /* isStartup */);
     this.store.dispatch(
       ac.BroadcastToContent({
         type: at.DISCOVERY_STREAM_COLLECTION_DISMISSIBLE_TOGGLE,
@@ -1744,6 +1811,7 @@ class DiscoveryStreamFeed {
       case at.INIT:
         // During the initialization of Firefox:
         // 1. Set-up listeners and initialize the redux state for config;
+        this.setupConfig(true /* isStartup */);
         this.setupPrefs(true /* isStartup */);
         // 2. If config.enabled is true, start loading data.
         if (this.config.enabled) {
@@ -1947,7 +2015,8 @@ class DiscoveryStreamFeed {
       case at.PREF_CHANGED:
         await this.onPrefChangedAction(action);
         if (action.data.name === "pocketConfig") {
-          await this.onPocketConfigChanged(action.data.value);
+          this.onPocketConfigChanged();
+          this.setupPrefs(false /* isStartup */);
         }
         break;
     }
@@ -1961,49 +2030,30 @@ class DiscoveryStreamFeed {
    NOTE: There is some branching logic in the template.
      `items` How many items to include in the primary card grid.
      `spocPositions` Changes the position of spoc cards.
+     `spocPlacementData` Used to set the spoc content.
      `sponsoredCollectionsEnabled` Tuns on and off the sponsored collection section.
      `hybridLayout` Changes cards to smaller more compact cards only for specific breakpoints.
      `hideCardBackground` Removes Pocket card background and borders.
      `fourCardLayout` Enable four Pocket cards per row.
-     `loadMore` Hide half the Pocket stories behind a load more button.
-     `lastCardMessageEnabled` Shows a message card at the end of the feed.
      `newFooterSection` Changes the layout of the topics section.
-     `pocketButtonEnabled` Removes Pocket context menu items from cards.
-     `saveToPocketCard` Cards have a save to Pocket button over their thumbnail on hover.
-     `hideDescriptions` Hide or display descriptions for Pocket stories.
      `compactGrid` Reduce the number of pixels between the Pocket cards.
-     `compactImages` Reduce the height on Pocket card images.
-     `imageGradient` Add a gradient to the bottom of Pocket card images to blend the image in with the card.
-     `newSponsoredLabel` Updates the sponsored label position to below the image.
-     `titleLines` Changes the maximum number of lines a title can be for Pocket cards.
-     `descLines` Changes the maximum number of lines a description can be for Pocket cards.
      `essentialReadsHeader` Updates the Pocket section header and title to say "Today’s Essential Reads", moves the "Recommended by Pocket" header to the right side.
      `editorsPicksHeader` Updates the Pocket section header and title to say "Editor’s Picks", if used with essentialReadsHeader, creates a second section 2 rows down for editorsPicks.
 */
 getHardcodedLayout = ({
   items = 21,
   spocPositions = [1, 5, 7, 11, 18, 20],
+  spocPlacementData = { ad_types: [3617], zone_ids: [217758, 217995] },
   widgetPositions = [],
   widgetData = [],
   sponsoredCollectionsEnabled = false,
   hybridLayout = false,
   hideCardBackground = false,
   fourCardLayout = false,
-  loadMore = false,
-  lastCardMessageEnabled = false,
   newFooterSection = false,
-  pocketButtonEnabled = false,
-  saveToPocketCard = false,
-  hideDescriptions = true,
   compactGrid = false,
-  compactImages = false,
-  imageGradient = false,
-  newSponsoredLabel = false,
-  titleLines = 3,
-  descLines = 3,
   essentialReadsHeader = false,
   editorsPicksHeader = false,
-  readTime = false,
 }) => ({
   lastUpdate: Date.now(),
   spocs: {
@@ -2029,7 +2079,6 @@ getHardcodedLayout = ({
                 properties: {
                   items: 3,
                 },
-                pocketButtonEnabled,
                 header: {
                   title: "",
                 },
@@ -2083,16 +2132,9 @@ getHardcodedLayout = ({
             hybridLayout,
             hideCardBackground,
             fourCardLayout,
-            hideDescriptions,
-            compactImages,
-            imageGradient,
-            newSponsoredLabel,
-            titleLines,
-            descLines,
             compactGrid,
             essentialReadsHeader,
             editorsPicksHeader,
-            readTime,
           },
           widgets: {
             positions: widgetPositions.map(position => {
@@ -2100,18 +2142,14 @@ getHardcodedLayout = ({
             }),
             data: widgetData,
           },
-          loadMore,
-          lastCardMessageEnabled,
-          pocketButtonEnabled,
-          saveToPocketCard,
           cta_variant: "link",
           header: {
             title: "",
           },
           placement: {
             name: "spocs",
-            ad_types: [3617],
-            zone_ids: [217758, 217995],
+            ad_types: spocPlacementData.ad_types,
+            zone_ids: spocPlacementData.zone_ids,
           },
           feed: {
             embed_reference: null,

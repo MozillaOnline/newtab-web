@@ -3,10 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { XPCOMUtils } = ChromeUtils.import(
-  "resource://gre/modules/XPCOMUtils.jsm"
+const { XPCOMUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
-const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 const lazy = {};
 
@@ -252,6 +251,12 @@ class PageAction {
         this.currentNotification = null;
       }
     } else if (state === "dismissed") {
+      const message = RecommendationMap.get(this.currentNotification?.browser);
+      this._sendTelemetry({
+        message_id: message?.id,
+        bucket_id: message?.content.bucket_id,
+        event: "DISMISS",
+      });
       this._collapse();
     }
   }
