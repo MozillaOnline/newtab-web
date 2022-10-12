@@ -302,8 +302,9 @@ function UserEvent(data) {
  * @return {object} An AlsoToMain action
  */
 function DiscoveryStreamUserEvent(data) {
+  // `DISCOVERY_STREAM_USER_EVENT` available since Fx 105, see https://bugzil.la/1779636
   return AlsoToMain({
-    type: actionTypes.DISCOVERY_STREAM_USER_EVENT,
+    type: (typeof OffscreenCanvas === "function" ? actionTypes.DISCOVERY_STREAM_USER_EVENT : actionTypes.TELEMETRY_USER_EVENT),
     data,
   });
 }
