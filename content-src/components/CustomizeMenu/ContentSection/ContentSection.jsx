@@ -71,15 +71,11 @@ export class ContentSection extends React.PureComponent {
       return;
     }
 
-    let drawerHeight;
-
     if (drawerRef) {
-      drawerHeight = parseFloat(window.getComputedStyle(drawerRef)?.height);
-
       if (isOpen) {
         drawerRef.style.marginTop = `0`;
       } else {
-        drawerRef.style.marginTop = `-${drawerHeight}px`;
+        drawerRef.style.marginTop = `-100%`;
       }
     }
   }
