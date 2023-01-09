@@ -47,11 +47,10 @@ ChromeUtils.defineModuleGetter(
   "LinksCache",
   "resource://activity-stream/lib/LinksCache.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "NewTabUtils",
-  "resource://gre/modules/NewTabUtils.jsm"
-);
+ChromeUtils.defineESModuleGetters(lazy, {
+  NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
+});
 ChromeUtils.defineModuleGetter(
   lazy,
   "Screenshots",
@@ -66,11 +65,6 @@ ChromeUtils.defineModuleGetter(
   lazy,
   "RemoteSettings",
   "resource://services-settings/remote-settings.js"
-);
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "Region",
-  "resource://gre/modules/Region.jsm"
 );
 
 XPCOMUtils.defineLazyGetter(lazy, "log", () => {
@@ -477,11 +471,11 @@ class TopSitesFeed {
     try {
       result = await this._remoteConfig.get();
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
       failed = true;
     }
     if (!result.length) {
-      Cu.reportError("Received empty top sites configuration!");
+      console.error("Received empty top sites configuration!");
       failed = true;
     }
     // If we failed, or the result is empty, try loading from the local dump.
@@ -930,7 +924,7 @@ class TopSitesFeed {
       storedPrefs = (await this._storage.get(SECTION_ID)) || {};
     } catch (e) {
       storedPrefs = {};
-      Cu.reportError("Problem getting stored prefs for TopSites");
+      console.error("Problem getting stored prefs for TopSites");
     }
     newAction.data.pref = getDefaultOptions(storedPrefs);
 

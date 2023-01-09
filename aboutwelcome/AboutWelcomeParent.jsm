@@ -12,10 +12,15 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 
 const lazy = {};
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
+  BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
+  PromiseUtils: "resource://gre/modules/PromiseUtils.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
+});
+
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
-  BrowserUtils: "resource://gre/modules/BrowserUtils.jsm",
-  BuiltInThemes: "resource:///modules/BuiltInThemes.jsm",
   FxAccounts: "resource://gre/modules/FxAccounts.jsm",
   MigrationUtils: "resource:///modules/MigrationUtils.jsm",
   SpecialMessageActions:
@@ -24,8 +29,6 @@ XPCOMUtils.defineLazyModuleGetters(lazy, {
     "resource://activity-stream/aboutwelcome/lib/AboutWelcomeTelemetry.jsm",
   AboutWelcomeDefaults:
     "resource://activity-stream/aboutwelcome/lib/AboutWelcomeDefaults.jsm",
-  PromiseUtils: "resource://gre/modules/PromiseUtils.jsm",
-  Region: "resource://gre/modules/Region.jsm",
   ShellService: "resource:///modules/ShellService.jsm",
   LangPackMatcher: "resource://gre/modules/LangPackMatcher.jsm",
 });
@@ -92,7 +95,7 @@ async function getImportableSites() {
       let path = PathUtils.join(dataPath, profile.id, "Top Sites");
       // Skip if top sites data is missing
       if (!(await IOUtils.exists(path))) {
-        Cu.reportError(`Missing file at ${path}`);
+        console.error(`Missing file at ${path}`);
         continue;
       }
 
@@ -107,7 +110,7 @@ async function getImportableSites() {
           sites.push(row.getString(0));
         }
       } catch (ex) {
-        Cu.reportError(
+        console.error(
           `Failed to get importable top sites from ${browserId} ${ex}`
         );
       }

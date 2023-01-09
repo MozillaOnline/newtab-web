@@ -96,6 +96,7 @@ export function RecentSavesContainer({
   }
 
   let queryParams = `?utm_source=${utmSource}`;
+  // We really only need to add these params to urls we own.
   if (utmCampaign && utmContent) {
     queryParams += `&utm_content=${utmContent}&utm_campaign=${utmCampaign}`;
   }
@@ -242,7 +243,7 @@ export class _CardGrid extends React.PureComponent {
             context_type={rec.context_type}
             bookmarkGuid={rec.bookmarkGuid}
             is_collection={this.props.is_collection}
-            saveToPocketCard={saveToPocketCard && !rec.flight_id}
+            saveToPocketCard={saveToPocketCard}
           />
         )
       );

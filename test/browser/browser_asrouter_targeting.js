@@ -4,16 +4,11 @@ const { ASRouterTargeting, QueryCache } = ChromeUtils.import(
 const { AddonTestUtils } = ChromeUtils.import(
   "resource://testing-common/AddonTestUtils.jsm"
 );
-const { BuiltInThemes } = ChromeUtils.import(
-  "resource:///modules/BuiltInThemes.jsm"
+const { BuiltInThemes } = ChromeUtils.importESModule(
+  "resource:///modules/BuiltInThemes.sys.mjs"
 );
 const { CFRMessageProvider } = ChromeUtils.import(
   "resource://activity-stream/lib/CFRMessageProvider.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "ProfileAge",
-  "resource://gre/modules/ProfileAge.jsm"
 );
 ChromeUtils.defineModuleGetter(
   this,
@@ -25,26 +20,19 @@ ChromeUtils.defineModuleGetter(
   "ShellService",
   "resource:///modules/ShellService.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "NewTabUtils",
-  "resource://gre/modules/NewTabUtils.jsm"
-);
 ChromeUtils.defineESModuleGetters(this, {
+  NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
+  ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
 });
 ChromeUtils.defineModuleGetter(
   this,
   "TelemetryEnvironment",
   "resource://gre/modules/TelemetryEnvironment.jsm"
 );
-const { AppConstants } = ChromeUtils.import(
-  "resource://gre/modules/AppConstants.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "Region",
-  "resource://gre/modules/Region.jsm"
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
 );
 ChromeUtils.defineModuleGetter(
   this,
@@ -419,7 +407,7 @@ add_task(async function checkAddonsInfo() {
 
   const xpi = AddonTestUtils.createTempWebExtensionFile({
     manifest: {
-      applications: { gecko: { id: FAKE_ID } },
+      browser_specific_settings: { gecko: { id: FAKE_ID } },
       name: FAKE_NAME,
       version: FAKE_VERSION,
     },
@@ -1296,4 +1284,29 @@ add_task(async function test_distributionId() {
     "test",
     "Should return the correct distribution Id"
   );
+});
+
+add_task(async function test_fxViewButtonAreaType_default() {
+  is(
+    typeof (await ASRouterTargeting.Environment.fxViewButtonAreaType),
+    "string",
+    "Should return a string"
+  );
+
+  is(
+    await ASRouterTargeting.Environment.fxViewButtonAreaType,
+    "toolbar",
+    "Should return name of container if button hasn't been removed"
+  );
+});
+
+add_task(async function test_fxViewButtonAreaType_removed() {
+  CustomizableUI.removeWidgetFromArea("firefox-view-button");
+
+  is(
+    await ASRouterTargeting.Environment.fxViewButtonAreaType,
+    null,
+    "Should return null if button has been removed"
+  );
+  CustomizableUI.reset();
 });

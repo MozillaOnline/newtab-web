@@ -471,12 +471,25 @@ add_task(async function test_aboutwelcome_with_progress_bar() {
   await onButtonClick(browser, "button.primary");
 
   // Ensure step indicator has progress bar styles
+  // progress indicator height can differ based on device size and test_element_styles doesn't allow comparisons
+  await SpecialPowers.spawn(browser, [], async () => {
+    const indicatorElement = await ContentTaskUtils.waitForCondition(() =>
+      content.document.querySelector(".indicator")
+    );
+    const indicatorStyles = content.window.getComputedStyle(indicatorElement);
+    const [computedHeight] = indicatorStyles.height.match(/\d+/);
+
+    ok(
+      computedHeight >= 5 && computedHeight <= 7,
+      `Indicator height -  ${indicatorStyles.height} - is in correct range`
+    );
+  });
+
   await test_element_styles(
     browser,
     ".indicator",
     // Expected styles:
     {
-      height: "6px",
       "padding-block": "0px",
       margin: "0px",
     }
@@ -509,6 +522,77 @@ add_task(async function test_aboutwelcome_with_progress_bar() {
       "border-color": "rgb(251, 251, 254)",
     }
   );
+
+  await doExperimentCleanup();
+});
+
+/**
+ * Test rendering an MR onboarding split screen with a progress bar indicator
+ */
+add_task(async function test_MR_aboutwelcome_with_progress_bar() {
+  let screens = [];
+  // we need at least three screens to test the progress bar styling
+  for (let i = 0; i < 3; i++) {
+    screens.push(
+      makeTestContent("TEST_MR_PROGRESS_BAR", {
+        position: "split",
+        progress_bar: true,
+        primary_button: {
+          label: "next",
+          action: {
+            navigate: true,
+          },
+        },
+      })
+    );
+  }
+
+  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "aboutwelcome",
+    value: {
+      enabled: true,
+      screens,
+    },
+  });
+  let browser = await openAboutWelcome(JSON.stringify(screens));
+  let transitionEnd = SpecialPowers.spawn(browser, [], async () => {
+    const progressBar = await ContentTaskUtils.waitForCondition(() =>
+      content.document.querySelector(".progress-bar")
+    );
+    await Promise.race([
+      ContentTaskUtils.waitForEvent(progressBar, "transitionend"),
+      ContentTaskUtils.waitForEvent(progressBar, "transitioncancel"),
+    ]);
+  });
+
+  // Advance to second screen
+  await onButtonClick(browser, "button.primary");
+
+  // test the wipe transition
+  await transitionEnd;
+
+  // Progress bar should have a gray background.
+  await test_element_styles(browser, ".steps.progress-bar", {
+    "background-color": "rgba(251, 251, 254, 0.25)",
+  });
+
+  for (let cls of ["complete", "current"]) {
+    await test_element_styles(browser, `.indicator.${cls}`, {
+      // Both completed and current steps should have
+      // `background-color: var(--checkbox-checked-bgcolor);`
+      "background-color": "rgb(0, 221, 255)",
+      // Base progress bar step styles.
+      height: "6px",
+      "padding-block": "0px",
+      "margin-inline": "-1px",
+      "margin-block": "0px",
+    });
+  }
+
+  // Upcoming steps should be invisible
+  await test_element_styles(browser, ".indicator:not(.current, .complete)", {
+    "background-color": "rgba(0, 0, 0, 0)",
+  });
 
   await doExperimentCleanup();
 });

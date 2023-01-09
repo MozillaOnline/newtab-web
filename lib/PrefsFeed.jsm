@@ -12,16 +12,19 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 const { Prefs } = ChromeUtils.import(
   "resource://activity-stream/lib/ActivityStreamPrefs.jsm"
 );
-const { AppConstants } = ChromeUtils.import(
-  "resource://gre/modules/AppConstants.jsm"
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
 );
 
 const lazy = {};
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
+});
+
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
-  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
-  Region: "resource://gre/modules/Region.jsm",
 });
 
 class PrefsFeed {
@@ -229,7 +232,7 @@ class PrefsFeed {
     try {
       await this._storage.set(name, value);
     } catch (e) {
-      Cu.reportError("Could not set section preferences.");
+      console.error("Could not set section preferences.");
     }
   }
 

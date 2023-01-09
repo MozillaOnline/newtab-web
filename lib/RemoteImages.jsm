@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { JSONFile } = ChromeUtils.import("resource://gre/modules/JSONFile.jsm");
-const { PromiseUtils } = ChromeUtils.import(
-  "resource://gre/modules/PromiseUtils.jsm"
+const { JSONFile } = ChromeUtils.importESModule(
+  "resource://gre/modules/JSONFile.sys.mjs"
+);
+const { PromiseUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/PromiseUtils.sys.mjs"
 );
 const { RemoteSettings } = ChromeUtils.import(
   "resource://services-settings/remote-settings.js"
@@ -204,7 +206,7 @@ class _RemoteImages {
           try {
             urls.set(imageId, await this.#loadImpl(db, imageId));
           } catch (e) {
-            Cu.reportError(`Could not load image ID ${imageId}: ${e}`);
+            console.error(`Could not load image ID ${imageId}: ${e}`);
             urls.delete(imageId);
           }
         })
@@ -305,7 +307,7 @@ class _RemoteImages {
           delete db.data.images[entry.recordId];
 
           return IOUtils.remove(path).catch(e => {
-            Cu.reportError(
+            console.error(
               `Could not remove remote image ${entry.recordId}: ${e}`
             );
           });
@@ -577,7 +579,7 @@ class _RemoteImages {
           try {
             await IOUtils.remove(path);
           } catch (e) {
-            Cu.reportError(`RemoteImages could not delete ${path}: ${e}`);
+            console.error(`RemoteImages could not delete ${path}: ${e}`);
           }
         })
       );

@@ -7,8 +7,8 @@
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
-const { AppConstants } = ChromeUtils.import(
-  "resource://gre/modules/AppConstants.jsm"
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
 );
 const { FeatureCalloutMessages } = ChromeUtils.import(
   "resource://activity-stream/lib/FeatureCalloutMessages.jsm"
@@ -16,11 +16,14 @@ const { FeatureCalloutMessages } = ChromeUtils.import(
 
 const lazy = {};
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
+  BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
+});
+
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  BrowserUtils: "resource://gre/modules/BrowserUtils.jsm",
-  ShellService: "resource:///modules/ShellService.jsm",
-  BuiltInThemes: "resource:///modules/BuiltInThemes.jsm",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
+  ShellService: "resource:///modules/ShellService.jsm",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -82,18 +85,20 @@ const BASE_MESSAGES = () => [
     id: "CFR_FIREFOX_VIEW",
     groups: ["cfr"],
     template: "cfr_doorhanger",
+    //If Firefox View button has been moved to the overflow menu, we want to change the anchor element
     content: {
       bucket_id: "CFR_FIREFOX_VIEW",
       anchor_id: "firefox-view-button",
+      alt_anchor_id: "nav-bar-overflow-button",
       layout: "icon_and_message",
       icon: "chrome://browser/content/cfr-lightning.svg",
       icon_dark_theme: "chrome://browser/content/cfr-lightning-dark.svg",
       icon_class: "cfr-doorhanger-small-icon",
       heading_text: {
-        string_id: "firefoxview-cfr-header",
+        string_id: "firefoxview-cfr-header-v2",
       },
       text: {
-        string_id: "firefoxview-cfr-body",
+        string_id: "firefoxview-cfr-body-v2",
       },
       buttons: {
         primary: {
@@ -125,8 +130,7 @@ const BASE_MESSAGES = () => [
       id: "nthTabClosed",
     },
     // Avoid breaking existing tests that close tabs for now.
-    targeting:
-      "!inMr2022Holdback && (currentDate|date - profileAgeCreated) / 86400000 >= 2 && tabsClosedCount >= 3 && 'browser.firefox-view.view-count'|preferenceValue == 0 && !'browser.newtabpage.activity-stream.asrouter.providers.cfr'|preferenceIsUserSet",
+    targeting: `!inMr2022Holdback && fxViewButtonAreaType != null && (currentDate|date - profileAgeCreated) / 86400000 >= 2 && tabsClosedCount >= 3 && 'browser.firefox-view.view-count'|preferenceValue == 0 && !'browser.newtabpage.activity-stream.asrouter.providers.cfr'|preferenceIsUserSet`,
   },
   {
     id: "FX_MR_106_UPGRADE",
@@ -143,6 +147,9 @@ const BASE_MESSAGES = () => [
           content: {
             position: "split",
             split_narrow_bkg_position: "-155px",
+            image_alt_text: {
+              string_id: "mr2022-onboarding-pin-image-alt",
+            },
             progress_bar: "true",
             background:
               "url('chrome://activity-stream/content/data/content/assets/mr-pintaskbar.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
@@ -201,6 +208,9 @@ const BASE_MESSAGES = () => [
           content: {
             position: "split",
             split_narrow_bkg_position: "-60px",
+            image_alt_text: {
+              string_id: "mr2022-onboarding-default-image-alt",
+            },
             progress_bar: "true",
             background:
               "url('chrome://activity-stream/content/data/content/assets/mr-settodefault.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
@@ -236,6 +246,9 @@ const BASE_MESSAGES = () => [
           content: {
             position: "split",
             split_narrow_bkg_position: "-42px",
+            image_alt_text: {
+              string_id: "mr2022-onboarding-import-image-alt",
+            },
             progress_bar: "true",
             background:
               "url('chrome://activity-stream/content/data/content/assets/mr-import.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
@@ -273,6 +286,9 @@ const BASE_MESSAGES = () => [
           content: {
             position: "split",
             split_narrow_bkg_position: "-65px",
+            image_alt_text: {
+              string_id: "mr2022-onboarding-colorways-image-alt",
+            },
             background:
               "url('chrome://activity-stream/content/data/content/assets/mr-colorways.avif') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
             progress_bar: true,
@@ -299,7 +315,7 @@ const BASE_MESSAGES = () => [
                     string_id: "mr2022-onboarding-colorway-label-default",
                   },
                   tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-default",
+                    string_id: "mr2022-onboarding-colorway-tooltip-default2",
                   },
                   description: {
                     string_id: "mr2022-onboarding-colorway-description-default",
@@ -311,7 +327,7 @@ const BASE_MESSAGES = () => [
                     string_id: "mr2022-onboarding-colorway-label-playmaker",
                   },
                   tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-playmaker",
+                    string_id: "mr2022-onboarding-colorway-tooltip-playmaker2",
                   },
                   description: {
                     string_id:
@@ -325,7 +341,7 @@ const BASE_MESSAGES = () => [
                   },
                   tooltip: {
                     string_id:
-                      "mr2022-onboarding-colorway-tooltip-expressionist",
+                      "mr2022-onboarding-colorway-tooltip-expressionist2",
                   },
                   description: {
                     string_id:
@@ -338,7 +354,7 @@ const BASE_MESSAGES = () => [
                     string_id: "mr2022-onboarding-colorway-label-visionary",
                   },
                   tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-visionary",
+                    string_id: "mr2022-onboarding-colorway-tooltip-visionary2",
                   },
                   description: {
                     string_id:
@@ -351,7 +367,7 @@ const BASE_MESSAGES = () => [
                     string_id: "mr2022-onboarding-colorway-label-activist",
                   },
                   tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-activist",
+                    string_id: "mr2022-onboarding-colorway-tooltip-activist2",
                   },
                   description: {
                     string_id:
@@ -364,7 +380,7 @@ const BASE_MESSAGES = () => [
                     string_id: "mr2022-onboarding-colorway-label-dreamer",
                   },
                   tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-dreamer",
+                    string_id: "mr2022-onboarding-colorway-tooltip-dreamer2",
                   },
                   description: {
                     string_id: "mr2022-onboarding-colorway-description-dreamer",
@@ -376,7 +392,7 @@ const BASE_MESSAGES = () => [
                     string_id: "mr2022-onboarding-colorway-label-innovator",
                   },
                   tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-innovator",
+                    string_id: "mr2022-onboarding-colorway-tooltip-innovator2",
                   },
                   description: {
                     string_id:
@@ -427,6 +443,9 @@ const BASE_MESSAGES = () => [
           content: {
             position: "split",
             split_narrow_bkg_position: "-160px",
+            image_alt_text: {
+              string_id: "mr2022-onboarding-mobile-download-image-alt",
+            },
             background:
               "url('chrome://activity-stream/content/data/content/assets/mr-mobilecrosspromo.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
             progress_bar: true,
@@ -471,6 +490,9 @@ const BASE_MESSAGES = () => [
           content: {
             position: "split",
             split_narrow_bkg_position: "-100px",
+            image_alt_text: {
+              string_id: "mr2022-onboarding-pin-private-image-alt",
+            },
             progress_bar: "true",
             background:
               "url('chrome://activity-stream/content/data/content/assets/mr-pinprivate.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
@@ -511,6 +533,9 @@ const BASE_MESSAGES = () => [
           content: {
             position: "split",
             split_narrow_bkg_position: "-80px",
+            image_alt_text: {
+              string_id: "mr2022-onboarding-privacy-segmentation-image-alt",
+            },
             progress_bar: "true",
             dual_action_buttons: true,
             background:
@@ -567,6 +592,9 @@ const BASE_MESSAGES = () => [
             position: "split",
             progress_bar: "true",
             split_narrow_bkg_position: "-228px",
+            image_alt_text: {
+              string_id: "mr2022-onboarding-gratitude-image-alt",
+            },
             background:
               "url('chrome://activity-stream/content/data/content/assets/mr-gratitude.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
             logo: {},
@@ -1207,7 +1235,6 @@ const OnboardingMessageProvider = {
           string_id: "mr2022-onboarding-get-started-primary-button-label",
         };
         delete primary.action.type;
-        delete pinScreen.content.secondary_button;
       }
     }
 

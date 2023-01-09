@@ -1,7 +1,5 @@
 "use strict";
 
-const MR_TEMPLATE_PREF = "browser.aboutwelcome.templateMR";
-
 const { ExperimentAPI } = ChromeUtils.import(
   "resource://nimbus/ExperimentAPI.jsm"
 );
@@ -14,25 +12,6 @@ const { AboutWelcomeParent } = ChromeUtils.import(
 const { OnboardingMessageProvider } = ChromeUtils.import(
   "resource://activity-stream/lib/OnboardingMessageProvider.jsm"
 );
-
-async function openMRAboutWelcome() {
-  await pushPrefs([MR_TEMPLATE_PREF, true]);
-  await setAboutWelcomePref(true); // NB: Calls pushPrefs
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    "about:welcome",
-    true
-  );
-
-  return {
-    browser: tab.linkedBrowser,
-    cleanup: async () => {
-      BrowserTestUtils.removeTab(tab);
-      await popPrefs(); // for setAboutWelcomePref()
-      await popPrefs(); // for pushPrefs()
-    },
-  };
-}
 
 async function clickVisibleButton(browser, selector) {
   // eslint-disable-next-line no-shadow
@@ -67,14 +46,17 @@ function initSandbox({ pin = true, isDefault = false } = {}) {
  * Test MR message telemetry
  */
 add_task(async function test_aboutwelcome_mr_template_telemetry() {
+  const sandbox = initSandbox();
+
   let { browser, cleanup } = await openMRAboutWelcome();
   let aboutWelcomeActor = await getAboutWelcomeParent(browser);
-
   // Stub AboutWelcomeParent's Content Message Handler
-  const sandbox = initSandbox();
   const messageStub = sandbox.spy(aboutWelcomeActor, "onContentMessage");
+  await clickVisibleButton(browser, ".action-buttons button.secondary");
 
-  await clickVisibleButton(browser, "button.secondary");
+  registerCleanupFunction(() => {
+    sandbox.restore();
+  });
 
   const { callCount } = messageStub;
   ok(callCount >= 1, `${callCount} Stub was called`);
@@ -219,11 +201,7 @@ add_task(async function test_aboutwelcome_mr_template_get_started() {
     //Expected selectors:
     ["main.AW_GET_STARTED"],
     //Unexpected selectors:
-    [
-      "main.AW_PIN_FIREFOX",
-      "main.AW_ONLY_DEFAULT",
-      ".action-buttons .secondary",
-    ]
+    ["main.AW_PIN_FIREFOX", "main.AW_ONLY_DEFAULT"]
   );
 
   await cleanup();

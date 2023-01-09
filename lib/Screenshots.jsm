@@ -21,11 +21,9 @@ ChromeUtils.defineModuleGetter(
   "PageThumbs",
   "resource://gre/modules/PageThumbs.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "PrivateBrowsingUtils",
-  "resource://gre/modules/PrivateBrowsingUtils.jsm"
-);
+ChromeUtils.defineESModuleGetters(lazy, {
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+});
 
 const GREY_10 = "#F9F9FA";
 
@@ -71,7 +69,7 @@ const Screenshots = {
 
       return { path: imgPath, data: fileContents };
     } catch (err) {
-      Cu.reportError(`getScreenshot(${url}) failed: ${err}`);
+      console.error(`getScreenshot(${url}) failed: ${err}`);
     }
 
     // We must have failed to get the screenshot, so persist the failure by

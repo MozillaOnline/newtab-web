@@ -8,17 +8,20 @@ const EXPORTED_SYMBOLS = ["AboutWelcomeDefaults", "DEFAULT_WELCOME_CONTENT"];
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
-const { AppConstants } = ChromeUtils.import(
-  "resource://gre/modules/AppConstants.jsm"
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
 );
 
 const lazy = {};
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
+  BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
+});
+
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   AttributionCode: "resource:///modules/AttributionCode.jsm",
-  BuiltInThemes: "resource:///modules/BuiltInThemes.jsm",
-  BrowserUtils: "resource://gre/modules/BrowserUtils.jsm",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -280,6 +283,9 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       content: {
         position: "split",
         split_narrow_bkg_position: "-155px",
+        image_alt_text: {
+          string_id: "mr2022-onboarding-pin-image-alt",
+        },
         background:
           "url('chrome://activity-stream/content/data/content/assets/mr-pintaskbar.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
         progress_bar: true,
@@ -315,6 +321,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
           action: {
             data: {
               entrypoint: "activity-stream-firstrun",
+              where: "tab",
             },
             type: "SHOW_FIREFOX_ACCOUNTS",
             addFlowParams: true,
@@ -366,6 +373,9 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       content: {
         position: "split",
         split_narrow_bkg_position: "-60px",
+        image_alt_text: {
+          string_id: "mr2022-onboarding-default-image-alt",
+        },
         background:
           "url('chrome://activity-stream/content/data/content/assets/mr-settodefault.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
         progress_bar: true,
@@ -401,6 +411,9 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       content: {
         position: "split",
         split_narrow_bkg_position: "-42px",
+        image_alt_text: {
+          string_id: "mr2022-onboarding-import-image-alt",
+        },
         background:
           "url('chrome://activity-stream/content/data/content/assets/mr-import.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
         progress_bar: true,
@@ -438,6 +451,9 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       content: {
         position: "split",
         split_narrow_bkg_position: "-65px",
+        image_alt_text: {
+          string_id: "mr2022-onboarding-colorways-image-alt",
+        },
         background:
           "url('chrome://activity-stream/content/data/content/assets/mr-colorways.avif') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
         progress_bar: true,
@@ -463,7 +479,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
                 string_id: "mr2022-onboarding-colorway-label-default",
               },
               tooltip: {
-                string_id: "mr2022-onboarding-colorway-tooltip-default",
+                string_id: "mr2022-onboarding-colorway-tooltip-default2",
               },
               description: {
                 string_id: "mr2022-onboarding-colorway-description-default",
@@ -475,7 +491,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
                 string_id: "mr2022-onboarding-colorway-label-playmaker",
               },
               tooltip: {
-                string_id: "mr2022-onboarding-colorway-tooltip-playmaker",
+                string_id: "mr2022-onboarding-colorway-tooltip-playmaker2",
               },
               description: {
                 string_id: "mr2022-onboarding-colorway-description-playmaker",
@@ -487,7 +503,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
                 string_id: "mr2022-onboarding-colorway-label-expressionist",
               },
               tooltip: {
-                string_id: "mr2022-onboarding-colorway-tooltip-expressionist",
+                string_id: "mr2022-onboarding-colorway-tooltip-expressionist2",
               },
               description: {
                 string_id:
@@ -500,7 +516,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
                 string_id: "mr2022-onboarding-colorway-label-visionary",
               },
               tooltip: {
-                string_id: "mr2022-onboarding-colorway-tooltip-visionary",
+                string_id: "mr2022-onboarding-colorway-tooltip-visionary2",
               },
               description: {
                 string_id: "mr2022-onboarding-colorway-description-visionary",
@@ -512,7 +528,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
                 string_id: "mr2022-onboarding-colorway-label-activist",
               },
               tooltip: {
-                string_id: "mr2022-onboarding-colorway-tooltip-activist",
+                string_id: "mr2022-onboarding-colorway-tooltip-activist2",
               },
               description: {
                 string_id: "mr2022-onboarding-colorway-description-activist",
@@ -524,7 +540,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
                 string_id: "mr2022-onboarding-colorway-label-dreamer",
               },
               tooltip: {
-                string_id: "mr2022-onboarding-colorway-tooltip-dreamer",
+                string_id: "mr2022-onboarding-colorway-tooltip-dreamer2",
               },
               description: {
                 string_id: "mr2022-onboarding-colorway-description-dreamer",
@@ -536,7 +552,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
                 string_id: "mr2022-onboarding-colorway-label-innovator",
               },
               tooltip: {
-                string_id: "mr2022-onboarding-colorway-tooltip-innovator",
+                string_id: "mr2022-onboarding-colorway-tooltip-innovator2",
               },
               description: {
                 string_id: "mr2022-onboarding-colorway-description-innovator",
@@ -576,6 +592,9 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       content: {
         position: "split",
         split_narrow_bkg_position: "-160px",
+        image_alt_text: {
+          string_id: "mr2022-onboarding-mobile-download-image-alt",
+        },
         background:
           "url('chrome://activity-stream/content/data/content/assets/mr-mobilecrosspromo.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
         progress_bar: true,
@@ -620,6 +639,9 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       content: {
         position: "split",
         split_narrow_bkg_position: "-228px",
+        image_alt_text: {
+          string_id: "mr2022-onboarding-gratitude-image-alt",
+        },
         background:
           "url('chrome://activity-stream/content/data/content/assets/mr-gratitude.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
         progress_bar: true,
@@ -693,7 +715,7 @@ async function getAddonInfo(attrbObj) {
       return await getAddonFromRepository(content);
     }
   } catch (e) {
-    Cu.reportError("Failed to get the latest add-on version for Return to AMO");
+    console.error("Failed to get the latest add-on version for Return to AMO");
   }
   return null;
 }
@@ -880,7 +902,7 @@ async function prepareContentForReact(content) {
 
       // Get started content will navigate without action, so remove "Not now."
       if (removeDefault) {
-        delete pinScreen.content.secondary_button;
+        if (!content.templateMR) delete pinScreen.content.secondary_button;
       } else {
         // The "pin" screen will now handle "default" so remove other "default."
         pinScreen.content.primary_button.action.type = "SET_DEFAULT_BROWSER";

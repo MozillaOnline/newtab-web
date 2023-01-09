@@ -7,10 +7,14 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
 const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  Preferences: "resource://gre/modules/Preferences.sys.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+});
+
 XPCOMUtils.defineLazyModuleGetters(lazy, {
   EveryWindow: "resource:///modules/EveryWindow.jsm",
-  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
-  Preferences: "resource://gre/modules/Preferences.jsm",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.jsm",
   RemoteL10n: "resource://activity-stream/lib/RemoteL10n.jsm",
@@ -257,7 +261,7 @@ class _ToolbarPanelHub {
       // Set platform specific path variables for SUMO articles
       url = Services.urlFormatter.formatURL(message.content.cta_url);
     } catch (e) {
-      Cu.reportError(e);
+      console.error(e);
       url = message.content.cta_url;
     }
     lazy.SpecialMessageActions.handleAction(
