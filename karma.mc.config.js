@@ -148,6 +148,12 @@ module.exports = function(config) {
               functions: 100,
               branches: 84,
             },
+            "lib/DownloadsManager.jsm": {
+              statements: 100,
+              lines: 100,
+              functions: 100,
+              branches: 78,
+            },
             "lib/*.jsm": {
               statements: 100,
               lines: 100,
