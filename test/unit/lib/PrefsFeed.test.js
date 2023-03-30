@@ -1,4 +1,7 @@
-import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
+import {
+  actionCreators as ac,
+  actionTypes as at,
+} from "common/Actions.sys.mjs";
 import { GlobalOverrider } from "test/unit/utils";
 import { PrefsFeed } from "lib/PrefsFeed.jsm";
 
@@ -173,6 +176,17 @@ describe("PrefsFeed", () => {
         },
       })
     );
+  });
+  it("should not send a PREF_CHANGED actions when onPocketExperimentUpdated is called during startup", () => {
+    sandbox
+      .stub(global.NimbusFeatures.pocketNewtab, "getAllVariables")
+      .returns({
+        prefsButtonIcon: "icon-new",
+      });
+    feed.onPocketExperimentUpdated({}, "feature-experiment-loaded");
+    assert.notCalled(feed.store.dispatch);
+    feed.onPocketExperimentUpdated({}, "feature-rollout-loaded");
+    assert.notCalled(feed.store.dispatch);
   });
   it("should send a PREF_CHANGED actions when onExperimentUpdated is called", () => {
     sandbox.stub(global.NimbusFeatures.newtab, "getAllVariables").returns({

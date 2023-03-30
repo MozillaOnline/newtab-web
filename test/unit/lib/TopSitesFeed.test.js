@@ -1,12 +1,15 @@
 "use strict";
 
-import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
+import {
+  actionCreators as ac,
+  actionTypes as at,
+} from "common/Actions.sys.mjs";
 import { FakePrefs, GlobalOverrider } from "test/unit/utils";
 import {
   insertPinned,
   TOP_SITES_DEFAULT_ROWS,
   TOP_SITES_MAX_SITES_PER_ROW,
-} from "common/Reducers.jsm";
+} from "common/Reducers.sys.mjs";
 import { getDefaultOptions } from "lib/ActivityStreamStorage.jsm";
 import injector from "inject!lib/TopSitesFeed.jsm";
 import { Screenshots } from "lib/Screenshots.jsm";
@@ -111,6 +114,9 @@ describe("Top Sites Feed", () => {
         getVariable: sinon.stub(),
         onUpdate: sinon.stub(),
         off: sinon.stub(),
+      },
+      pocketNewtab: {
+        getVariable: sinon.stub(),
       },
     };
     globals.set({
@@ -608,6 +614,44 @@ describe("Top Sites Feed", () => {
       await feed.getLinksWithDefaults();
 
       assert.calledWith(feed._fetchScreenshot, sinon.match.object, "custom");
+    });
+    describe("discoverystream", () => {
+      let makeStreamData = index => ({
+        layout: [
+          {
+            components: [
+              {
+                placement: {
+                  name: "sponsored-topsites",
+                },
+                spocs: {
+                  positions: [{ index }],
+                },
+              },
+            ],
+          },
+        ],
+        spocs: {
+          data: {
+            "sponsored-topsites": {
+              items: [{ title: "test spoc", url: "https://test-spoc.com" }],
+            },
+          },
+        },
+      });
+      it("should add a sponsored topsite from discoverystream to all the valid indices", async () => {
+        for (let i = 0; i < FAKE_LINKS.length; i++) {
+          feed.store.state.DiscoveryStream = makeStreamData(i);
+          const result = await feed.getLinksWithDefaults();
+          const link = result[i];
+
+          assert.equal(link.type, "SPOC");
+          assert.equal(link.title, "test spoc");
+          assert.equal(link.sponsored_position, i + 1);
+          assert.equal(link.hostname, "test-spoc");
+          assert.equal(link.url, "https://test-spoc.com");
+        }
+      });
     });
   });
   describe("#init", () => {
@@ -2325,6 +2369,60 @@ describe("Top Sites Feed", () => {
       feed._nimbusChangeListener(null, "feature-rollout-loaded");
 
       assert.notCalled(feed._contile.refresh);
+    });
+  });
+
+  describe("#_maybeCapSponsoredLinks", () => {
+    let sponsoredLinks;
+
+    beforeEach(() => {
+      sponsoredLinks = [
+        {
+          url: "https://www.test.com",
+          name: "test",
+          sponsored_position: 1,
+        },
+        {
+          url: "https://www.test1.com",
+          name: "test1",
+          sponsored_position: 2,
+        },
+        {
+          url: "https://www.test2.com",
+          name: "test2",
+          sponsored_position: 3,
+        },
+      ];
+    });
+    afterEach(() => {
+      sandbox.restore();
+    });
+
+    it("should fall back to the default if the Nimbus variable is unspecified", () => {
+      feed._maybeCapSponsoredLinks(sponsoredLinks);
+
+      assert.equal(sponsoredLinks.length, 2);
+    });
+    it("should cap the links if specified by the Nimbus variable", () => {
+      fakeNimbusFeatures.pocketNewtab.getVariable.returns(1);
+
+      feed._maybeCapSponsoredLinks(sponsoredLinks);
+
+      assert.equal(sponsoredLinks.length, 1);
+    });
+    it("should leave all the links if the Nimbus variable is equal to what we have", () => {
+      fakeNimbusFeatures.pocketNewtab.getVariable.returns(3);
+
+      feed._maybeCapSponsoredLinks(sponsoredLinks);
+
+      assert.equal(sponsoredLinks.length, 3);
+    });
+    it("should ignore caps if they are more than what we have", () => {
+      fakeNimbusFeatures.pocketNewtab.getVariable.returns(10);
+
+      feed._maybeCapSponsoredLinks(sponsoredLinks);
+
+      assert.equal(sponsoredLinks.length, 3);
     });
   });
 });

@@ -920,6 +920,61 @@ describe("CFRPageActions", () => {
       });
     });
 
+    describe("showPopup", () => {
+      let savedRec;
+      let pageAction;
+      let fakeAnchorId = "fake_anchor_id";
+      let sandboxShowPopup = sinon.createSandbox();
+      let fakePopUp = {
+        id: "fake_id",
+        template: "cfr_doorhanger",
+        content: {
+          skip_address_bar_notifier: true,
+          heading_text: "Fake Heading Text",
+          anchor_id: "fake_anchor_id",
+        },
+      };
+      beforeEach(() => {
+        const { id, content } = fakePopUp;
+        savedRec = {
+          id,
+          host: fakeHost,
+          content,
+        };
+        CFRPageActions.RecommendationMap.set(fakeBrowser, savedRec);
+        pageAction = new PageAction(window, dispatchStub);
+
+        sandboxShowPopup.stub(window.document, "getElementById");
+        sandboxShowPopup.stub(pageAction, "_renderPopup");
+        globals.set({
+          CustomizableUI: {
+            getWidget: sandboxShowPopup
+              .stub()
+              .withArgs(fakeAnchorId)
+              .returns({ areaType: "menu-panel" }),
+          },
+        });
+      });
+      afterEach(() => {
+        sandboxShowPopup.restore();
+        globals.restore();
+      });
+
+      it("Should use default anchor_id if an alternate hasn't been provided", async () => {
+        await pageAction.showPopup();
+
+        assert.calledWith(window.document.getElementById, fakeAnchorId);
+      });
+
+      it("Should use alt_anchor_if if one has been provided AND the anchor_id has been removed", async () => {
+        let fakeAltAnchorId = "fake_alt_anchor_id";
+
+        fakePopUp.content.alt_anchor_id = fakeAltAnchorId;
+        await pageAction.showPopup();
+        assert.calledWith(window.document.getElementById, fakeAltAnchorId);
+      });
+    });
+
     describe("addRecommendation", () => {
       it("should fail and not add a recommendation if the browser is part of a private window", async () => {
         global.PrivateBrowsingUtils.isWindowPrivate.returns(true);
@@ -943,6 +998,17 @@ describe("CFRPageActions", () => {
             dispatchStub
           )
         );
+      });
+      it("should fail and not add a recommendation if the browser does not exist", async () => {
+        assert.isFalse(
+          await CFRPageActions.addRecommendation(
+            undefined,
+            fakeHost,
+            fakeRecommendation,
+            dispatchStub
+          )
+        );
+        assert.isFalse(CFRPageActions.RecommendationMap.has(fakeBrowser));
       });
       it("should fail and not add a recommendation if the host doesn't match", async () => {
         const someOtherFakeHost = "subdomain.mozilla.com";

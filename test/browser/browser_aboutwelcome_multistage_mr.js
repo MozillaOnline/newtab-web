@@ -1,16 +1,19 @@
 "use strict";
 
-const { ExperimentAPI } = ChromeUtils.import(
-  "resource://nimbus/ExperimentAPI.jsm"
-);
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
-);
 const { AboutWelcomeParent } = ChromeUtils.import(
   "resource:///actors/AboutWelcomeParent.jsm"
 );
-const { OnboardingMessageProvider } = ChromeUtils.import(
-  "resource://activity-stream/lib/OnboardingMessageProvider.jsm"
+const {
+  assertFirefoxViewTabSelected,
+  closeFirefoxViewTab,
+} = ChromeUtils.importESModule(
+  "resource://testing-common/FirefoxViewTestUtils.sys.mjs"
+);
+const { AboutWelcomeDefaults } = ChromeUtils.import(
+  "resource://activity-stream/aboutwelcome/lib/AboutWelcomeDefaults.jsm"
+);
+const { AWScreenUtils } = ChromeUtils.import(
+  "resource://activity-stream/lib/AWScreenUtils.jsm"
 );
 
 async function clickVisibleButton(browser, selector) {
@@ -86,7 +89,15 @@ add_task(async function test_aboutwelcome_mr_template_content() {
 
   const sandbox = initSandbox();
 
-  let { browser, cleanup } = await openMRAboutWelcome();
+  const data = await AboutWelcomeDefaults.getDefaults();
+  const defaultMRArray = data.screens.filter(
+    screen => screen.id !== "AW_EASY_SETUP"
+  );
+  sandbox
+    .stub(AWScreenUtils, "evaluateTargetingAndRemoveScreens")
+    .resolves(defaultMRArray);
+
+  let { cleanup, browser } = await openMRAboutWelcome();
 
   await test_screen_content(
     browser,
@@ -133,6 +144,14 @@ add_task(async function test_aboutwelcome_mr_template_content_pin() {
 
   const sandbox = initSandbox({ isDefault: true });
 
+  const data = await AboutWelcomeDefaults.getDefaults();
+  const defaultMRArray = data.screens.filter(
+    screen => screen.id !== "AW_EASY_SETUP"
+  );
+  sandbox
+    .stub(AWScreenUtils, "evaluateTargetingAndRemoveScreens")
+    .resolves(defaultMRArray);
+
   let { browser, cleanup } = await openMRAboutWelcome();
 
   await test_screen_content(
@@ -167,6 +186,13 @@ add_task(async function test_aboutwelcome_mr_template_only_default() {
   await pushPrefs(["browser.shell.checkDefaultBrowser", true]);
 
   const sandbox = initSandbox({ pin: false });
+  const data = await AboutWelcomeDefaults.getDefaults();
+  const defaultMRArray = data.screens.filter(
+    screen => screen.id !== "AW_EASY_SETUP"
+  );
+  sandbox
+    .stub(AWScreenUtils, "evaluateTargetingAndRemoveScreens")
+    .resolves(defaultMRArray);
 
   let { browser, cleanup } = await openMRAboutWelcome();
 
@@ -191,6 +217,14 @@ add_task(async function test_aboutwelcome_mr_template_get_started() {
   await pushPrefs(["browser.shell.checkDefaultBrowser", true]);
 
   const sandbox = initSandbox({ pin: false, isDefault: true });
+
+  const data = await AboutWelcomeDefaults.getDefaults();
+  const defaultMRArray = data.screens.filter(
+    screen => screen.id !== "AW_EASY_SETUP"
+  );
+  sandbox
+    .stub(AWScreenUtils, "evaluateTargetingAndRemoveScreens")
+    .resolves(defaultMRArray);
 
   let { browser, cleanup } = await openMRAboutWelcome();
 
@@ -265,100 +299,6 @@ add_task(async function test_aboutwelcome_show_firefox_view() {
 
   // cleanup
   await SpecialPowers.popPrefEnv(); // for setAboutWelcomeMultiStage
-  closeFirefoxViewTab();
+  closeFirefoxViewTab(gBrowser.ownerGlobal);
   await cleanup();
-});
-
-add_task(async function test_mr2022_templateMR() {
-  const message = await OnboardingMessageProvider.getMessages().then(msgs =>
-    msgs.find(m => m.id === "FX_MR_106_UPGRADE")
-  );
-
-  const screensJSON = JSON.stringify(message.content.screens);
-
-  await setAboutWelcomeMultiStage(screensJSON); // NB: calls SpecialPowers.pushPrefEnv
-
-  async function runMajorReleaseTest(
-    {
-      onboarding = undefined,
-      templateMR = undefined,
-      fallbackPref = undefined,
-    },
-    expected
-  ) {
-    info("Testing aboutwelcome layout with:");
-    info(`  majorRelease2022.onboarding=${onboarding}`);
-    info(`  aboutwelcome.templateMR=${templateMR}`);
-    info(`  ${MR_TEMPLATE_PREF}=${fallbackPref}`);
-
-    let mr2022Cleanup = async () => {};
-    let aboutWelcomeCleanup = async () => {};
-
-    if (typeof onboarding !== "undefined") {
-      mr2022Cleanup = await ExperimentFakes.enrollWithFeatureConfig({
-        featureId: "majorRelease2022",
-        value: { onboarding },
-      });
-    }
-
-    if (typeof templateMR !== "undefined") {
-      aboutWelcomeCleanup = await ExperimentFakes.enrollWithFeatureConfig({
-        featureId: "aboutwelcome",
-        value: { templateMR },
-      });
-    }
-
-    if (typeof fallbackPref !== "undefined") {
-      await SpecialPowers.pushPrefEnv({
-        set: [[MR_TEMPLATE_PREF, fallbackPref]],
-      });
-    }
-
-    const tab = await BrowserTestUtils.openNewForegroundTab(
-      gBrowser,
-      "about:welcome",
-      true
-    );
-
-    const SELECTOR = `main.screen[pos="split"]`;
-    const args = expected
-      ? ["split layout", [SELECTOR], []]
-      : ["non-split layout", [], [SELECTOR]];
-
-    try {
-      await test_screen_content(tab.linkedBrowser, ...args);
-    } finally {
-      BrowserTestUtils.removeTab(tab);
-
-      if (typeof fallbackPref !== "undefined") {
-        await SpecialPowers.popPrefEnv();
-      }
-
-      await mr2022Cleanup();
-      await aboutWelcomeCleanup();
-    }
-  }
-
-  await ExperimentAPI.ready();
-
-  await runMajorReleaseTest({ onboarding: true }, true);
-  await runMajorReleaseTest({ onboarding: true, templateMR: false }, true);
-  await runMajorReleaseTest({ onboarding: true, fallbackPref: false }, true);
-
-  await runMajorReleaseTest({ onboarding: false }, false);
-  await runMajorReleaseTest({ onboarding: false, templateMR: true }, false);
-  await runMajorReleaseTest({ onboarding: false, fallbackPref: true }, false);
-
-  await runMajorReleaseTest({ templateMR: true }, true);
-  await runMajorReleaseTest({ templateMR: true, fallbackPref: false }, true);
-  await runMajorReleaseTest({ fallbackPref: true }, true);
-
-  await runMajorReleaseTest({ templateMR: false }, false);
-  await runMajorReleaseTest({ templateMR: false, fallbackPref: true }, false);
-  await runMajorReleaseTest({ fallbackPref: false }, false);
-
-  // Check the default case with no experiments or prefs set.
-  await runMajorReleaseTest({}, true);
-
-  await SpecialPowers.popPrefEnv(); // for setAboutWelcomeMultiStage(screensJSON)
 });

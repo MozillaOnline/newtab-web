@@ -4,7 +4,7 @@ import {
   ImpressionStats,
   INTERSECTION_RATIO,
 } from "content-src/components/DiscoveryStreamImpressionStats/ImpressionStats";
-import { actionTypes as at } from "common/Actions.jsm";
+import { actionTypes as at } from "common/Actions.sys.mjs";
 import React from "react";
 import { shallow } from "enzyme";
 
@@ -148,14 +148,14 @@ describe("<ImpressionStats>", () => {
     };
     renderImpressionStats(props);
 
-    // Loaded content + DISCOVERY_STREAM_SPOC_IMPRESSION + TOP_SITES_IMPRESSION_STATS + impression
+    // Loaded content + DISCOVERY_STREAM_SPOC_IMPRESSION + TOP_SITES_SPONSORED_IMPRESSION_STATS + impression
     assert.callCount(dispatch, 4);
 
     const [action] = dispatch.secondCall.args;
     assert.equal(action.type, at.DISCOVERY_STREAM_SPOC_IMPRESSION);
     assert.deepEqual(action.data, { flightId });
   });
-  it("should send a TOP_SITES_IMPRESSION_STATS when the wrapped item has a flightId", () => {
+  it("should send a TOP_SITES_SPONSORED_IMPRESSION_STATS when the wrapped item has a flightId", () => {
     const dispatch = sinon.spy();
     const flightId = "a_flight_id";
     const props = {
@@ -167,11 +167,11 @@ describe("<ImpressionStats>", () => {
     };
     renderImpressionStats(props);
 
-    // Loaded content + DISCOVERY_STREAM_SPOC_IMPRESSION + TOP_SITES_IMPRESSION_STATS + impression
+    // Loaded content + DISCOVERY_STREAM_SPOC_IMPRESSION + TOP_SITES_SPONSORED_IMPRESSION_STATS + impression
     assert.callCount(dispatch, 4);
 
     const [action] = dispatch.getCall(2).args;
-    assert.equal(action.type, at.TOP_SITES_IMPRESSION_STATS);
+    assert.equal(action.type, at.TOP_SITES_SPONSORED_IMPRESSION_STATS);
     assert.deepEqual(action.data, {
       type: "impression",
       tile_id: 1,

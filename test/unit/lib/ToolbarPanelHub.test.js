@@ -322,7 +322,7 @@ describe("ToolbarPanelHub", () => {
     });
     it("should not do anything if the window is closed", () => {
       instance._hideAppmenuButton(fakeWindow, true);
-      assert.notCalled(PanelMultiView.getViewNode);
+      assert.notCalled(global.PanelMultiView.getViewNode);
     });
     it("should not throw if the element does not exist", () => {
       let fn = instance._hideAppmenuButton.bind(null, {
@@ -759,6 +759,10 @@ describe("ToolbarPanelHub", () => {
 
         assert.calledOnce(removeMessagesSpy);
         assert.calledWithExactly(removeMessagesSpy, fakeWindow, panelSelector);
+      });
+      it("should exit gracefully if called before a browser exists", () => {
+        instance.forceShowMessage(null, messages);
+        assert.neverCalledWith(removeMessagesSpy, fakeWindow, panelSelector);
       });
     });
   });

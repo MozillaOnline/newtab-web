@@ -811,7 +811,9 @@ class PageAction {
 
     if (
       content.alt_anchor_id &&
-      lazy.CustomizableUI.getWidget(content.anchor_id).areaType === "menu-panel"
+      lazy.CustomizableUI.getWidget(content.anchor_id).areaType.includes(
+        "panel"
+      )
     ) {
       anchor = this.window.document.getElementById(content.alt_anchor_id);
     } else {
@@ -819,7 +821,6 @@ class PageAction {
         this.window.document.getElementById(content.anchor_id) ||
         this.container;
     }
-
     browser.cfrpopupnotificationanchor = anchor;
 
     await this._renderPopup(message, browser);
@@ -924,6 +925,9 @@ const CFRPageActions = {
    * @return                        Did adding the recommendation succeed?
    */
   async forceRecommendation(browser, recommendation, dispatchCFRAction) {
+    if (!browser) {
+      return false;
+    }
     // If we are forcing via the Admin page, the browser comes in a different format
     const win = browser.ownerGlobal;
     const { id, content } = recommendation;
@@ -959,6 +963,9 @@ const CFRPageActions = {
    * @return                        Did adding the recommendation succeed?
    */
   async addRecommendation(browser, host, recommendation, dispatchCFRAction) {
+    if (!browser) {
+      return false;
+    }
     const win = browser.ownerGlobal;
     if (lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
       return false;

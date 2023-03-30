@@ -2,16 +2,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-"use strict";
 
-const EXPORTED_SYMBOLS = ["ASRouterChild"];
+import {
+  MESSAGE_TYPE_LIST,
+  MESSAGE_TYPE_HASH as msg,
+} from "resource://activity-stream/common/ActorConstants.sys.mjs";
 
-const { MESSAGE_TYPE_LIST, MESSAGE_TYPE_HASH: msg } = ChromeUtils.import(
-  "resource://activity-stream/common/ActorConstants.jsm"
-);
 const VALID_TYPES = new Set(MESSAGE_TYPE_LIST);
 
-class ASRouterChild extends JSWindowActorChild {
+export class ASRouterChild extends JSWindowActorChild {
   constructor() {
     super();
     this.observers = new Set();

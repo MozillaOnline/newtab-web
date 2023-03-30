@@ -18,7 +18,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
-  BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
@@ -282,163 +281,6 @@ const BASE_MESSAGES = () => [
           },
         },
         {
-          id: "UPGRADE_COLORWAY",
-          content: {
-            position: "split",
-            split_narrow_bkg_position: "-65px",
-            image_alt_text: {
-              string_id: "mr2022-onboarding-colorways-image-alt",
-            },
-            background:
-              "url('chrome://activity-stream/content/data/content/assets/mr-colorways.avif') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
-            progress_bar: true,
-            logo: {},
-            title: {
-              string_id: "mr2022-onboarding-colorway-title",
-            },
-            subtitle: {
-              string_id: "mr2022-onboarding-colorway-subtitle",
-            },
-            tiles: {
-              type: "colorway",
-              action: {
-                theme: "<event>",
-              },
-              defaultVariationIndex: 1,
-              darkVariation: 2,
-              systemVariations: ["light", "automatic", "dark"],
-              variations: ["soft", "balanced", "bold"],
-              colorways: [
-                {
-                  id: "default",
-                  label: {
-                    string_id: "mr2022-onboarding-colorway-label-default",
-                  },
-                  tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-default2",
-                  },
-                  description: {
-                    string_id: "mr2022-onboarding-colorway-description-default",
-                  },
-                },
-                {
-                  id: "playmaker",
-                  label: {
-                    string_id: "mr2022-onboarding-colorway-label-playmaker",
-                  },
-                  tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-playmaker2",
-                  },
-                  description: {
-                    string_id:
-                      "mr2022-onboarding-colorway-description-playmaker",
-                  },
-                },
-                {
-                  id: "expressionist",
-                  label: {
-                    string_id: "mr2022-onboarding-colorway-label-expressionist",
-                  },
-                  tooltip: {
-                    string_id:
-                      "mr2022-onboarding-colorway-tooltip-expressionist2",
-                  },
-                  description: {
-                    string_id:
-                      "mr2022-onboarding-colorway-description-expressionist",
-                  },
-                },
-                {
-                  id: "visionary",
-                  label: {
-                    string_id: "mr2022-onboarding-colorway-label-visionary",
-                  },
-                  tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-visionary2",
-                  },
-                  description: {
-                    string_id:
-                      "mr2022-onboarding-colorway-description-visionary",
-                  },
-                },
-                {
-                  id: "activist",
-                  label: {
-                    string_id: "mr2022-onboarding-colorway-label-activist",
-                  },
-                  tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-activist2",
-                  },
-                  description: {
-                    string_id:
-                      "mr2022-onboarding-colorway-description-activist",
-                  },
-                },
-                {
-                  id: "dreamer",
-                  label: {
-                    string_id: "mr2022-onboarding-colorway-label-dreamer",
-                  },
-                  tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-dreamer2",
-                  },
-                  description: {
-                    string_id: "mr2022-onboarding-colorway-description-dreamer",
-                  },
-                },
-                {
-                  id: "innovator",
-                  label: {
-                    string_id: "mr2022-onboarding-colorway-label-innovator",
-                  },
-                  tooltip: {
-                    string_id: "mr2022-onboarding-colorway-tooltip-innovator2",
-                  },
-                  description: {
-                    string_id:
-                      "mr2022-onboarding-colorway-description-innovator",
-                  },
-                },
-              ],
-            },
-            primary_button: {
-              label: {
-                string_id:
-                  "mr2022-onboarding-colorway-primary-button-label-continue",
-              },
-              action: {
-                persistActiveTheme: true,
-                navigate: true,
-              },
-            },
-            checkbox: {
-              label: {
-                string_id: "mr2022-onboarding-existing-colorway-checkbox-label",
-              },
-              action: {
-                type: "CONFIGURE_HOMEPAGE",
-                data: { homePage: "default", newtab: "default" },
-                navigate: true,
-              },
-            },
-            secondary_button: {
-              label: {
-                string_id: "mr2022-onboarding-secondary-skip-button-label",
-              },
-              action: {
-                theme: "automatic",
-                navigate: true,
-              },
-              has_arrow_icon: true,
-            },
-            navigate_away: {
-              action: {
-                theme: "revert",
-              },
-            },
-          },
-        },
-        {
           id: "UPGRADE_MOBILE_DOWNLOAD",
           content: {
             position: "split",
@@ -537,7 +379,6 @@ const BASE_MESSAGES = () => [
               string_id: "mr2022-onboarding-privacy-segmentation-image-alt",
             },
             progress_bar: "true",
-            dual_action_buttons: true,
             background:
               "url('chrome://activity-stream/content/data/content/assets/mr-privacysegmentation.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
             logo: {},
@@ -568,11 +409,12 @@ const BASE_MESSAGES = () => [
                 navigate: true,
               },
             },
-            secondary_button: {
+            additional_button: {
               label: {
                 string_id:
                   "mr2022-onboarding-privacy-segmentation-button-secondary-label",
               },
+              style: "secondary",
               action: {
                 type: "SET_PREF",
                 data: {
@@ -665,7 +507,7 @@ const BASE_MESSAGES = () => [
             },
             secondary_button: {
               label: {
-                string_id: "mr1-onboarding-set-default-secondary-button-label",
+                string_id: "onboarding-not-now-button-label",
               },
               action: {
                 navigate: true,
@@ -1074,6 +916,178 @@ const BASE_MESSAGES = () => [
     },
     targeting: "!inMr2022Holdback && doesAppNeedPrivatePin",
   },
+  {
+    id: "PB_NEWTAB_COOKIE_BANNERS_PROMO",
+    template: "pb_newtab",
+    type: "default",
+    groups: ["pbNewtab"],
+    content: {
+      infoBody: "fluent:about-private-browsing-info-description-simplified",
+      infoEnabled: true,
+      infoIcon: "chrome://global/skin/icons/indicator-private-browsing.svg",
+      infoLinkText: "fluent:about-private-browsing-learn-more-link",
+      infoTitle: "",
+      infoTitleEnabled: false,
+      promoEnabled: true,
+      promoType: "COOKIE_BANNERS",
+      promoHeader: "fluent:about-private-browsing-cookie-banners-promo-header",
+      promoImageLarge:
+        "chrome://browser/content/assets/cookie-banners-begone.svg",
+      promoLinkText:
+        "fluent:about-private-browsing-cookie-banners-promo-button",
+      promoLinkType: "button",
+      promoSectionStyle: "below-search",
+      promoTitle: "fluent:about-private-browsing-cookie-banners-promo-message",
+      promoTitleEnabled: true,
+      promoButton: {
+        action: {
+          type: "MULTI_ACTION",
+          data: {
+            actions: [
+              {
+                type: "SET_PREF",
+                data: {
+                  pref: {
+                    name: "cookiebanners.service.mode",
+                    value: Ci.nsICookieBannerService.MODE_REJECT,
+                  },
+                },
+              },
+              {
+                // This pref may be removed (with the normal pref controlling
+                // both modes), at which time we should remove this action.
+                type: "SET_PREF",
+                data: {
+                  pref: {
+                    name: "cookiebanners.service.mode.privateBrowsing",
+                    value: Ci.nsICookieBannerService.MODE_REJECT,
+                  },
+                },
+              },
+              {
+                // Reset this pref to default
+                type: "SET_PREF",
+                data: {
+                  pref: {
+                    name: "cookiebanners.service.detectOnly",
+                  },
+                },
+              },
+              {
+                type: "BLOCK_MESSAGE",
+                data: {
+                  id: "PB_NEWTAB_COOKIE_BANNERS_PROMO",
+                },
+              },
+              {
+                type: "OPEN_ABOUT_PAGE",
+                data: { args: "privatebrowsing", where: "current" },
+              },
+            ],
+          },
+        },
+      },
+    },
+    priority: 4,
+    frequency: {
+      custom: [
+        {
+          cap: 3,
+          period: 604800000, // Max 3 per week
+        },
+      ],
+      lifetime: 12,
+    },
+    targeting: `!'cookiebanners.service.mode'|preferenceIsUserSet`,
+  },
+  /**
+   * The three messages below are part of an experiment for cookie banner handling.
+   * Due to the need to set a few prefs in order to enable the feature,
+   * The message variant is also being handled via a pref. At the end of the experiment
+   * period this will be consolidated into a single message.
+   */
+  {
+    id: "CFR_COOKIEBANNER",
+    groups: ["cfr"],
+    template: "cfr_doorhanger",
+    content: {
+      bucket_id: "CFR_COOKIEBANNER",
+      anchor_id: "tracking-protection-icon-container",
+      layout: "icon_and_message",
+      icon: "chrome://browser/skin/controlcenter/3rdpartycookies.svg",
+      icon_class: "cfr-doorhanger-small-icon",
+      persistent_doorhanger: true,
+      heading_text: {
+        string_id: "cfr-cbh-header",
+      },
+      text: {
+        string_id: "cfr-cbh-body",
+      },
+      buttons: {
+        primary: {
+          label: {
+            string_id: "cfr-cbh-confirm-button",
+          },
+          action: {
+            type: "MULTI_ACTION",
+            data: {
+              actions: [
+                {
+                  type: "SET_PREF",
+                  data: {
+                    pref: {
+                      name: "cookiebanners.service.mode",
+                      value: 1,
+                    },
+                  },
+                },
+                {
+                  type: "SET_PREF",
+                  data: {
+                    pref: {
+                      name: "cookiebanners.service.mode.privateBrowsing",
+                      value: 1,
+                    },
+                  },
+                },
+                {
+                  type: "SET_PREF",
+                  data: {
+                    pref: {
+                      name: "cookiebanners.service.detectOnly",
+                      value: false,
+                    },
+                  },
+                },
+                {
+                  type: "RELOAD_BROWSER",
+                },
+              ],
+            },
+          },
+        },
+        secondary: [
+          {
+            label: {
+              string_id: "cfr-cbh-dismiss-button",
+            },
+            action: {
+              type: "CANCEL",
+            },
+          },
+        ],
+      },
+      skip_address_bar_notifier: true,
+    },
+    frequency: {
+      custom: [{ period: 24 * 60 * 60 * 1000 * 2, cap: 1 }],
+      lifetime: 2,
+    },
+    trigger: {
+      id: "cookieBannerDetected",
+    },
+    targeting: `'cookiebanners.ui.desktop.enabled'|preferenceValue == true && 'cookiebanners.service.detectOnly'|preferenceValue == true`,
+  },
 ];
 
 // Eventually, move Feature Callout messages to their own provider
@@ -1271,18 +1285,6 @@ const OnboardingMessageProvider = {
       prepareMobileDownload();
     }
 
-    // Remove colorways screen if there is no active colorways collection
-    const hasActiveColorways = !!lazy.BuiltInThemes.findActiveColorwayCollection?.();
-    if (!hasActiveColorways) {
-      removeScreens(screen => screen.id?.startsWith("UPGRADE_COLORWAY"));
-    }
-
-    // If the newtab and home page are already set to defaults, remove the
-    // checkbox that offers to reset them.
-    if (!this._doesHomepageNeedReset()) {
-      delete content.screens?.find(screen => screen.id === "UPGRADE_COLORWAY")
-        ?.content?.checkbox;
-    }
     return message;
   },
 };

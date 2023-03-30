@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
+import {
+  actionCreators as ac,
+  actionTypes as at,
+} from "common/Actions.sys.mjs";
 import { TOP_SITES_SOURCE } from "../TopSites/TopSitesConstants";
 import React from "react";
 
@@ -69,7 +72,7 @@ export class ImpressionStats extends React.PureComponent {
         for (const card of cards) {
           this.props.dispatch(
             ac.OnlyToMain({
-              type: at.TOP_SITES_IMPRESSION_STATS,
+              type: at.TOP_SITES_SPONSORED_IMPRESSION_STATS,
               data: {
                 type: "impression",
                 tile_id: card.id,

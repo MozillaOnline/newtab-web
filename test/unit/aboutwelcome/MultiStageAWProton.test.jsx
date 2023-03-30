@@ -1,5 +1,6 @@
 import { AboutWelcomeDefaults } from "aboutwelcome/lib/AboutWelcomeDefaults.jsm";
 import { MultiStageProtonScreen } from "content-src/aboutwelcome/components/MultiStageProtonScreen";
+import { AWScreenUtils } from "lib/AWScreenUtils.jsm";
 import React from "react";
 import { mount } from "enzyme";
 
@@ -27,10 +28,10 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.ok(wrapper.exists());
     });
 
-    it("should render secondary section for corner positioned screens", () => {
+    it("should render secondary section for split positioned screens", () => {
       const SCREEN_PROPS = {
         content: {
-          position: "corner",
+          position: "split",
           title: "test title",
           hero_text: "test subtitle",
         },
@@ -42,12 +43,12 @@ describe("MultiStageAboutWelcomeProton module", () => {
         wrapper.find(".section-secondary h1").text(),
         "test subtitle"
       );
-      assert.equal(wrapper.find("main").prop("pos"), "corner");
+      assert.equal(wrapper.find("main").prop("pos"), "split");
     });
 
     it("should render secondary section with content background for split positioned screens", () => {
       const BACKGROUND_URL =
-        "chrome://activity-stream/content/data/content/assets/proton-bkg.avif";
+        "chrome://activity-stream/content/data/content/assets/confetti.svg";
       const SCREEN_PROPS = {
         content: {
           position: "split",
@@ -104,40 +105,156 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.equal(wrapper.find("main").prop("pos"), "center");
     });
 
-    it("should render action buttons container with dual-action-buttons class", () => {
+    it("should not render multiple action buttons if an additional button does not exist", () => {
       const SCREEN_PROPS = {
         content: {
-          position: "split",
           title: "test title",
-          dual_action_buttons: true,
           primary_button: {
             label: "test primary button",
-          },
-          secondary_button: {
-            label: "test secondary button",
           },
         },
       };
       const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
       assert.ok(wrapper.exists());
-      assert.ok(wrapper.find(".dual-action-buttons").text());
+      assert.isFalse(wrapper.find(".additional-cta").exists());
+    });
+
+    it("should render an additional action button with primary styling if no style has been specified", () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          primary_button: {
+            label: "test primary button",
+          },
+          additional_button: {
+            label: "test additional button",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.isTrue(wrapper.find(".additional-cta.primary").exists());
+    });
+
+    it("should render an additional action button with secondary styling", () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          primary_button: {
+            label: "test primary button",
+          },
+          additional_button: {
+            label: "test additional button",
+            style: "secondary",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(wrapper.find(".additional-cta.secondary").exists(), true);
+    });
+
+    it("should render an additional action button with primary styling", () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          primary_button: {
+            label: "test primary button",
+          },
+          additional_button: {
+            label: "test additional button",
+            style: "primary",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(wrapper.find(".additional-cta.primary").exists(), true);
+    });
+
+    it("should render an additional action with link styling", () => {
+      const SCREEN_PROPS = {
+        content: {
+          position: "split",
+          title: "test title",
+          primary_button: {
+            label: "test primary button",
+          },
+          additional_button: {
+            label: "test additional button",
+            style: "link",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(wrapper.find(".additional-cta.cta-link").exists(), true);
+    });
+
+    it("should not render a progress bar if there is 1 step", () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          progress_bar: true,
+        },
+        isSingleScreen: true,
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(wrapper.find(".steps.progress-bar").exists(), false);
+    });
+
+    it("should render a progress bar if there are 2 steps", () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          progress_bar: true,
+        },
+        totalNumberOfScreens: 2,
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(wrapper.find(".steps.progress-bar").exists(), true);
     });
   });
 
   describe("AboutWelcomeDefaults for proton", () => {
     const getData = () => AboutWelcomeDefaults.getDefaults();
-    async function prepConfig(config) {
+
+    async function prepConfig(config, evalFalseScreenIds) {
+      let data = await getData();
+
+      if (evalFalseScreenIds?.length) {
+        data.screens.forEach(async screen => {
+          if (evalFalseScreenIds.includes(screen.id)) {
+            screen.targeting = false;
+          }
+        });
+        data.screens = await AWScreenUtils.evaluateTargetingAndRemoveScreens(
+          data.screens
+        );
+      }
+
       return AboutWelcomeDefaults.prepareContentForReact({
-        ...(await getData()),
+        ...data,
         ...config,
       });
     }
     beforeEach(() => {
       sandbox.stub(global.Services.prefs, "getBoolPref").returns(true);
+      sandbox.stub(AWScreenUtils, "evaluateScreenTargeting").returnsArg(0);
+      // This is necessary because there are still screens being removed with
+      // `removeScreens` in `prepareContentForReact()`. Once we've migrated
+      // to using screen targeting instead of manually removing screens,
+      // we can remove this stub.
+      sandbox
+        .stub(global.AWScreenUtils, "removeScreens")
+        .callsFake((screens, callback) =>
+          AWScreenUtils.removeScreens(screens, callback)
+        );
     });
     it("should have 'pin' button by default", async () => {
-      const data = await getData();
-
+      const data = await prepConfig({ needPin: true }, ["AW_EASY_SETUP"]);
       assert.propertyVal(
         data.screens[0].content.primary_button.action,
         "type",
@@ -145,7 +262,13 @@ describe("MultiStageAboutWelcomeProton module", () => {
       );
     });
     it("should have 'pin' button if we need default and pin", async () => {
-      const data = await prepConfig({ needDefault: true, needPin: true });
+      const data = await prepConfig(
+        {
+          needDefault: true,
+          needPin: true,
+        },
+        ["AW_EASY_SETUP"]
+      );
 
       assert.propertyVal(
         data.screens[0].content.primary_button.action,
@@ -154,28 +277,28 @@ describe("MultiStageAboutWelcomeProton module", () => {
       );
       assert.propertyVal(data.screens[0], "id", "AW_PIN_FIREFOX");
       assert.propertyVal(data.screens[1], "id", "AW_SET_DEFAULT");
-      assert.lengthOf(data.screens, getData().screens.length - 1);
+      assert.lengthOf(data.screens, getData().screens.length - 2);
     });
     it("should keep 'pin' and remove 'default' if already default", async () => {
-      const data = await prepConfig({ needPin: true });
+      const data = await prepConfig({ needPin: true }, ["AW_EASY_SETUP"]);
 
       assert.propertyVal(data.screens[0], "id", "AW_PIN_FIREFOX");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, getData().screens.length - 2);
+      assert.lengthOf(data.screens, getData().screens.length - 3);
     });
     it("should switch to 'default' if already pinned", async () => {
-      const data = await prepConfig({ needDefault: true });
+      const data = await prepConfig({ needDefault: true }, ["AW_EASY_SETUP"]);
 
       assert.propertyVal(data.screens[0], "id", "AW_ONLY_DEFAULT");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, getData().screens.length - 2);
+      assert.lengthOf(data.screens, getData().screens.length - 3);
     });
     it("should switch to 'start' if already pinned and default", async () => {
-      const data = await prepConfig();
+      const data = await prepConfig({}, ["AW_EASY_SETUP"]);
 
       assert.propertyVal(data.screens[0], "id", "AW_GET_STARTED");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, getData().screens.length - 2);
+      assert.lengthOf(data.screens, getData().screens.length - 3);
     });
     it("should have a FxA button", async () => {
       const data = await prepConfig();
@@ -191,11 +314,6 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.property(data, "skipFxA", true);
       assert.notProperty(data.screens[0].content, "secondary_button_top");
     });
-    it("should have an image caption", async () => {
-      const data = await prepConfig();
-
-      assert.property(data.screens[0].content, "help_text");
-    });
     it("should remove the caption if deleteIfNotEn is true", async () => {
       sandbox.stub(global.Services.locale, "appLocaleAsBCP47").value("de");
 
@@ -203,7 +321,8 @@ describe("MultiStageAboutWelcomeProton module", () => {
         id: "DEFAULT_ABOUTWELCOME_PROTON",
         template: "multistage",
         transitions: true,
-        background_url: `chrome://activity-stream/content/data/content/assets/proton-bkg.avif`,
+        background_url:
+          "chrome://activity-stream/content/data/content/assets/confetti.svg",
         screens: [
           {
             id: "AW_PIN_FIREFOX",
@@ -223,7 +342,6 @@ describe("MultiStageAboutWelcomeProton module", () => {
   });
 
   describe("AboutWelcomeDefaults for MR split template proton", () => {
-    // Pass true as argument for templateMR parameter
     const getData = () => AboutWelcomeDefaults.getDefaults(true);
     beforeEach(() => {
       sandbox.stub(global.Services.prefs, "getBoolPref").returns(true);
@@ -242,7 +360,6 @@ describe("MultiStageAboutWelcomeProton module", () => {
 
   describe("AboutWelcomeDefaults prepareMobileDownload", () => {
     const TEST_CONTENT = {
-      templateMR: true,
       screens: [
         {
           id: "AW_MOBILE_DOWNLOAD",
@@ -260,7 +377,7 @@ describe("MultiStageAboutWelcomeProton module", () => {
       ],
     };
     it("should not set url for default qrcode svg", async () => {
-      sandbox.stub(AppConstants, "isChinaRepack").returns(false);
+      sandbox.stub(global.AppConstants, "isChinaRepack").returns(false);
       const data = await AboutWelcomeDefaults.prepareContentForReact(
         TEST_CONTENT
       );
@@ -271,11 +388,10 @@ describe("MultiStageAboutWelcomeProton module", () => {
       );
     });
     it("should set url for cn qrcode svg", async () => {
-      sandbox.stub(AppConstants, "isChinaRepack").returns(true);
+      sandbox.stub(global.AppConstants, "isChinaRepack").returns(true);
       const data = await AboutWelcomeDefaults.prepareContentForReact(
         TEST_CONTENT
       );
-      assert.propertyVal(data, "templateMR", true);
       assert.propertyVal(
         data.screens[0].content.hero_image,
         "url",
@@ -347,7 +463,14 @@ describe("MultiStageAboutWelcomeProton module", () => {
       );
     });
     it("should remove theme screens on win7", async () => {
-      sandbox.stub(AppConstants, "isPlatformAndVersionAtMost").returns(true);
+      sandbox
+        .stub(global.AppConstants, "isPlatformAndVersionAtMost")
+        .returns(true);
+      sandbox
+        .stub(global.AWScreenUtils, "removeScreens")
+        .callsFake((screens, screen) =>
+          AWScreenUtils.removeScreens(screens, screen)
+        );
 
       const { screens } = await AboutWelcomeDefaults.prepareContentForReact({
         screens: [
@@ -369,7 +492,14 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.deepEqual(screens, [{ id: "hello" }, { id: "world" }]);
     });
     it("shouldn't remove colorway screens on win7", async () => {
-      sandbox.stub(AppConstants, "isPlatformAndVersionAtMost").returns(true);
+      sandbox
+        .stub(global.AppConstants, "isPlatformAndVersionAtMost")
+        .returns(true);
+      sandbox
+        .stub(global.AWScreenUtils, "removeScreens")
+        .callsFake((screens, screen) =>
+          AWScreenUtils.removeScreens(screens, screen)
+        );
 
       const { screens } = await AboutWelcomeDefaults.prepareContentForReact({
         screens: [
@@ -397,18 +527,6 @@ describe("MultiStageAboutWelcomeProton module", () => {
         { id: "hello" },
         { id: "world" },
       ]);
-    });
-
-    it("should not render action buttons if a primary and secondary button does not exist", async () => {
-      const SCREEN_PROPS = {
-        content: {
-          title: "test title",
-          subtitle: "test subtitle",
-        },
-      };
-      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
-      assert.ok(wrapper.exists());
-      assert.equal(wrapper.find(".action-buttons").exists(), false);
     });
   });
 });

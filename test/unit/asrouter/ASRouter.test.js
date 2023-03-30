@@ -123,6 +123,7 @@ describe("ASRouter", () => {
         profileAgeReset: {},
         usesFirefoxSync: false,
         isFxAEnabled: true,
+        isFxASignedIn: false,
         sync: {
           desktopDevices: 0,
           mobileDevices: 0,
@@ -243,6 +244,7 @@ describe("ASRouter", () => {
       ASRouterTargeting,
       ASRouterTriggerListeners,
       QueryCache,
+      gBrowser: { selectedBrowser: {} },
       gURLBar: {},
       isSeparateAboutWelcome: true,
       AttributionCode: fakeAttributionCode,
@@ -938,6 +940,69 @@ describe("ASRouter", () => {
         undefined
       );
     });
+    it("should parse the message's messagesLoaded trigger and immediately fire trigger", async () => {
+      setMessageProviderPref([
+        {
+          id: "foo",
+          type: "local",
+          enabled: true,
+          messages: [
+            {
+              id: "bar3",
+              template: "simple_template",
+              trigger: { id: "messagesLoaded" },
+              content: { title: "Bar3", body: "Bar123" },
+            },
+          ],
+        },
+      ]);
+      Router = new _ASRouter(Object.freeze(FAKE_LOCAL_PROVIDERS));
+      sandbox.spy(Router, "sendTriggerMessage");
+      await initASRouter(Router);
+      assert.calledOnce(Router.sendTriggerMessage);
+      assert.calledWith(
+        Router.sendTriggerMessage,
+        sandbox.match({ id: "messagesLoaded" }),
+        true
+      );
+    });
+    it("should gracefully handle messages loading before a window or browser exists", async () => {
+      sandbox.stub(global, "gBrowser").value(undefined);
+      sandbox
+        .stub(global.Services.wm, "getMostRecentBrowserWindow")
+        .returns(undefined);
+      setMessageProviderPref([
+        {
+          id: "foo",
+          type: "local",
+          enabled: true,
+          messages: [
+            "whatsnew_panel_message",
+            "cfr_doorhanger",
+            "toolbar_badge",
+            "update_action",
+            "infobar",
+            "spotlight",
+            "toast_notification",
+          ].map((template, i) => {
+            return {
+              id: `foo${i}`,
+              template,
+              trigger: { id: "messagesLoaded" },
+              content: { title: `Foo${i}`, body: "Bar123" },
+            };
+          }),
+        },
+      ]);
+      Router = new _ASRouter(Object.freeze(FAKE_LOCAL_PROVIDERS));
+      sandbox.spy(Router, "sendTriggerMessage");
+      await initASRouter(Router);
+      assert.calledWith(
+        Router.sendTriggerMessage,
+        sandbox.match({ id: "messagesLoaded" }),
+        true
+      );
+    });
     it("should gracefully handle RemoteSettings blowing up and dispatch undesired event", async () => {
       sandbox
         .stub(MessageLoaderUtils, "_getRemoteSettingsMessages")
@@ -1545,13 +1610,14 @@ describe("ASRouter", () => {
         browser: {},
       });
 
-      assert.calledOnce(startTelemetryStopwatch);
+      // Called once for the messagesLoaded trigger and once for the above call.
+      assert.calledTwice(startTelemetryStopwatch);
       assert.calledWithExactly(
         startTelemetryStopwatch,
         "MS_MESSAGE_REQUEST_TIME_MS",
         { tabId }
       );
-      assert.calledOnce(finishTelemetryStopwatch);
+      assert.calledTwice(finishTelemetryStopwatch);
       assert.calledWithExactly(
         finishTelemetryStopwatch,
         "MS_MESSAGE_REQUEST_TIME_MS",
@@ -1837,13 +1903,13 @@ describe("ASRouter", () => {
         id: "firstRun",
       });
 
-      assert.calledOnce(startTelemetryStopwatch);
+      assert.calledTwice(startTelemetryStopwatch);
       assert.calledWithExactly(
         startTelemetryStopwatch,
         "MS_MESSAGE_REQUEST_TIME_MS",
         { tabId }
       );
-      assert.calledOnce(finishTelemetryStopwatch);
+      assert.calledTwice(finishTelemetryStopwatch);
       assert.calledWithExactly(
         finishTelemetryStopwatch,
         "MS_MESSAGE_REQUEST_TIME_MS",
@@ -1977,7 +2043,7 @@ describe("ASRouter", () => {
       );
     });
     it("should set referrer on mac", async () => {
-      sandbox.stub(AppConstants, "platform").value("macosx");
+      sandbox.stub(global.AppConstants, "platform").value("macosx");
 
       Router.forceAttribution({ foo: "FOO!", eh: "NOPE", bar: "BAR?" });
 
@@ -2056,6 +2122,65 @@ describe("ASRouter", () => {
   });
 
   describe("impressions", () => {
+    describe("#addImpression for groups", () => {
+      it("should save an impression in each group-with-frequency in a message", async () => {
+        const fooMessageImpressions = [0];
+        const aGroupImpressions = [0, 1, 2];
+        const bGroupImpressions = [3, 4, 5];
+        const cGroupImpressions = [6, 7, 8];
+
+        const message = {
+          id: "foo",
+          provider: "bar",
+          groups: ["a", "b", "c"],
+        };
+        const groups = [
+          { id: "a", frequency: { lifetime: 3 } },
+          { id: "b", frequency: { lifetime: 4 } },
+          { id: "c", frequency: { lifetime: 5 } },
+        ];
+        await Router.setState(state => {
+          // Add provider
+          const providers = [...state.providers];
+          // Add fooMessageImpressions
+          // eslint-disable-next-line no-shadow
+          const messageImpressions = Object.assign(
+            {},
+            state.messageImpressions
+          );
+          let gImpressions = {};
+          gImpressions.a = aGroupImpressions;
+          gImpressions.b = bGroupImpressions;
+          gImpressions.c = cGroupImpressions;
+          messageImpressions.foo = fooMessageImpressions;
+          return {
+            providers,
+            messageImpressions,
+            groups,
+            groupImpressions: gImpressions,
+          };
+        });
+
+        await Router.addImpression(message);
+
+        assert.deepEqual(
+          Router.state.groupImpressions.a,
+          [0, 1, 2, 0],
+          "a impressions"
+        );
+        assert.deepEqual(
+          Router.state.groupImpressions.b,
+          [3, 4, 5, 0],
+          "b impressions"
+        );
+        assert.deepEqual(
+          Router.state.groupImpressions.c,
+          [6, 7, 8, 0],
+          "c impressions"
+        );
+      });
+    });
+
     describe("#isBelowFrequencyCaps", () => {
       it("should call #_isBelowItemFrequencyCap for the message and for the provider with the correct impressions and arguments", async () => {
         sinon.spy(Router, "_isBelowItemFrequencyCap");

@@ -95,14 +95,18 @@
           "required": [
             "id"
           ]
+        },
+        "provider": {
+          "description": "An identifier for the provider of this message, such as \"cfr\" or \"preview\".",
+          "type": "string"
         }
       },
       "additionalProperties": true,
-      "required": [
-        "id",
-        "content",
-        "template"
-      ]
+      "dependentRequired": {
+        "id": ["content", "template"],
+        "content": ["id", "template"],
+        "template": ["id", "content"]
+      }
     },
     "localizedText": {
       "type": "object",
