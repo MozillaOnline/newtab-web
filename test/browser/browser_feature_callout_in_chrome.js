@@ -7,7 +7,7 @@ const { ASRouter } = ChromeUtils.import(
   "resource://activity-stream/lib/ASRouter.jsm"
 );
 
-const calloutId = "root";
+const calloutId = "multi-stage-message-root";
 const calloutSelector = `#${calloutId}.featureCallout`;
 const primaryButtonSelector = `#${calloutId} .primary`;
 const PDF_TEST_URL =
@@ -131,7 +131,7 @@ const testMessage = {
 
 const testMessageCalloutSelector = testMessage.message.content.screens[0].id;
 
-add_setup(async function() {
+add_setup(async function () {
   requestLongerTimeout(2);
 });
 
@@ -187,7 +187,9 @@ add_task(
     const tab2 = await openURLInNewTab(win, "about:preferences");
     tab2.focus();
     await BrowserTestUtils.waitForCondition(() => {
-      return !doc.body.querySelector("#root.featureCallout");
+      return !doc.body.querySelector(
+        "#multi-stage-message-root.featureCallout"
+      );
     });
 
     ok(
@@ -323,10 +325,11 @@ add_task(
       pdfTestMessage.message.content.screens[0].id;
 
     pdfTestMessage.message.content.screens[0].parent_selector = "hbox#browser";
-    pdfTestMessage.message.content.screens[0].content.callout_position_override = {
-      top: "45px",
-      right: "25px",
-    };
+    pdfTestMessage.message.content.screens[0].content.callout_position_override =
+      {
+        top: "45px",
+        right: "25px",
+      };
 
     const sandbox = sinon.createSandbox();
     const sendTriggerStub = sandbox.stub(ASRouter, "sendTriggerMessage");
@@ -381,10 +384,11 @@ add_task(
       pdfTestMessage.message.content.screens[0].id;
 
     pdfTestMessage.message.content.screens[0].parent_selector = "hbox#browser";
-    pdfTestMessage.message.content.screens[0].content.callout_position_override = {
-      top: "45px",
-      right: "25px",
-    };
+    pdfTestMessage.message.content.screens[0].content.callout_position_override =
+      {
+        top: "45px",
+        right: "25px",
+      };
 
     const sandbox = sinon.createSandbox();
     const sendTriggerStub = sandbox.stub(ASRouter, "sendTriggerMessage");

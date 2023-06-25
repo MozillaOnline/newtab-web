@@ -9,13 +9,9 @@ const { AppConstants } = ChromeUtils.importESModule(
 
 const lazy = {};
 
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "DEFAULT_SITES",
-  "resource://activity-stream/lib/DefaultSites.jsm"
-);
-
 ChromeUtils.defineESModuleGetters(lazy, {
+  DEFAULT_SITES: "resource://activity-stream/lib/DefaultSites.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
 });
 
@@ -100,21 +96,13 @@ ChromeUtils.defineModuleGetter(
   "resource://activity-stream/lib/DiscoveryStreamFeed.jsm"
 );
 
-const REGION_STORIES_CONFIG =
-  "browser.newtabpage.activity-stream.discoverystream.region-stories-config";
-const REGION_STORIES_BLOCK =
-  "browser.newtabpage.activity-stream.discoverystream.region-stories-block";
-const REGION_SPOCS_CONFIG =
-  "browser.newtabpage.activity-stream.discoverystream.region-spocs-config";
 const REGION_BASIC_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.region-basic-config";
-const LOCALE_LIST_CONFIG =
-  "browser.newtabpage.activity-stream.discoverystream.locale-list-config";
 
 // Determine if spocs should be shown for a geo/locale
 function showSpocs({ geo }) {
   const spocsGeoString =
-    Services.prefs.getStringPref(REGION_SPOCS_CONFIG) || "";
+    lazy.NimbusFeatures.pocketNewtab.getVariable("regionSpocsConfig") || "";
   const spocsGeo = spocsGeoString.split(",").map(s => s.trim());
   return spocsGeo.includes(geo);
 }
@@ -388,13 +376,23 @@ const PREFS_CONFIG = new Map([
     {
       title:
         "Endpoint prefixes (comma-separated) that are allowed to be requested",
-      value: "https://getpocket.cdn.mozilla.net/,https://spocs.getpocket.com/",
+      value:
+        "https://getpocket.cdn.mozilla.net/,https://firefox-api-proxy.cdn.mozilla.net/,https://spocs.getpocket.com/",
     },
   ],
   [
     "discoverystream.isCollectionDismissible",
     {
       title: "Allows Pocket story collections to be dismissed",
+      value: false,
+    },
+  ],
+  [
+    "discoverystream.onboardingExperience.dismissed",
+    {
+      title: "Allows the user to dismiss the new Pocket onboarding experience",
+      skipBroadcast: true,
+      alsoToPreloaded: true,
       value: false,
     },
   ],
@@ -505,11 +503,13 @@ const FEEDS_DATA = [
         return false;
       }
       const preffedRegionsBlockString =
-        Services.prefs.getStringPref(REGION_STORIES_BLOCK) || "";
+        lazy.NimbusFeatures.pocketNewtab.getVariable("regionStoriesBlock") ||
+        "";
       const preffedRegionsString =
-        Services.prefs.getStringPref(REGION_STORIES_CONFIG) || "";
+        lazy.NimbusFeatures.pocketNewtab.getVariable("regionStoriesConfig") ||
+        "";
       const preffedLocaleListString =
-        Services.prefs.getStringPref(LOCALE_LIST_CONFIG) || "";
+        lazy.NimbusFeatures.pocketNewtab.getVariable("localeListConfig") || "";
       const preffedBlockRegions = preffedRegionsBlockString
         .split(",")
         .map(s => s.trim());

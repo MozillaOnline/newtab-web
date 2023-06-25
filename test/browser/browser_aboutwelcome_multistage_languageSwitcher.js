@@ -1,11 +1,9 @@
 "use strict";
 
-const { getAddonAndLocalAPIsMocker } = ChromeUtils.import(
-  "resource://testing-common/LangPackMatcherTestUtils.jsm"
+const { getAddonAndLocalAPIsMocker } = ChromeUtils.importESModule(
+  "resource://testing-common/LangPackMatcherTestUtils.sys.mjs"
 );
-const { AboutWelcomeDefaults } = ChromeUtils.import(
-  "resource://activity-stream/aboutwelcome/lib/AboutWelcomeDefaults.jsm"
-);
+
 const { AWScreenUtils } = ChromeUtils.import(
   "resource://activity-stream/lib/AWScreenUtils.jsm"
 );
@@ -54,18 +52,20 @@ async function openAboutWelcome() {
 
   // Stub out the doesAppNeedPin to false so the about:welcome pages do not attempt
   // to pin the app.
-  const { ShellService } = ChromeUtils.import(
-    "resource:///modules/ShellService.jsm"
+  const { ShellService } = ChromeUtils.importESModule(
+    "resource:///modules/ShellService.sys.mjs"
   );
   sandbox.stub(ShellService, "doesAppNeedPin").returns(false);
 
-  const data = await AboutWelcomeDefaults.getDefaults();
-  const defaultMRArray = data.screens.filter(
-    screen => screen.id !== "AW_EASY_SETUP"
-  );
   sandbox
-    .stub(AWScreenUtils, "evaluateTargetingAndRemoveScreens")
-    .resolves(defaultMRArray);
+    .stub(AWScreenUtils, "evaluateScreenTargeting")
+    .resolves(true)
+    .withArgs(
+      "os.windowsBuildNumber >= 15063 && !isDefaultBrowser && !doesAppNeedPin"
+    )
+    .resolves(false)
+    .withArgs("isDeviceMigration")
+    .resolves(false);
 
   info("Opening about:welcome");
   let tab = await BrowserTestUtils.openNewForegroundTab(
@@ -185,16 +185,21 @@ const liveLanguageSwitchSelectors = [
  */
 add_task(async function test_aboutwelcome_languageSwitcher_accept() {
   sandbox.restore();
-  const {
-    resolveLangPacks,
-    resolveInstaller,
-    mockable,
-  } = mockAddonAndLocaleAPIs({
-    systemLocale: "es-ES",
-    appLocale: "en-US",
-  });
+  const { resolveLangPacks, resolveInstaller, mockable } =
+    mockAddonAndLocaleAPIs({
+      systemLocale: "es-ES",
+      appLocale: "en-US",
+    });
 
   const { browser, flushClickTelemetry } = await openAboutWelcome();
+  await testScreenContent(
+    browser,
+    "First Screen primary CTA loaded",
+    // Expected selectors:
+    [`button.primary[value="primary_button"]`],
+    // Unexpected selectors:
+    []
+  );
 
   info("Clicking the primary button to start the onboarding process.");
   await clickVisibleButton(browser, `button.primary[value="primary_button"]`);
@@ -235,6 +240,7 @@ add_task(async function test_aboutwelcome_languageSwitcher_accept() {
   );
 
   info("Clicking the primary button to view language switching page.");
+
   await clickVisibleButton(browser, "button.primary");
 
   await testScreenContent(
@@ -298,16 +304,21 @@ add_task(async function test_aboutwelcome_languageSwitcher_accept() {
  */
 add_task(async function test_aboutwelcome_languageSwitcher_decline() {
   sandbox.restore();
-  const {
-    resolveLangPacks,
-    resolveInstaller,
-    mockable,
-  } = mockAddonAndLocaleAPIs({
-    systemLocale: "es-ES",
-    appLocale: "en-US",
-  });
+  const { resolveLangPacks, resolveInstaller, mockable } =
+    mockAddonAndLocaleAPIs({
+      systemLocale: "es-ES",
+      appLocale: "en-US",
+    });
 
   const { browser, flushClickTelemetry } = await openAboutWelcome();
+  await testScreenContent(
+    browser,
+    "First Screen primary CTA loaded",
+    // Expected selectors:
+    [`button.primary[value="primary_button"]`],
+    // Unexpected selectors:
+    []
+  );
 
   info("Clicking the primary button to view language switching page.");
   await clickVisibleButton(browser, `button.primary[value="primary_button"]`);
@@ -382,14 +393,11 @@ add_task(async function test_aboutwelcome_languageSwitcher_decline() {
  */
 add_task(async function test_aboutwelcome_languageSwitcher_asyncCalls() {
   sandbox.restore();
-  const {
-    resolveLangPacks,
-    resolveInstaller,
-    mockable,
-  } = mockAddonAndLocaleAPIs({
-    systemLocale: "es-ES",
-    appLocale: "en-US",
-  });
+  const { resolveLangPacks, resolveInstaller, mockable } =
+    mockAddonAndLocaleAPIs({
+      systemLocale: "es-ES",
+      appLocale: "en-US",
+    });
 
   await openAboutWelcome();
 
@@ -417,14 +425,11 @@ add_task(async function test_aboutwelcome_languageSwitcher_asyncCalls() {
  */
 add_task(async function test_aboutwelcome_fallback_locale() {
   sandbox.restore();
-  const {
-    resolveLangPacks,
-    resolveInstaller,
-    mockable,
-  } = mockAddonAndLocaleAPIs({
-    systemLocale: "en-US",
-    appLocale: "it",
-  });
+  const { resolveLangPacks, resolveInstaller, mockable } =
+    mockAddonAndLocaleAPIs({
+      systemLocale: "en-US",
+      appLocale: "it",
+    });
 
   await openAboutWelcome();
 
@@ -581,14 +586,11 @@ add_task(async function test_aboutwelcome_languageSwitcher_bidiNotSupported() {
  */
 add_task(async function test_aboutwelcome_languageSwitcher_cancelWaiting() {
   sandbox.restore();
-  const {
-    resolveLangPacks,
-    resolveInstaller,
-    mockable,
-  } = mockAddonAndLocaleAPIs({
-    systemLocale: "es-ES",
-    appLocale: "en-US",
-  });
+  const { resolveLangPacks, resolveInstaller, mockable } =
+    mockAddonAndLocaleAPIs({
+      systemLocale: "es-ES",
+      appLocale: "en-US",
+    });
 
   const { browser, flushClickTelemetry } = await openAboutWelcome();
 

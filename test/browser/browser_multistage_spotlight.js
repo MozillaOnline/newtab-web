@@ -6,14 +6,14 @@
 const { Spotlight } = ChromeUtils.import(
   "resource://activity-stream/lib/Spotlight.jsm"
 );
-const { PanelTestProvider } = ChromeUtils.import(
-  "resource://activity-stream/lib/PanelTestProvider.jsm"
+const { PanelTestProvider } = ChromeUtils.importESModule(
+  "resource://activity-stream/lib/PanelTestProvider.sys.mjs"
 );
 const { BrowserWindowTracker } = ChromeUtils.import(
   "resource:///modules/BrowserWindowTracker.jsm"
 );
-const { SpecialMessageActions } = ChromeUtils.import(
-  "resource://messaging-system/lib/SpecialMessageActions.jsm"
+const { SpecialMessageActions } = ChromeUtils.importESModule(
+  "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
 );
 
 async function waitForClick(selector, win) {

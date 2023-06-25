@@ -191,6 +191,29 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.equal(wrapper.find(".additional-cta.cta-link").exists(), true);
     });
 
+    it("should render an additional button with vertical orientation", () => {
+      const SCREEN_PROPS = {
+        content: {
+          position: "center",
+          title: "test title",
+          primary_button: {
+            label: "test primary button",
+          },
+          additional_button: {
+            label: "test additional button",
+            style: "secondary",
+            flow: "column",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.equal(
+        wrapper.find(".additional-cta-container[flow='column']").exists(),
+        true
+      );
+    });
+
     it("should not render a progress bar if there is 1 step", () => {
       const SCREEN_PROPS = {
         content: {
@@ -254,7 +277,10 @@ describe("MultiStageAboutWelcomeProton module", () => {
         );
     });
     it("should have 'pin' button by default", async () => {
-      const data = await prepConfig({ needPin: true }, ["AW_EASY_SETUP"]);
+      const data = await prepConfig({ needPin: true }, [
+        "AW_EASY_SETUP",
+        "AW_WELCOME_BACK",
+      ]);
       assert.propertyVal(
         data.screens[0].content.primary_button.action,
         "type",
@@ -267,7 +293,7 @@ describe("MultiStageAboutWelcomeProton module", () => {
           needDefault: true,
           needPin: true,
         },
-        ["AW_EASY_SETUP"]
+        ["AW_EASY_SETUP", "AW_WELCOME_BACK"]
       );
 
       assert.propertyVal(
@@ -277,31 +303,37 @@ describe("MultiStageAboutWelcomeProton module", () => {
       );
       assert.propertyVal(data.screens[0], "id", "AW_PIN_FIREFOX");
       assert.propertyVal(data.screens[1], "id", "AW_SET_DEFAULT");
-      assert.lengthOf(data.screens, getData().screens.length - 2);
+      assert.lengthOf(data.screens, getData().screens.length - 3);
     });
     it("should keep 'pin' and remove 'default' if already default", async () => {
-      const data = await prepConfig({ needPin: true }, ["AW_EASY_SETUP"]);
+      const data = await prepConfig({ needPin: true }, [
+        "AW_EASY_SETUP",
+        "AW_WELCOME_BACK",
+      ]);
 
       assert.propertyVal(data.screens[0], "id", "AW_PIN_FIREFOX");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, getData().screens.length - 3);
+      assert.lengthOf(data.screens, getData().screens.length - 4);
     });
     it("should switch to 'default' if already pinned", async () => {
-      const data = await prepConfig({ needDefault: true }, ["AW_EASY_SETUP"]);
+      const data = await prepConfig({ needDefault: true }, [
+        "AW_EASY_SETUP",
+        "AW_WELCOME_BACK",
+      ]);
 
       assert.propertyVal(data.screens[0], "id", "AW_ONLY_DEFAULT");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, getData().screens.length - 3);
+      assert.lengthOf(data.screens, getData().screens.length - 4);
     });
     it("should switch to 'start' if already pinned and default", async () => {
-      const data = await prepConfig({}, ["AW_EASY_SETUP"]);
+      const data = await prepConfig({}, ["AW_EASY_SETUP", "AW_WELCOME_BACK"]);
 
       assert.propertyVal(data.screens[0], "id", "AW_GET_STARTED");
       assert.propertyVal(data.screens[1], "id", "AW_IMPORT_SETTINGS");
-      assert.lengthOf(data.screens, getData().screens.length - 3);
+      assert.lengthOf(data.screens, getData().screens.length - 4);
     });
     it("should have a FxA button", async () => {
-      const data = await prepConfig();
+      const data = await prepConfig({}, ["AW_WELCOME_BACK"]);
 
       assert.notProperty(data, "skipFxA");
       assert.property(data.screens[0].content, "secondary_button_top");

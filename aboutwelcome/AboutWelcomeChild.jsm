@@ -12,16 +12,19 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 
 const lazy = {};
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+});
+
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.jsm",
   AboutWelcomeDefaults:
     "resource://activity-stream/aboutwelcome/lib/AboutWelcomeDefaults.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "log", () => {
-  const { Logger } = ChromeUtils.import(
-    "resource://messaging-system/lib/Logger.jsm"
+  const { Logger } = ChromeUtils.importESModule(
+    "resource://messaging-system/lib/Logger.sys.mjs"
   );
   return new Logger("AboutWelcomeChild");
 });
@@ -54,6 +57,10 @@ class AboutWelcomeChild extends JSWindowActorChild {
    */
   exportFunctions() {
     let window = this.contentWindow;
+
+    Cu.exportFunction(this.AWAddScreenImpression.bind(this), window, {
+      defineAs: "AWAddScreenImpression",
+    });
 
     Cu.exportFunction(this.AWGetFeatureConfig.bind(this), window, {
       defineAs: "AWGetFeatureConfig",
@@ -146,8 +153,15 @@ class AboutWelcomeChild extends JSWindowActorChild {
   }
 
   AWEvaluateScreenTargeting(data) {
+    return this.sendQueryAndCloneForContent(
+      "AWPage:EVALUATE_SCREEN_TARGETING",
+      data
+    );
+  }
+
+  AWAddScreenImpression(screen) {
     return this.wrapPromise(
-      this.sendQuery("AWPage:EVALUATE_SCREEN_TARGETING", data)
+      this.sendQuery("AWPage:ADD_SCREEN_IMPRESSION", screen)
     );
   }
 
@@ -171,8 +185,9 @@ class AboutWelcomeChild extends JSWindowActorChild {
       }) || {};
 
     lazy.log.debug(
-      `Loading about:welcome with ${experimentMetadata?.slug ??
-        "no"} experiment`
+      `Loading about:welcome with ${
+        experimentMetadata?.slug ?? "no"
+      } experiment`
     );
 
     let featureConfig = lazy.NimbusFeatures.aboutwelcome.getAllVariables();
@@ -189,19 +204,12 @@ class AboutWelcomeChild extends JSWindowActorChild {
     // override the default with `null`
     let defaults = lazy.AboutWelcomeDefaults.getDefaults();
 
-    // Removing screens based on their targeting evaluations
-    const filteredScreens = await this.AWEvaluateScreenTargeting(
-      featureConfig.screens ?? defaults.screens
-    );
-
     const content = await lazy.AboutWelcomeDefaults.prepareContentForReact({
       ...attributionData,
       ...experimentMetadata,
       ...defaults,
       ...featureConfig,
-      screens: filteredScreens
-        ? filteredScreens
-        : featureConfig.screens ?? defaults.screens,
+      screens: featureConfig.screens ?? defaults.screens,
       backdrop: featureConfig.backdrop ?? defaults.backdrop,
     });
 
@@ -237,9 +245,10 @@ class AboutWelcomeChild extends JSWindowActorChild {
    * Send message that can be handled by AboutWelcomeParent.jsm
    * @param {string} type
    * @param {any=} data
+   * @returns {Promise<unknown>}
    */
   AWSendToParent(type, data) {
-    this.sendAsyncMessage(`AWPage:${type}`, data);
+    return this.sendQueryAndCloneForContent(`AWPage:${type}`, data);
   }
 
   AWWaitForMigrationClose() {

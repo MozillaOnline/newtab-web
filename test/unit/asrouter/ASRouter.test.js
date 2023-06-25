@@ -15,9 +15,9 @@ import {
 import { ASRouterTriggerListeners } from "lib/ASRouterTriggerListeners.jsm";
 import { CFRPageActions } from "lib/CFRPageActions.jsm";
 import { GlobalOverrider } from "test/unit/utils";
-import { PanelTestProvider } from "lib/PanelTestProvider.jsm";
+import { PanelTestProvider } from "lib/PanelTestProvider.sys.mjs";
 import ProviderResponseSchema from "content-src/asrouter/schemas/provider-response.schema.json";
-import { SnippetsTestMessageProvider } from "lib/SnippetsTestMessageProvider.jsm";
+import { SnippetsTestMessageProvider } from "lib/SnippetsTestMessageProvider.sys.mjs";
 
 const MESSAGE_PROVIDER_PREF_NAME =
   "browser.newtabpage.activity-stream.asrouter.providers.snippets";
@@ -53,6 +53,7 @@ describe("ASRouter", () => {
   let FakeToolbarPanelHub;
   let FakeMomentsPageHub;
   let ASRouterTargeting;
+  let screenImpressions;
 
   function setMessageProviderPref(value) {
     sandbox.stub(ASRouterPreferences, "providers").get(() => value);
@@ -74,6 +75,9 @@ describe("ASRouter", () => {
     getStub
       .withArgs("previousSessionEnd")
       .returns(Promise.resolve(previousSessionEnd));
+    getStub
+      .withArgs("screenImpressions")
+      .returns(Promise.resolve(screenImpressions));
     initParams = {
       storage: {
         get: getStub,
@@ -103,6 +107,7 @@ describe("ASRouter", () => {
     messageImpressions = {};
     groupImpressions = {};
     previousSessionEnd = 100;
+    screenImpressions = {};
     sandbox = sinon.createSandbox();
     ASRouterTargeting = {
       isMatch: sandbox.stub(),
@@ -401,6 +406,14 @@ describe("ASRouter", () => {
       await initASRouter(Router);
 
       assert.deepEqual(Router.state.messageImpressions, messageImpressions);
+    });
+    it("should set state.screenImpressions to the screenImpressions object in persistent storage", async () => {
+      screenImpressions = { test: 123 };
+
+      Router = new _ASRouter();
+      await initASRouter(Router);
+
+      assert.deepEqual(Router.state.screenImpressions, screenImpressions);
     });
     it("should clear impressions for groups that are not active", async () => {
       groupImpressions = { foo: [0, 1, 2] };
@@ -2988,7 +3001,7 @@ describe("ASRouter", () => {
         messages: [{ id: "1" }, { id: "2" }],
       });
       await Router.setState({
-        messageImpressions: { "1": [0, 1, 2], "2": [0, 1, 2] },
+        messageImpressions: { 1: [0, 1, 2], 2: [0, 1, 2] },
       }); // Add impressions for test messages
       let impressions = Object.values(Router.state.messageImpressions);
       assert.equal(impressions.filter(i => i.length).length, 2); // Both messages have impressions
@@ -2998,8 +3011,8 @@ describe("ASRouter", () => {
 
       assert.isEmpty(impressions.filter(i => i.length)); // Both messages now have zero impressions
       assert.calledWithExactly(Router._storage.set, "messageImpressions", {
-        "1": [],
-        "2": [],
+        1: [],
+        2: [],
       });
     });
   });
@@ -3009,7 +3022,7 @@ describe("ASRouter", () => {
         groups: [{ id: "1" }, { id: "2" }],
       });
       await Router.setState({
-        groupImpressions: { "1": [0, 1, 2], "2": [0, 1, 2] },
+        groupImpressions: { 1: [0, 1, 2], 2: [0, 1, 2] },
       }); // Add impressions for test groups
       let impressions = Object.values(Router.state.groupImpressions);
       assert.equal(impressions.filter(i => i.length).length, 2); // Both groups have impressions
@@ -3019,8 +3032,8 @@ describe("ASRouter", () => {
 
       assert.isEmpty(impressions.filter(i => i.length)); // Both groups now have zero impressions
       assert.calledWithExactly(Router._storage.set, "groupImpressions", {
-        "1": [],
-        "2": [],
+        1: [],
+        2: [],
       });
     });
   });

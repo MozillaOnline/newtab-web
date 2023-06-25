@@ -2,6 +2,7 @@ import {
   _CardGrid as CardGrid,
   IntersectionObserver,
   RecentSavesContainer,
+  OnboardingExperience,
   DSSubHeader,
 } from "content-src/components/DiscoveryStreamComponents/CardGrid/CardGrid";
 import { combineReducers, createStore } from "redux";
@@ -47,14 +48,7 @@ describe("<CardGrid>", () => {
     wrapper.setProps({ items: 2, data: { recommendations: [{}, {}] } });
 
     assert.lengthOf(wrapper.find(".ds-card-grid").children(), 2);
-    assert.equal(
-      wrapper
-        .find(".ds-card-grid")
-        .children()
-        .at(0)
-        .type(),
-      DSCard
-    );
+    assert.equal(wrapper.find(".ds-card-grid").children().at(0).type(), DSCard);
   });
 
   it("should add 4 card classname to card grid", () => {
@@ -168,13 +162,7 @@ describe("<IntersectionObserver>", () => {
 
   it("should render an empty div", () => {
     assert.ok(wrapper.exists());
-    assert.equal(
-      wrapper
-        .children()
-        .at(0)
-        .type(),
-      "div"
-    );
+    assert.equal(wrapper.children().at(0).type(), "div");
   });
 
   it("should fire onIntersecting", () => {
@@ -268,24 +256,98 @@ describe("<RecentSavesContainer>", () => {
 
   it("should render a my list link with proper utm params", () => {
     assert.equal(
-      wrapper
-        .find(".section-sub-link")
-        .at(0)
-        .prop("url"),
+      wrapper.find(".section-sub-link").at(0).prop("url"),
       "https://getpocket.com/a?utm_source=utmSource&utm_content=utmContent&utm_campaign=utmCampaign"
     );
   });
 
   it("should fire a UserEvent for my list clicks", () => {
-    wrapper
-      .find(".section-sub-link")
-      .at(0)
-      .simulate("click");
+    wrapper.find(".section-sub-link").at(0).simulate("click");
     assert.calledWith(
       dispatch,
       ac.DiscoveryStreamUserEvent({
         event: "CLICK",
         source: `CARDGRID_RECENT_SAVES_VIEW_LIST`,
+      })
+    );
+  });
+});
+
+describe("<OnboardingExperience>", () => {
+  let wrapper;
+  let fakeWindow;
+  let intersectEntries;
+  let dispatch;
+  let resizeCallback;
+
+  let fakeResizeObserver = class {
+    constructor(callback) {
+      resizeCallback = callback;
+    }
+
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  };
+
+  beforeEach(() => {
+    dispatch = sinon.stub();
+    intersectEntries = [{ isIntersecting: true, intersectionRatio: 1 }];
+    fakeWindow = {
+      ResizeObserver: fakeResizeObserver,
+      IntersectionObserver: buildIntersectionObserver(intersectEntries),
+      document: {
+        visibilityState: "visible",
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      },
+    };
+    wrapper = mount(
+      <WrapWithProvider state={{}}>
+        <OnboardingExperience windowObj={fakeWindow} dispatch={dispatch} />
+      </WrapWithProvider>
+    ).find(OnboardingExperience);
+  });
+
+  it("should render a ds-onboarding", () => {
+    assert.ok(wrapper.exists());
+    assert.lengthOf(wrapper.find(".ds-onboarding"), 1);
+  });
+
+  it("should dismiss on dismiss click", () => {
+    wrapper.find(".ds-dismiss-button").simulate("click");
+
+    assert.calledWith(
+      dispatch,
+      ac.DiscoveryStreamUserEvent({
+        event: "BLOCK",
+        source: "POCKET_ONBOARDING",
+      })
+    );
+    assert.calledWith(
+      dispatch,
+      ac.SetPref("discoverystream.onboardingExperience.dismissed", true)
+    );
+    assert.equal(wrapper.getDOMNode().style["max-height"], "0px");
+    assert.equal(wrapper.getDOMNode().style.opacity, "0");
+  });
+
+  it("should update max-height on resize", () => {
+    sinon
+      .stub(wrapper.find(".ds-onboarding-ref").getDOMNode(), "offsetHeight")
+      .get(() => 123);
+    resizeCallback();
+    assert.equal(wrapper.getDOMNode().style["max-height"], "123px");
+  });
+
+  it("should fire intersection events", () => {
+    assert.calledWith(
+      dispatch,
+      ac.DiscoveryStreamUserEvent({
+        event: "IMPRESSION",
+        source: "POCKET_ONBOARDING",
       })
     );
   });

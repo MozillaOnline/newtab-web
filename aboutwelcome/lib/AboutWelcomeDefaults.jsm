@@ -15,12 +15,12 @@ const { AppConstants } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
+  AddonRepository: "resource://gre/modules/addons/AddonRepository.sys.mjs",
   AttributionCode: "resource:///modules/AttributionCode.sys.mjs",
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   AWScreenUtils: "resource://activity-stream/lib/AWScreenUtils.jsm",
 });
 
@@ -36,6 +36,54 @@ const MR_ABOUT_WELCOME_DEFAULT = {
   backdrop:
     "var(--mr-welcome-background-color) var(--mr-welcome-background-gradient)",
   screens: [
+    {
+      id: "AW_WELCOME_BACK",
+      targeting: "isDeviceMigration",
+      content: {
+        position: "split",
+        split_narrow_bkg_position: "-100px",
+        image_alt_text: {
+          string_id: "onboarding-device-migration-image-alt",
+        },
+        background:
+          "url('chrome://activity-stream/content/data/content/assets/device-migration.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
+        progress_bar: true,
+        logo: {},
+        title: {
+          string_id: "onboarding-device-migration-title",
+        },
+        subtitle: {
+          string_id: "onboarding-device-migration-subtitle",
+        },
+        primary_button: {
+          label: {
+            string_id: "onboarding-device-migration-primary-button-label",
+          },
+          action: {
+            type: "FXA_SIGNIN_FLOW",
+            navigate: "actionResult",
+            data: {
+              entrypoint: "fx-device-migration-onboarding",
+              extraParams: {
+                utm_content: "migration-onboarding",
+                utm_source: "fx-new-device-sync",
+                utm_medium: "firefox-desktop",
+                utm_campaign: "migration",
+              },
+            },
+          },
+        },
+        secondary_button: {
+          label: {
+            string_id: "mr2022-onboarding-secondary-skip-button-label",
+          },
+          action: {
+            navigate: true,
+          },
+          has_arrow_icon: true,
+        },
+      },
+    },
     {
       id: "AW_EASY_SETUP",
       targeting:
@@ -255,7 +303,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
     {
       id: "AW_IMPORT_SETTINGS",
       targeting:
-        "!(os.windowsBuildNumber >= 15063 && !isDefaultBrowser && !doesAppNeedPin)",
+        "!(os.windowsBuildNumber >= 15063 && !isDefaultBrowser && !doesAppNeedPin) && !useEmbeddedMigrationWizard",
       content: {
         position: "split",
         split_narrow_bkg_position: "-42px",
@@ -295,6 +343,39 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       },
     },
     {
+      id: "AW_IMPORT_SETTINGS_EMBEDDED",
+      targeting:
+        "!(os.windowsBuildNumber >= 15063 && !isDefaultBrowser && !doesAppNeedPin) && useEmbeddedMigrationWizard",
+      content: {
+        tiles: { type: "migration-wizard" },
+        position: "split",
+        split_narrow_bkg_position: "-42px",
+        image_alt_text: {
+          string_id: "mr2022-onboarding-import-image-alt",
+        },
+        background:
+          "url('chrome://activity-stream/content/data/content/assets/mr-import.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
+        progress_bar: true,
+        migrate_start: {
+          action: {},
+        },
+        migrate_close: {
+          action: {
+            navigate: true,
+          },
+        },
+        secondary_button: {
+          label: {
+            string_id: "mr2022-onboarding-secondary-skip-button-label",
+          },
+          action: {
+            navigate: true,
+          },
+          has_arrow_icon: true,
+        },
+      },
+    },
+    {
       id: "AW_MOBILE_DOWNLOAD",
       // The mobile download screen should only be shown to users who
       // are either not logged into FxA, or don't have any mobile devices syncing
@@ -316,8 +397,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
           string_id: "mr2022-onboarding-mobile-download-subtitle",
         },
         hero_image: {
-          url:
-            "chrome://activity-stream/content/data/content/assets/mobile-download-qr-new-user.svg",
+          url: "chrome://activity-stream/content/data/content/assets/mobile-download-qr-new-user.svg",
         },
         cta_paragraph: {
           text: {
@@ -327,8 +407,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
           action: {
             type: "OPEN_URL",
             data: {
-              args:
-                "https://www.mozilla.org/firefox/mobile/get-app/?utm_medium=firefox-desktop&utm_source=onboarding-modal&utm_campaign=mr2022&utm_content=new-global",
+              args: "https://www.mozilla.org/firefox/mobile/get-app/?utm_medium=firefox-desktop&utm_source=onboarding-modal&utm_campaign=mr2022&utm_content=new-global",
               where: "tab",
             },
           },
@@ -364,16 +443,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
         },
         primary_button: {
           label: {
-            string_id: "mr2022-onboarding-gratitude-primary-button-label",
-          },
-          action: {
-            type: "OPEN_FIREFOX_VIEW",
-            navigate: true,
-          },
-        },
-        secondary_button: {
-          label: {
-            string_id: "mr2022-onboarding-gratitude-secondary-button-label",
+            string_id: "mr2-onboarding-start-browsing-button-label",
           },
           action: {
             navigate: true,

@@ -16,6 +16,8 @@ export const INITIAL_STATE = {
     // Have we received real data from the app yet?
     initialized: false,
     locale: "",
+    isForStartupCache: false,
+    customizeMenuVisible: false,
   },
   ASRouter: { initialized: false },
   Snippets: { initialized: false },
@@ -100,6 +102,20 @@ function App(prevState = INITIAL_STATE.App, action) {
     case at.INIT:
       return Object.assign({}, prevState, action.data || {}, {
         initialized: true,
+      });
+    case at.TOP_SITES_UPDATED:
+      // Toggle `isForStartupCache` when receiving the `TOP_SITES_UPDATE` action
+      // so that sponsored tiles can be rendered as usual. See Bug 1826360.
+      return Object.assign({}, prevState, action.data || {}, {
+        isForStartupCache: false,
+      });
+    case at.SHOW_PERSONALIZE:
+      return Object.assign({}, prevState, {
+        customizeMenuVisible: true,
+      });
+    case at.HIDE_PERSONALIZE:
+      return Object.assign({}, prevState, {
+        customizeMenuVisible: false,
       });
     default:
       return prevState;

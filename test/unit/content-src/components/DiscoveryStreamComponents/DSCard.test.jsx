@@ -22,7 +22,7 @@ import { shallow, mount } from "enzyme";
 import { FluentOrText } from "content-src/components/FluentOrText/FluentOrText";
 
 const DEFAULT_PROPS = {
-  url: "url",
+  url: "about:robots",
   title: "title",
   App: {
     isForStartupCache: false,
@@ -54,18 +54,9 @@ describe("<DSCard>", () => {
   it("should render a SafeAnchor", () => {
     wrapper.setProps({ url: "https://foo.com" });
 
-    assert.equal(
-      wrapper
-        .children()
-        .at(0)
-        .type(),
-      SafeAnchor
-    );
+    assert.equal(wrapper.children().at(0).type(), SafeAnchor);
     assert.propertyVal(
-      wrapper
-        .children()
-        .at(0)
-        .props(),
+      wrapper.children().at(0).props(),
       "url",
       "https://foo.com"
     );
@@ -73,23 +64,14 @@ describe("<DSCard>", () => {
 
   it("should pass onLinkClick prop", () => {
     assert.propertyVal(
-      wrapper
-        .children()
-        .at(0)
-        .props(),
+      wrapper.children().at(0).props(),
       "onLinkClick",
       wrapper.instance().onLinkClick
     );
   });
 
   it("should render DSLinkMenu", () => {
-    assert.equal(
-      wrapper
-        .children()
-        .at(1)
-        .type(),
-      DSLinkMenu
-    );
+    assert.equal(wrapper.children().at(1).type(), DSLinkMenu);
   });
 
   it("should start with no .active class", () => {
@@ -363,7 +345,7 @@ describe("<DSCard>", () => {
         dispatch,
         ac.AlsoToMain({
           type: at.SAVE_TO_POCKET,
-          data: { site: { url: "url", title: "title" } },
+          data: { site: { url: "about:robots", title: "title" } },
         })
       );
       assert.calledWith(

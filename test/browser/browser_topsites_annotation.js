@@ -11,18 +11,11 @@ if (AppConstants.platform === "macosx") {
   requestLongerTimeout(2);
 }
 
-const { XPCOMUtils } = ChromeUtils.import(
-  "resource://gre/modules/XPCOMUtils.jsm"
-);
-
 ChromeUtils.defineESModuleGetters(this, {
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
+  PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(this, {
-  PlacesTestUtils: "resource://testing-common/PlacesTestUtils.jsm",
-  UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.jsm",
+  UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.sys.mjs",
 });
 
 const OPEN_TYPE = {
@@ -51,13 +44,32 @@ const {
   VISIT_SOURCE_BOOKMARKED,
 } = PlacesUtils.history;
 
+/**
+ * To be used before checking database contents when they depend on a visit
+ * being added to History.
+ * @param {string} href the page to await notifications for.
+ */
+async function waitForVisitNotification(href) {
+  await PlacesTestUtils.waitForNotification("page-visited", events =>
+    events.some(e => e.url === href)
+  );
+}
+
 async function assertDatabase({ targetURL, expected }) {
-  const frecency = await PlacesTestUtils.fieldInDB(targetURL, "frecency");
+  const frecency = await PlacesTestUtils.getDatabaseValue(
+    "moz_places",
+    "frecency",
+    { url: targetURL }
+  );
   Assert.equal(frecency, expected.frecency, "Frecency is correct");
 
-  const placesId = await PlacesTestUtils.fieldInDB(targetURL, "id");
+  const placesId = await PlacesTestUtils.getDatabaseValue("moz_places", "id", {
+    url: targetURL,
+  });
   const expectedTriggeringPlaceId = expected.triggerURL
-    ? await PlacesTestUtils.fieldInDB(expected.triggerURL, "id")
+    ? await PlacesTestUtils.getDatabaseValue("moz_places", "id", {
+        url: expected.triggerURL,
+      })
     : null;
   const db = await PlacesUtils.promiseDBConnection();
   const rows = await db.execute(
@@ -116,6 +128,7 @@ async function openAndTest({
   );
 
   info("Open specific link by type and wait for loading.");
+  let promiseVisited = waitForVisitNotification(destinationURL);
   if (openType === OPEN_TYPE.CURRENT_BY_CLICK) {
     const onLoad = BrowserTestUtils.browserLoaded(
       gBrowser.selectedBrowser,
@@ -227,6 +240,7 @@ async function openAndTest({
     const win = await onLoad;
     await BrowserTestUtils.closeWindow(win);
   }
+  await promiseVisited;
 
   info("Check database for the destination.");
   await assertDatabase({ targetURL: destinationURL, expected });
@@ -249,7 +263,7 @@ function unpin(link) {
   NewTabUtils.pinnedLinks.unpin(link);
 }
 
-add_setup(async function() {
+add_setup(async function () {
   await clearHistoryAndBookmarks();
   registerCleanupFunction(async () => {
     await clearHistoryAndBookmarks();
@@ -259,20 +273,20 @@ add_setup(async function() {
 add_task(async function basic() {
   const SPONSORED_LINK = {
     label: "test_label",
-    url: "http://example.com/",
+    url: "https://example.com/",
     sponsored_position: 1,
     sponsored_tile_id: 12345,
-    sponsored_impression_url: "http://impression.example.com/",
-    sponsored_click_url: "http://click.example.com/",
+    sponsored_impression_url: "https://impression.example.com/",
+    sponsored_click_url: "https://click.example.com/",
   };
   const NORMAL_LINK = {
     label: "test_label",
-    url: "http://example.com/",
+    url: "https://example.com/",
   };
   const BOOKMARKS = [
     {
       parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-      url: Services.io.newURI("http://example.com/"),
+      url: Services.io.newURI("https://example.com/"),
       title: "test bookmark",
     },
   ];
@@ -534,15 +548,14 @@ add_task(async function basic() {
 
 add_task(async function redirection() {
   await BrowserTestUtils.withNewTab("about:home", async () => {
-    const redirectTo = "http://example.com/";
+    const redirectTo = "https://example.com/";
     const link = {
       label: "test_label",
-      url:
-        "http://example.com/browser/browser/components/newtab/test/browser/redirect_to.sjs?/",
+      url: "https://example.com/browser/browser/components/newtab/test/browser/redirect_to.sjs?/",
       sponsored_position: 1,
       sponsored_tile_id: 12345,
-      sponsored_impression_url: "http://impression.example.com/",
-      sponsored_click_url: "http://click.example.com/",
+      sponsored_impression_url: "https://impression.example.com/",
+      sponsored_click_url: "https://click.example.com/",
     };
 
     // Setup test tile.
@@ -583,6 +596,7 @@ add_task(async function redirection() {
         triggerURL: link.url,
       },
     });
+
     // Check for URL causes the redirection.
     await assertDatabase({
       targetURL: link.url,
@@ -611,8 +625,8 @@ add_task(async function inherit() {
       url: firstURL,
       sponsored_position: 1,
       sponsored_tile_id: 12345,
-      sponsored_impression_url: "http://impression.example.com/",
-      sponsored_click_url: "http://click.example.com/",
+      sponsored_impression_url: "https://impression.example.com/",
+      sponsored_click_url: "https://click.example.com/",
     };
 
     // Setup test tile.
@@ -757,8 +771,11 @@ add_task(async function inherit() {
       value: host,
       waitForFocus: SimpleTest.waitForFocus,
     });
+    let promiseVisited = waitForVisitNotification(host);
     EventUtils.synthesizeKey("KEY_Enter");
     await onLoad;
+    await promiseVisited;
+
     await assertDatabase({
       targetURL: host,
       expected: {
@@ -785,8 +802,8 @@ add_task(async function timeout() {
       url: firstURL,
       sponsored_position: 1,
       sponsored_tile_id: 12345,
-      sponsored_impression_url: "http://impression.example.com/",
-      sponsored_click_url: "http://click.example.com/",
+      sponsored_impression_url: "https://impression.example.com/",
+      sponsored_click_url: "https://click.example.com/",
     };
 
     // Setup a test tile.
@@ -868,20 +885,21 @@ add_task(async function timeout() {
 
 add_task(async function fixup() {
   await BrowserTestUtils.withNewTab("about:home", async () => {
-    const destinationURL = "http://example.com/?a";
+    const destinationURL = "https://example.com/?a";
     const link = {
       label: "test",
-      url: "http://example.com?a",
+      url: "https://example.com?a",
       sponsored_position: 1,
       sponsored_tile_id: 12345,
-      sponsored_impression_url: "http://impression.example.com/",
-      sponsored_click_url: "http://click.example.com/",
+      sponsored_impression_url: "https://impression.example.com/",
+      sponsored_click_url: "https://click.example.com/",
     };
 
     info("Setup pin");
     await pin(link);
 
     info("Click sponsored tile");
+    let promiseVisited = waitForVisitNotification(destinationURL);
     const onLoad = BrowserTestUtils.browserLoaded(
       gBrowser.selectedBrowser,
       false,
@@ -895,6 +913,7 @@ add_task(async function fixup() {
     );
     await onLoad;
     await onLocationChanged;
+    await promiseVisited;
 
     info("Check the DB");
     await assertDatabase({
@@ -916,14 +935,15 @@ add_task(async function noTriggeringURL() {
     Services.telemetry.clearScalars();
 
     const dummyTriggeringSponsoredURL =
-      "http://example.com/dummyTriggeringSponsoredURL";
-    const targetURL = "http://example.com/";
+      "https://example.com/dummyTriggeringSponsoredURL";
+    const targetURL = "https://example.com/";
 
     info("Setup dummy triggering sponsored URL");
     browser.setAttribute("triggeringSponsoredURL", dummyTriggeringSponsoredURL);
     browser.setAttribute("triggeringSponsoredURLVisitTimeMS", Date.now());
 
     info("Open URL whose host is the same as dummy triggering sponsored URL");
+    let promiseVisited = waitForVisitNotification(targetURL);
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
       value: targetURL,
@@ -936,6 +956,7 @@ add_task(async function noTriggeringURL() {
     );
     EventUtils.synthesizeKey("KEY_Enter");
     await onLoad;
+    await promiseVisited;
 
     info("Check DB");
     await assertDatabase({

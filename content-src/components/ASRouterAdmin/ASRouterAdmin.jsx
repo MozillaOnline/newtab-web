@@ -10,6 +10,7 @@ import { ASRouterUtils } from "../../asrouter/asrouter-utils";
 import { connect } from "react-redux";
 import React from "react";
 import { SimpleHashRouter } from "./SimpleHashRouter";
+import { CopyButton } from "./CopyButton";
 
 const Row = props => (
   <tr className="message-item" {...props}>
@@ -262,7 +263,7 @@ export class DiscoveryStreamAdmin extends React.PureComponent {
         <h4>Feed url: {url}</h4>
         <table>
           <tbody>
-            {feed.recommendations.map(story => this.renderStoryData(story))}
+            {feed.recommendations?.map(story => this.renderStoryData(story))}
           </tbody>
         </table>
       </React.Fragment>
@@ -371,9 +372,8 @@ export class DiscoveryStreamAdmin extends React.PureComponent {
       " "
     );
     const { config, lastUpdated, layout } = this.props.state.DiscoveryStream;
-    const personalized = this.props.otherPrefs[
-      "discoverystream.personalization.enabled"
-    ];
+    const personalized =
+      this.props.otherPrefs["discoverystream.personalization.enabled"];
     return (
       <div>
         <button className="button" onClick={this.restorePrefDefaults}>
@@ -480,20 +480,16 @@ export class ASRouterAdminInner extends React.PureComponent {
     this.handleEnabledToggle = this.handleEnabledToggle.bind(this);
     this.handleUserPrefToggle = this.handleUserPrefToggle.bind(this);
     this.onChangeMessageFilter = this.onChangeMessageFilter.bind(this);
-    this.onChangeMessageGroupsFilter = this.onChangeMessageGroupsFilter.bind(
-      this
-    );
+    this.onChangeMessageGroupsFilter =
+      this.onChangeMessageGroupsFilter.bind(this);
     this.unblockAll = this.unblockAll.bind(this);
-    this.handleClearAllImpressionsByProvider = this.handleClearAllImpressionsByProvider.bind(
-      this
-    );
+    this.handleClearAllImpressionsByProvider =
+      this.handleClearAllImpressionsByProvider.bind(this);
     this.handleExpressionEval = this.handleExpressionEval.bind(this);
-    this.onChangeTargetingParameters = this.onChangeTargetingParameters.bind(
-      this
-    );
-    this.onChangeAttributionParameters = this.onChangeAttributionParameters.bind(
-      this
-    );
+    this.onChangeTargetingParameters =
+      this.onChangeTargetingParameters.bind(this);
+    this.onChangeAttributionParameters =
+      this.onChangeAttributionParameters.bind(this);
     this.setAttribution = this.setAttribution.bind(this);
     this.onCopyTargetingParams = this.onCopyTargetingParams.bind(this);
     this.onNewTargetingParams = this.onNewTargetingParams.bind(this);
@@ -850,6 +846,11 @@ export class ASRouterAdminInner extends React.PureComponent {
       : 0;
     const isCollapsed = this.state.collapsedMessages.includes(msg.id);
     const isModified = this.state.modifiedMessages.includes(msg.id);
+    const aboutMessagePreviewSupported = [
+      "infobar",
+      "spotlight",
+      "cfr_doorhanger",
+    ].includes(msg.template);
 
     let itemClassName = "message-item";
     if (isBlocked) {
@@ -879,23 +880,25 @@ export class ASRouterAdminInner extends React.PureComponent {
           >
             {isBlocked ? "Unblock" : "Block"}
           </button>
-          {// eslint-disable-next-line no-nested-ternary
-          isBlocked ? null : isModified ? (
-            <button
-              className="button restore"
-              // eslint-disable-next-line react/jsx-no-bind
-              onClick={e => this.resetJSON(msg)}
-            >
-              Reset
-            </button>
-          ) : (
-            <button
-              className="button show"
-              onClick={this.handleOverride(msg.id)}
-            >
-              Show
-            </button>
-          )}
+          {
+            // eslint-disable-next-line no-nested-ternary
+            isBlocked ? null : isModified ? (
+              <button
+                className="button restore"
+                // eslint-disable-next-line react/jsx-no-bind
+                onClick={e => this.resetJSON(msg)}
+              >
+                Reset
+              </button>
+            ) : (
+              <button
+                className="button show"
+                onClick={this.handleOverride(msg.id)}
+              >
+                Show
+              </button>
+            )
+          }
           {isBlocked ? null : (
             <button
               className="button modify"
@@ -905,6 +908,17 @@ export class ASRouterAdminInner extends React.PureComponent {
               Modify
             </button>
           )}
+          {aboutMessagePreviewSupported ? (
+            <CopyButton
+              transformer={text =>
+                `about:messagepreview?json=${encodeURIComponent(btoa(text))}`
+              }
+              label="Share"
+              copiedLabel="Copied!"
+              inputSelector={`#${msg.id}-textarea`}
+              className={"button share"}
+            />
+          ) : null}
           <br />({impressions} impressions)
         </td>
         <td className="message-summary">
@@ -1077,7 +1091,9 @@ export class ASRouterAdminInner extends React.PureComponent {
           <span className="icon icon-small-spacer icon-info" />{" "}
           <span>
             To modify a message, change the JSON and click 'Modify' to see your
-            changes. Click 'Reset' to restore the JSON to the original.
+            changes. Click 'Reset' to restore the JSON to the original. Click
+            'Share' to copy a link to the clipboard that can be used to preview
+            the message by opening the link in Nightly/local builds.
           </span>
         </p>
         <table>
@@ -1136,8 +1152,7 @@ export class ASRouterAdminInner extends React.PureComponent {
         >
           Unblock All Snippets
         </button>
-        {/* eslint-disable-next-line prettier/prettier */}
-        Show messages from {/* eslint-disable-next-line jsx-a11y/no-onchange */}
+        Show messages from{" "}
         <select
           value={this.state.messageFilter}
           onChange={this.onChangeMessageFilter}

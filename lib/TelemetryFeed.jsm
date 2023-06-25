@@ -33,38 +33,33 @@ ChromeUtils.defineModuleGetter(
   "PingCentre",
   "resource:///modules/PingCentre.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "pktApi",
-  "chrome://pocket/content/pktApi.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "UTEventReporting",
-  "resource://activity-stream/lib/UTEventReporting.jsm"
-);
 ChromeUtils.defineESModuleGetters(lazy, {
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExtensionSettingsStore:
+    "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   TelemetrySession: "resource://gre/modules/TelemetrySession.sys.mjs",
+  UTEventReporting: "resource://activity-stream/lib/UTEventReporting.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
+  pktApi: "chrome://pocket/content/pktApi.sys.mjs",
 });
 ChromeUtils.defineModuleGetter(
   lazy,
   "HomePage",
   "resource:///modules/HomePage.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  lazy,
-  "ExtensionSettingsStore",
-  "resource://gre/modules/ExtensionSettingsStore.jsm"
-);
-
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
+  AboutWelcomeTelemetry:
+    "resource://activity-stream/aboutwelcome/lib/AboutWelcomeTelemetry.jsm",
 });
+XPCOMUtils.defineLazyGetter(
+  lazy,
+  "Telemetry",
+  () => new lazy.AboutWelcomeTelemetry()
+);
 
 const ACTIVITY_STREAM_ID = "activity-stream";
 const DOMWINDOW_OPENED_TOPIC = "domwindowopened";
@@ -474,9 +469,8 @@ class TelemetryFeed {
     }
 
     Object.keys(impressionSets).forEach(source => {
-      const { tiles, window_inner_width, window_inner_height } = impressionSets[
-        source
-      ];
+      const { tiles, window_inner_width, window_inner_height } =
+        impressionSets[source];
       const payload = this.createImpressionStats(port, {
         source,
         tiles,
@@ -655,13 +649,15 @@ class TelemetryFeed {
 
   /**
    * Per Bug 1484035, CFR metrics comply with following policies:
-   * 1). In release, it collects impression_id, and treats bucket_id as message_id
+   * 1). In release, it collects impression_id and bucket_id
    * 2). In prerelease, it collects client_id and message_id
    * 3). In shield experiments conducted in release, it collects client_id and message_id
+   * 4). In Private Browsing windows, unless in experiment, collects impression_id and bucket_id
    */
   async applyCFRPolicy(ping) {
     if (
-      lazy.UpdateUtils.getUpdateChannel(true) === "release" &&
+      (lazy.UpdateUtils.getUpdateChannel(true) === "release" ||
+        ping.is_private) &&
       !this.isInCFRCohort
     ) {
       ping.message_id = "n/a";
@@ -670,6 +666,7 @@ class TelemetryFeed {
       ping.client_id = await this.telemetryClientId;
     }
     delete ping.action;
+    delete ping.is_private;
     return { ping, pingType: "cfr" };
   }
 
@@ -861,7 +858,17 @@ class TelemetryFeed {
 
   handleTopSitesSponsoredImpressionStats(action) {
     const { data } = action;
-    const { type, position, source } = data;
+    const {
+      type,
+      position,
+      source,
+      advertiser: advertiser_name,
+      tile_id,
+    } = data;
+    // Legacy telemetry (scalars and PingCentre payloads) expects 1-based tile
+    // positions.
+    const legacyTelemetryPosition = position + 1;
+
     let pingType;
 
     const session = this.sessions.get(au.getPortIdOfSender(action));
@@ -869,26 +876,32 @@ class TelemetryFeed {
       pingType = "topsites-impression";
       Services.telemetry.keyedScalarAdd(
         `${SCALAR_CATEGORY_TOPSITES}.impression`,
-        `${source}_${position}`,
+        `${source}_${legacyTelemetryPosition}`,
         1
       );
       if (session) {
         Glean.topsites.impression.record({
+          advertiser_name,
+          tile_id: tile_id.toString(),
           newtab_visit_id: session.session_id,
           is_sponsored: true,
+          position,
         });
       }
     } else if (type === "click") {
       pingType = "topsites-click";
       Services.telemetry.keyedScalarAdd(
         `${SCALAR_CATEGORY_TOPSITES}.click`,
-        `${source}_${position}`,
+        `${source}_${legacyTelemetryPosition}`,
         1
       );
       if (session) {
         Glean.topsites.click.record({
+          advertiser_name,
+          tile_id: tile_id.toString(),
           newtab_visit_id: session.session_id,
           is_sponsored: true,
+          position,
         });
       }
     } else {
@@ -896,7 +909,11 @@ class TelemetryFeed {
       return;
     }
 
-    let payload = { ...data, context_id: lazy.contextId };
+    let payload = {
+      ...data,
+      position: legacyTelemetryPosition,
+      context_id: lazy.contextId,
+    };
     delete payload.type;
     this.sendStructuredIngestionEvent(
       payload,
@@ -917,6 +934,7 @@ class TelemetryFeed {
         Glean.topsites.impression.record({
           newtab_visit_id: session.session_id,
           is_sponsored: false,
+          position: action.data.position,
         });
         break;
 
@@ -924,6 +942,7 @@ class TelemetryFeed {
         Glean.topsites.click.record({
           newtab_visit_id: session.session_id,
           is_sponsored: false,
+          position: action.data.position,
         });
         break;
 
@@ -986,6 +1005,12 @@ class TelemetryFeed {
       console.error("Unknown ping type for ASRouter telemetry");
       return;
     }
+
+    // Now that the action has become a ping, we can echo it to Glean.
+    if (this.telemetryEnabled) {
+      lazy.Telemetry.submitGleanPingForPing({ ...ping, pingType });
+    }
+
     this.sendStructuredIngestionEvent(
       ping,
       STRUCTURED_INGESTION_NAMESPACE_MS,
@@ -1282,32 +1307,63 @@ class TelemetryFeed {
         newtab_visit_id: session.session_id,
         source,
       });
-      // Temporary event used for validation of Glean Server Knobs
-      // functionality. This event is disabled by default.
-      // See Bug 1811561 for more information.
-      Glean.serverKnobs.validation.record();
     }
   }
 
   _beginObservingNewtabPingPrefs() {
-    const BRANCH = "browser.newtabpage.activity-stream.";
+    const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
+    const ACTIVITY_STREAM_PREF_BRANCH = "browser.newtabpage.activity-stream.";
     const NEWTAB_PING_PREFS = {
       showSearch: Glean.newtabSearch.enabled,
       "feeds.topsites": Glean.topsites.enabled,
       showSponsoredTopSites: Glean.topsites.sponsoredEnabled,
       "feeds.section.topstories": Glean.pocket.enabled,
       showSponsored: Glean.pocket.sponsoredStoriesEnabled,
+      topSitesRows: Glean.topsites.rows,
     };
-    const setNewtabPrefMetrics = () => {
-      for (const [pref, metric] of Object.entries(NEWTAB_PING_PREFS)) {
-        metric.set(Services.prefs.getBoolPref(BRANCH + pref));
+    const setNewtabPrefMetrics = fullPrefName => {
+      const pref = fullPrefName.slice(ACTIVITY_STREAM_PREF_BRANCH.length);
+      if (!Object.hasOwn(NEWTAB_PING_PREFS, pref)) {
+        return;
+      }
+      const metric = NEWTAB_PING_PREFS[pref];
+      switch (Services.prefs.getPrefType(fullPrefName)) {
+        case Services.prefs.PREF_BOOL:
+          metric.set(Services.prefs.getBoolPref(fullPrefName));
+          break;
+
+        case Services.prefs.PREF_INT:
+          metric.set(Services.prefs.getIntPref(fullPrefName));
+          break;
       }
     };
+    Services.prefs.addObserver(
+      ACTIVITY_STREAM_PREF_BRANCH,
+      (subject, topic, data) => setNewtabPrefMetrics(data)
+    );
     for (const pref of Object.keys(NEWTAB_PING_PREFS)) {
-      Services.prefs.addObserver(BRANCH + pref, setNewtabPrefMetrics);
+      const fullPrefName = ACTIVITY_STREAM_PREF_BRANCH + pref;
+      setNewtabPrefMetrics(fullPrefName);
     }
-    setNewtabPrefMetrics();
     Glean.pocket.isSignedIn.set(lazy.pktApi.isUserLoggedIn());
+
+    const setBlockedSponsorsMetrics = () => {
+      let blocklist;
+      try {
+        blocklist = JSON.parse(
+          Services.prefs.getStringPref(TOP_SITES_BLOCKED_SPONSORS_PREF, "[]")
+        );
+      } catch (e) {}
+      if (blocklist) {
+        Glean.newtab.blockedSponsors.set(blocklist);
+      }
+    };
+
+    Services.prefs.addObserver(
+      TOP_SITES_BLOCKED_SPONSORS_PREF,
+      setBlockedSponsorsMetrics
+    );
+    setBlockedSponsorsMetrics();
   }
 
   uninit() {

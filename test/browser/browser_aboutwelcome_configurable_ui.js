@@ -1,7 +1,7 @@
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
+const { ExperimentFakes } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
 const { AboutWelcomeTelemetry } = ChromeUtils.import(
@@ -57,10 +57,11 @@ async function testAboutWelcomeLogoFor(logo = {}) {
   let browser = await openAboutWelcome(JSON.stringify(screens));
 
   let expected = [
-    `.brand-logo[src="${logo.imageURL ??
-      "chrome://branding/content/about-logo.svg"}"][alt="${logo.alt ?? ""}"]${
-      logo.height ? `[style*="height"]` : ""
-    }${logo.alt ? "" : `[role="presentation"]`}`,
+    `.brand-logo[src="${
+      logo.imageURL ?? "chrome://branding/content/about-logo.svg"
+    }"][alt="${logo.alt ?? ""}"]${logo.height ? `[style*="height"]` : ""}${
+      logo.alt ? "" : `[role="presentation"]`
+    }`,
   ];
   let unexpected = [];
   if (!logo.height) {
@@ -315,7 +316,7 @@ add_task(async function test_aboutwelcome_split_position() {
     // Expected styles:
     {
       // Override default text-link styles
-      "background-color": "rgba(207, 207, 216, 0.33)",
+      "background-color": "rgba(21, 20, 26, 0.07)",
       color: "rgb(21, 20, 26)",
     }
   );
@@ -614,7 +615,6 @@ add_task(async function test_aboutwelcome_start_screen_configured() {
 
   let sandbox = sinon.createSandbox();
   let spy = sandbox.spy(AboutWelcomeTelemetry.prototype, "sendTelemetry");
-  registerCleanupFunction(() => sandbox.restore());
 
   let browser = await openAboutWelcome(JSON.stringify(screens));
 
@@ -630,11 +630,19 @@ add_task(async function test_aboutwelcome_start_screen_configured() {
     secondScreenShown,
     `Starts on second screen when configured with startScreen index equal to ${startScreen}`
   );
+  // Wait for screen elements to render before checking impression pings
+  await test_screen_content(
+    browser,
+    "renders second screen elements",
+    // Expected selectors:
+    [`main.screen`, "div.secondary-cta"]
+  );
 
   let expectedTelemetry = sinon.match({
     event: "IMPRESSION",
-    message_id: `MR_WELCOME_DEFAULT_${startScreen}_TEST_START_STEP_${startScreen +
-      1}_${screens.map(({ id }) => id?.split("_")[1]?.[0]).join("")}`,
+    message_id: `MR_WELCOME_DEFAULT_${startScreen}_TEST_START_STEP_${
+      startScreen + 1
+    }_${screens.map(({ id }) => id?.split("_")[1]?.[0]).join("")}`,
   });
   if (spy.calledWith(expectedTelemetry)) {
     ok(
@@ -656,4 +664,5 @@ add_task(async function test_aboutwelcome_start_screen_configured() {
 
   await doExperimentCleanup();
   browser.closeBrowser();
+  sandbox.restore();
 });

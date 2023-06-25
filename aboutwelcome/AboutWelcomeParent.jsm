@@ -13,27 +13,27 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
   FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
+  LangPackMatcher: "resource://gre/modules/LangPackMatcher.sys.mjs",
+  ShellService: "resource:///modules/ShellService.sys.mjs",
+  SpecialMessageActions:
+    "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  AddonManager: "resource://gre/modules/AddonManager.jsm",
-  SpecialMessageActions:
-    "resource://messaging-system/lib/SpecialMessageActions.jsm",
   AboutWelcomeTelemetry:
     "resource://activity-stream/aboutwelcome/lib/AboutWelcomeTelemetry.jsm",
   AboutWelcomeDefaults:
     "resource://activity-stream/aboutwelcome/lib/AboutWelcomeDefaults.jsm",
-  ShellService: "resource:///modules/ShellService.jsm",
-  LangPackMatcher: "resource://gre/modules/LangPackMatcher.jsm",
   AWScreenUtils: "resource://activity-stream/lib/AWScreenUtils.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(lazy, "log", () => {
-  const { Logger } = ChromeUtils.import(
-    "resource://messaging-system/lib/Logger.jsm"
+  const { Logger } = ChromeUtils.importESModule(
+    "resource://messaging-system/lib/Logger.sys.mjs"
   );
   return new Logger("AboutWelcomeParent");
 });
@@ -175,21 +175,21 @@ class AboutWelcomeParent extends JSWindowActorParent {
         }
         break;
       case "AWPage:SPECIAL_ACTION":
-        lazy.SpecialMessageActions.handleAction(data, browser);
-        break;
+        return lazy.SpecialMessageActions.handleAction(data, browser);
       case "AWPage:FXA_METRICS_FLOW_URI":
         return lazy.FxAccounts.config.promiseMetricsFlowURI("aboutwelcome");
       case "AWPage:TELEMETRY_EVENT":
         lazy.Telemetry.sendTelemetry(data);
         break;
       case "AWPage:GET_ATTRIBUTION_DATA":
-        let attributionData = await lazy.AboutWelcomeDefaults.getAttributionContent();
+        let attributionData =
+          await lazy.AboutWelcomeDefaults.getAttributionContent();
         return attributionData;
       case "AWPage:SELECT_THEME":
         await lazy.BuiltInThemes.ensureBuiltInThemes();
-        return lazy.AddonManager.getAddonByID(
-          LIGHT_WEIGHT_THEMES[data]
-        ).then(addon => addon.enable());
+        return lazy.AddonManager.getAddonByID(LIGHT_WEIGHT_THEMES[data]).then(
+          addon => addon.enable()
+        );
       case "AWPage:GET_SELECTED_THEME":
         let themes = await lazy.AddonManager.getAddonsByTypes(["theme"]);
         let activeTheme = themes.find(addon => addon.isActive);
@@ -212,22 +212,25 @@ class AboutWelcomeParent extends JSWindowActorParent {
           !AboutWelcomeParent.isDefaultBrowser()
         );
       case "AWPage:WAIT_FOR_MIGRATION_CLOSE":
-        return new Promise(resolve =>
-          Services.ww.registerNotification(function observer(subject, topic) {
-            if (
-              topic === "domwindowclosed" &&
-              subject.document.documentURI ===
-                "chrome://browser/content/migration/migration.xhtml"
-            ) {
-              Services.ww.unregisterNotification(observer);
-              resolve();
-            }
-          })
-        );
+        // Support multiples types of migration: 1) content modal 2) old
+        // migration modal 3) standalone content modal
+        return new Promise(resolve => {
+          const topics = [
+            "MigrationWizard:Closed",
+            "MigrationWizard:Destroyed",
+          ];
+          const observer = () => {
+            topics.forEach(t => Services.obs.removeObserver(observer, t));
+            resolve();
+          };
+          topics.forEach(t => Services.obs.addObserver(observer, t));
+        });
       case "AWPage:GET_APP_AND_SYSTEM_LOCALE_INFO":
         return lazy.LangPackMatcher.getAppAndSystemLocaleInfo();
       case "AWPage:EVALUATE_SCREEN_TARGETING":
         return lazy.AWScreenUtils.evaluateTargetingAndRemoveScreens(data);
+      case "AWPage:ADD_SCREEN_IMPRESSION":
+        return lazy.AWScreenUtils.addScreenImpression(data);
       case "AWPage:NEGOTIATE_LANGPACK":
         return lazy.LangPackMatcher.negotiateLangPackForLanguageMismatch(data);
       case "AWPage:ENSURE_LANG_PACK_INSTALLED":

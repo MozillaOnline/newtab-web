@@ -4,8 +4,8 @@ const { ASRouter } = ChromeUtils.import(
 const { RemoteSettings } = ChromeUtils.importESModule(
   "resource://services-settings/remote-settings.sys.mjs"
 );
-const { CFRMessageProvider } = ChromeUtils.import(
-  "resource://activity-stream/lib/CFRMessageProvider.jsm"
+const { CFRMessageProvider } = ChromeUtils.importESModule(
+  "resource://activity-stream/lib/CFRMessageProvider.sys.mjs"
 );
 const { CFRPageActions } = ChromeUtils.import(
   "resource://activity-stream/lib/CFRPageActions.jsm"
@@ -14,7 +14,7 @@ const { CFRPageActions } = ChromeUtils.import(
 /**
  * Load and modify a message for the test.
  */
-add_setup(async function() {
+add_setup(async function () {
   const initialMsgCount = ASRouter.state.messages.length;
   const heartbeatMsg = (await CFRMessageProvider.getMessages()).find(
     m => m.id === "HEARTBEAT_TACTIC_2"
@@ -42,11 +42,12 @@ add_setup(async function() {
   });
 
   // Reload the providers
-  await BrowserTestUtils.waitForCondition(async () => {
-    await ASRouter._updateMessageProviders();
-    await ASRouter.loadMessagesFromAllProviders();
-    return ASRouter.state.messages.length > initialMsgCount;
-  }, "Should load the extra heartbeat message");
+  await ASRouter._updateMessageProviders();
+  await ASRouter.loadMessagesFromAllProviders();
+  await BrowserTestUtils.waitForCondition(
+    () => ASRouter.state.messages.length > initialMsgCount,
+    "Should load the extra heartbeat message"
+  );
 
   BrowserTestUtils.waitForCondition(
     () => ASRouter.state.messages.find(m => m.id === testMessage.id),
@@ -60,11 +61,12 @@ add_setup(async function() {
   registerCleanupFunction(async () => {
     await client.db.clear();
     // Reload the providers
-    await BrowserTestUtils.waitForCondition(async () => {
-      await ASRouter._updateMessageProviders();
-      await ASRouter.loadMessagesFromAllProviders();
-      return ASRouter.state.messages.length === initialMsgCount;
-    }, "Should reset messages");
+    await ASRouter._updateMessageProviders();
+    await ASRouter.loadMessagesFromAllProviders();
+    await BrowserTestUtils.waitForCondition(
+      () => ASRouter.state.messages.length === initialMsgCount,
+      "Should reset messages"
+    );
     await SpecialPowers.popPrefEnv();
   });
 });

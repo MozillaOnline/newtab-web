@@ -14,13 +14,21 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   Downloader: "resource://services-settings/Attachments.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   MacAttribution: "resource:///modules/MacAttribution.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  PanelTestProvider: "resource://activity-stream/lib/PanelTestProvider.sys.mjs",
+  RemoteL10n: "resource://activity-stream/lib/RemoteL10n.sys.mjs",
+  SnippetsTestMessageProvider:
+    "resource://activity-stream/lib/SnippetsTestMessageProvider.sys.mjs",
+  SpecialMessageActions:
+    "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
+  TargetingContext: "resource://messaging-system/targeting/Targeting.sys.mjs",
+  Utils: "resource://services-settings/Utils.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 XPCOMUtils.defineLazyModuleGetters(lazy, {
-  SnippetsTestMessageProvider:
-    "resource://activity-stream/lib/SnippetsTestMessageProvider.jsm",
-  PanelTestProvider: "resource://activity-stream/lib/PanelTestProvider.jsm",
   Spotlight: "resource://activity-stream/lib/Spotlight.jsm",
   ToastNotification: "resource://activity-stream/lib/ToastNotification.jsm",
   ToolbarBadgeHub: "resource://activity-stream/lib/ToolbarBadgeHub.jsm",
@@ -34,15 +42,8 @@ XPCOMUtils.defineLazyModuleGetters(lazy, {
   ASRouterTriggerListeners:
     "resource://activity-stream/lib/ASRouterTriggerListeners.jsm",
   KintoHttpClient: "resource://services-common/kinto-http-client.js",
-  RemoteL10n: "resource://activity-stream/lib/RemoteL10n.jsm",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.jsm",
-  setTimeout: "resource://gre/modules/Timer.jsm",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
-  SpecialMessageActions:
-    "resource://messaging-system/lib/SpecialMessageActions.jsm",
-  TargetingContext: "resource://messaging-system/targeting/Targeting.jsm",
-  Utils: "resource://services-settings/Utils.jsm",
 });
+
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
 });
@@ -50,8 +51,8 @@ const { actionCreators: ac } = ChromeUtils.importESModule(
   "resource://activity-stream/common/Actions.sys.mjs"
 );
 
-const { CFRMessageProvider } = ChromeUtils.import(
-  "resource://activity-stream/lib/CFRMessageProvider.jsm"
+const { CFRMessageProvider } = ChromeUtils.importESModule(
+  "resource://activity-stream/lib/CFRMessageProvider.sys.mjs"
 );
 const { OnboardingMessageProvider } = ChromeUtils.import(
   "resource://activity-stream/lib/OnboardingMessageProvider.jsm"
@@ -110,6 +111,11 @@ const MESSAGING_EXPERIMENTS_DEFAULT_FEATURES = [
   "fxms-message-4",
   "fxms-message-5",
   "fxms-message-6",
+  "fxms-message-7",
+  "fxms-message-8",
+  "fxms-message-9",
+  "fxms-message-10",
+  "fxms-message-11",
   "infobar",
   "moments-page",
   "pbNewtab",
@@ -609,6 +615,7 @@ class _ASRouter {
       providers: [],
       messageBlockList: [],
       messageImpressions: {},
+      screenImpressions: {},
       messages: [],
       groups: [],
       errors: [],
@@ -621,15 +628,15 @@ class _ASRouter {
     this.unblockMessageById = this.unblockMessageById.bind(this);
     this.handleMessageRequest = this.handleMessageRequest.bind(this);
     this.addImpression = this.addImpression.bind(this);
+    this.addScreenImpression = this.addScreenImpression.bind(this);
     this._handleTargetingError = this._handleTargetingError.bind(this);
     this.onPrefChange = this.onPrefChange.bind(this);
     this._onLocaleChanged = this._onLocaleChanged.bind(this);
     this.isUnblockedMessage = this.isUnblockedMessage.bind(this);
     this.unblockAll = this.unblockAll.bind(this);
     this.forceWNPanel = this.forceWNPanel.bind(this);
-    this._onExperimentEnrollmentsUpdated = this._onExperimentEnrollmentsUpdated.bind(
-      this
-    );
+    this._onExperimentEnrollmentsUpdated =
+      this._onExperimentEnrollmentsUpdated.bind(this);
     this.forcePBWindow = this.forcePBWindow.bind(this);
     Services.telemetry.setEventRecordingEnabled(REACH_EVENT_CATEGORY, true);
   }
@@ -869,14 +876,11 @@ class _ASRouter {
       let newState = { messages: [], providers: [] };
       for (const provider of this.state.providers) {
         if (needsUpdate.includes(provider)) {
-          const {
-            messages,
-            lastUpdated,
-            errors,
-          } = await MessageLoaderUtils.loadMessagesForProvider(provider, {
-            storage: this._storage,
-            dispatchCFRAction: this.dispatchCFRAction,
-          });
+          const { messages, lastUpdated, errors } =
+            await MessageLoaderUtils.loadMessagesForProvider(provider, {
+              storage: this._storage,
+              dispatchCFRAction: this.dispatchCFRAction,
+            });
           newState.providers.push({ ...provider, lastUpdated, errors });
           newState.messages = [...newState.messages, ...messages];
         } else {
@@ -1028,6 +1032,8 @@ class _ASRouter {
       (await this._storage.get("messageImpressions")) || {};
     const groupImpressions =
       (await this._storage.get("groupImpressions")) || {};
+    const screenImpressions =
+      (await this._storage.get("screenImpressions")) || {};
     const previousSessionEnd =
       (await this._storage.get("previousSessionEnd")) || 0;
 
@@ -1035,6 +1041,7 @@ class _ASRouter {
       messageBlockList,
       groupImpressions,
       messageImpressions,
+      screenImpressions,
       previousSessionEnd,
       ...(lazy.ASRouterPreferences.specialConditions || {}),
       initialized: false,
@@ -1146,21 +1153,27 @@ class _ASRouter {
   async getTargetingParameters(environment, localContext) {
     // Resolve objects that may contain promises.
     async function resolve(object) {
-      const target = {};
-
-      for (const param of Object.keys(object)) {
-        target[param] = await object[param];
-
-        if (
-          typeof target[param] === "object" &&
-          target[param] !== null &&
-          !(target[param] instanceof Date)
-        ) {
-          target[param] = await resolve(target[param]);
+      if (typeof object === "object" && object !== null) {
+        if (Array.isArray(object)) {
+          return Promise.all(object.map(async item => resolve(await item)));
         }
+
+        if (object instanceof Date) {
+          return object;
+        }
+
+        const target = {};
+        const promises = Object.entries(object).map(async ([key, value]) => [
+          key,
+          await resolve(await value),
+        ]);
+        for (const [key, value] of await Promise.all(promises)) {
+          target[key] = value;
+        }
+        return target;
       }
 
-      return target;
+      return object;
     }
 
     const targetingParameters = {
@@ -1185,7 +1198,8 @@ class _ASRouter {
 
   // Return an object containing targeting parameters used to select messages
   _getMessagesContext() {
-    const { messageImpressions, previousSessionEnd } = this.state;
+    const { messageImpressions, previousSessionEnd, screenImpressions } =
+      this.state;
 
     return {
       get messageImpressions() {
@@ -1193,6 +1207,9 @@ class _ASRouter {
       },
       get previousSessionEnd() {
         return previousSessionEnd;
+      },
+      get screenImpressions() {
+        return screenImpressions;
       },
     };
   }
@@ -1392,6 +1409,25 @@ class _ASRouter {
     return { message };
   }
 
+  addScreenImpression(screen) {
+    lazy.ASRouterPreferences.console.debug(
+      `entering addScreenImpression for ${screen.id}`
+    );
+
+    const time = Date.now();
+
+    let screenImpressions = { ...this.state.screenImpressions };
+    screenImpressions[screen.id] = time;
+
+    this.setState({ screenImpressions });
+    lazy.ASRouterPreferences.console.debug(
+      screen.id,
+      `screen impression added, screenImpressions[screen.id]: `,
+      screenImpressions[screen.id]
+    );
+    this._storage.set("screenImpressions", screenImpressions);
+  }
+
   addImpression(message) {
     lazy.ASRouterPreferences.console.debug(
       `entering addImpression for ${message.id}`
@@ -1438,10 +1474,8 @@ class _ASRouter {
     // (see https://redux.js.org/recipes/structuring-reducers/prerequisite-concepts#immutable-data-management)
     const impressions = { ...currentImpressions };
     if (item.frequency) {
-      impressions[item.id] = impressions[item.id]
-        ? [...impressions[item.id]]
-        : [];
-      impressions[item.id].push(time);
+      impressions[item.id] = [...(impressions[item.id] ?? []), time];
+
       lazy.ASRouterPreferences.console.debug(
         item.id,
         "impression added, impressions[item.id]: ",
@@ -1718,17 +1752,6 @@ class _ASRouter {
     } catch (e) {
       return false;
     }
-  }
-
-  // Ensure we switch to the Onboarding message after RTAMO addon was installed
-  _updateOnboardingState() {
-    let addonInstallObs = (subject, topic) => {
-      Services.obs.removeObserver(
-        addonInstallObs,
-        "webextension-install-notify"
-      );
-    };
-    Services.obs.addObserver(addonInstallObs, "webextension-install-notify");
   }
 
   _loadSnippetsAllowHosts() {
@@ -2040,22 +2063,22 @@ class _ASRouter {
   }
 
   async forcePBWindow(browser, msg) {
-    const privateBrowserOpener = await new Promise((
-      resolveOnContentBrowserCreated // wrap this in a promise to give back the right browser
-    ) =>
-      browser.ownerGlobal.openTrustedLinkIn(
-        "about:privatebrowsing?debug",
-        "window",
-        {
-          private: true,
-          triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(
-            {}
-          ),
-          csp: null,
-          resolveOnContentBrowserCreated,
-          opener: "devtools",
-        }
-      )
+    const privateBrowserOpener = await new Promise(
+      (
+        resolveOnContentBrowserCreated // wrap this in a promise to give back the right browser
+      ) =>
+        browser.ownerGlobal.openTrustedLinkIn(
+          "about:privatebrowsing?debug",
+          "window",
+          {
+            private: true,
+            triggeringPrincipal:
+              Services.scriptSecurityManager.getSystemPrincipal({}),
+            csp: null,
+            resolveOnContentBrowserCreated,
+            opener: "devtools",
+          }
+        )
     );
 
     lazy.setTimeout(() => {

@@ -6,9 +6,6 @@
 const { EventEmitter } = ChromeUtils.importESModule(
   "resource://gre/modules/EventEmitter.sys.mjs"
 );
-const { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
   "resource://activity-stream/common/Actions.sys.mjs"
 );
@@ -19,11 +16,8 @@ const { getDefaultOptions } = ChromeUtils.import(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
 });
 
 /*
@@ -273,9 +267,8 @@ const SectionsManager = {
       storedPrefs = {};
       console.error(`Problem getting stored prefs for ${feedPrefName}`);
     }
-    const defaultSection = BUILT_IN_SECTIONS(featureConfig)[feedPrefName](
-      options
-    );
+    const defaultSection =
+      BUILT_IN_SECTIONS(featureConfig)[feedPrefName](options);
     const section = Object.assign({}, defaultSection, {
       pref: Object.assign(
         {},
@@ -402,9 +395,8 @@ const SectionsManager = {
           `No context menu for highlight type ${card.type} is configured`
         );
       } else {
-        card.contextMenuOptions = this.CONTEXT_MENU_OPTIONS_FOR_HIGHLIGHT_TYPES[
-          card.type
-        ];
+        card.contextMenuOptions =
+          this.CONTEXT_MENU_OPTIONS_FOR_HIGHLIGHT_TYPES[card.type];
 
         // Remove any options that shouldn't be there based on CONTEXT_MENU_PREFS.
         // For example: If the Pocket extension is disabled, we should remove the CheckSavedToPocket option

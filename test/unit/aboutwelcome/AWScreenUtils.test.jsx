@@ -90,9 +90,8 @@ describe("AWScreenUtils", () => {
           },
         };
       });
-      const evaluatedStrings = await AWScreenUtils.evaluateTargetingAndRemoveScreens(
-        screens
-      );
+      const evaluatedStrings =
+        await AWScreenUtils.evaluateTargetingAndRemoveScreens(screens);
       assert.deepEqual(evaluatedStrings, expectedScreens);
     });
     it("should not remove screens with no targeting", async () => {
@@ -119,10 +118,23 @@ describe("AWScreenUtils", () => {
           }
           return targeting;
         });
-      const evaluatedStrings = await AWScreenUtils.evaluateTargetingAndRemoveScreens(
-        screens
-      );
+      const evaluatedStrings =
+        await AWScreenUtils.evaluateTargetingAndRemoveScreens(screens);
       assert.deepEqual(evaluatedStrings, expectedScreens);
+    });
+  });
+
+  describe("addScreenImpression", () => {
+    it("Should call addScreenImpression with provided screen ID", () => {
+      const addScreenImpressionStub = sandbox.stub(
+        ASRouter,
+        "addScreenImpression"
+      );
+      const testScreen = { id: "test" };
+      AWScreenUtils.addScreenImpression(testScreen);
+
+      assert.calledOnce(addScreenImpressionStub);
+      assert.equal(addScreenImpressionStub.firstCall.args[0].id, testScreen.id);
     });
   });
 });

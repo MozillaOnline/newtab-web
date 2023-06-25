@@ -10,15 +10,14 @@ describe("ASRouterTriggerListeners", () => {
   const triggerHandler = () => {};
   const openURLListener = ASRouterTriggerListeners.get("openURL");
   const frequentVisitsListener = ASRouterTriggerListeners.get("frequentVisits");
-  const captivePortalLoginListener = ASRouterTriggerListeners.get(
-    "captivePortalLogin"
-  );
-  const bookmarkedURLListener = ASRouterTriggerListeners.get(
-    "openBookmarkedURL"
-  );
+  const captivePortalLoginListener =
+    ASRouterTriggerListeners.get("captivePortalLogin");
+  const bookmarkedURLListener =
+    ASRouterTriggerListeners.get("openBookmarkedURL");
   const openArticleURLListener = ASRouterTriggerListeners.get("openArticleURL");
   const nthTabClosedListener = ASRouterTriggerListeners.get("nthTabClosed");
   const idleListener = ASRouterTriggerListeners.get("activityAfterIdle");
+  const formAutofillListener = ASRouterTriggerListeners.get("formAutofill");
   const cookieBannerDetectedListener = ASRouterTriggerListeners.get(
     "cookieBannerDetected"
   );
@@ -183,10 +182,8 @@ describe("ASRouterTriggerListeners", () => {
         const target = { currentURI: { host: hosts[0], spec: hosts[1] } };
         openArticleURLListener.init(stub, hosts, hosts);
 
-        const [
-          ,
-          { receiveMessage },
-        ] = global.AboutReaderParent.addMessageListener.firstCall.args;
+        const [, { receiveMessage }] =
+          global.AboutReaderParent.addMessageListener.firstCall.args;
         receiveMessage({ data: { isArticle: true }, target });
 
         assert.calledOnce(stub);
@@ -200,10 +197,8 @@ describe("ASRouterTriggerListeners", () => {
         const target = { currentURI: { host: null, spec: hosts[1] } };
         openArticleURLListener.init(stub, hosts, hosts);
 
-        const [
-          ,
-          { receiveMessage },
-        ] = global.AboutReaderParent.addMessageListener.firstCall.args;
+        const [, { receiveMessage }] =
+          global.AboutReaderParent.addMessageListener.firstCall.args;
         receiveMessage({ data: { isArticle: true }, target });
 
         assert.calledOnce(stub);
@@ -440,6 +435,58 @@ describe("ASRouterTriggerListeners", () => {
 
       it("should remove event listeners from all existing browser windows", () => {
         assert.called(existingWindow.removeEventListener);
+      });
+    });
+  });
+
+  describe("formAutofill", () => {
+    let addObsStub;
+    let removeObsStub;
+    describe("#init", () => {
+      beforeEach(() => {
+        addObsStub = sandbox.stub(global.Services.obs, "addObserver");
+        formAutofillListener.init(triggerHandler);
+      });
+      afterEach(() => {
+        formAutofillListener.uninit();
+      });
+
+      it("should set ._initialized to true and save the triggerHandler", () => {
+        assert.ok(formAutofillListener._initialized);
+        assert.equal(formAutofillListener._triggerHandler, triggerHandler);
+      });
+
+      it("if already initialised, it should only update the trigger handler", () => {
+        const newTriggerHandler = () => {};
+        formAutofillListener.init(newTriggerHandler);
+        assert.ok(formAutofillListener._initialized);
+        assert.equal(formAutofillListener._triggerHandler, newTriggerHandler);
+      });
+
+      it(`should add observer for ${formAutofillListener._topic}`, () => {
+        assert.called(addObsStub);
+      });
+    });
+
+    describe("#uninit", () => {
+      beforeEach(async () => {
+        removeObsStub = sandbox.stub(global.Services.obs, "removeObserver");
+        formAutofillListener.init(triggerHandler);
+        formAutofillListener.uninit();
+      });
+
+      it("should set ._initialized to false and clear the triggerHandler", () => {
+        assert.notOk(formAutofillListener._initialized);
+        assert.equal(formAutofillListener._triggerHandler, null);
+      });
+
+      it("should do nothing if already uninitialised", () => {
+        formAutofillListener.uninit();
+        assert.notOk(formAutofillListener._initialized);
+      });
+
+      it(`should remove observers for ${formAutofillListener._topic}`, () => {
+        assert.called(removeObsStub);
       });
     });
   });

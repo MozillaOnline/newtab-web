@@ -21,6 +21,9 @@ export class ASRouterChild extends JSWindowActorChild {
   }
 
   actorCreated() {
+    // NOTE: DOMDocElementInserted may be called multiple times per
+    // PWindowGlobal due to the initial about:blank document's window global
+    // being re-used.
     const window = this.contentWindow;
     Cu.exportFunction(this.asRouterMessage.bind(this), window, {
       defineAs: "ASRouterMessage",

@@ -28,16 +28,18 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "AboutWelcomeUtils": () => (/* binding */ AboutWelcomeUtils),
 /* harmony export */   "DEFAULT_RTAMO_CONTENT": () => (/* binding */ DEFAULT_RTAMO_CONTENT)
 /* harmony export */ });
+var _document$querySelect;
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 // If the container has a "page" data attribute, then this is
 // a Spotlight modal or Feature Callout. Otherwise, this is
 // about:welcome and we should return the current page.
-const page = document.querySelector("#root.onboardingContainer[data-page]") ? document.querySelector("#root[data-page]").dataset.page : document.location.href;
+const page = ((_document$querySelect = document.querySelector("#multi-stage-message-root.onboardingContainer[data-page]")) === null || _document$querySelect === void 0 ? void 0 : _document$querySelect.dataset.page) || document.location.href;
 const AboutWelcomeUtils = {
   handleUserAction(action) {
-    window.AWSendToParent("SPECIAL_ACTION", action);
+    return window.AWSendToParent("SPECIAL_ACTION", action);
   },
 
   sendImpressionTelemetry(messageId, context) {
@@ -183,7 +185,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
 /* harmony import */ var _MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6);
 /* harmony import */ var _LanguageSwitcher__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(11);
-/* harmony import */ var _asrouter_templates_FirstRun_addUtmParams__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(16);
+/* harmony import */ var _asrouter_templates_FirstRun_addUtmParams__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(17);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -195,34 +197,59 @@ __webpack_require__.r(__webpack_exports__);
  // Amount of milliseconds for all transitions to complete (including delays).
 
 const TRANSITION_OUT_TIME = 1000;
+const LANGUAGE_MISMATCH_SCREEN_ID = "AW_LANGUAGE_MISMATCH";
 const MultiStageAboutWelcome = props => {
   let {
-    screens
+    defaultScreens
   } = props;
+  const didFilter = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)(false);
+  const [didMount, setDidMount] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const [screens, setScreens] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(defaultScreens);
   const [index, setScreenIndex] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(props.startScreen);
   const [previousOrder, setPreviousOrder] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(props.startScreen - 1);
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    const screenInitials = screens.map(({
-      id
-    }) => {
-      var _id$split$;
-
-      return id === null || id === void 0 ? void 0 : (_id$split$ = id.split("_")[1]) === null || _id$split$ === void 0 ? void 0 : _id$split$[0];
-    }).join(""); // Send impression ping when respective screen first renders
-
-    screens.forEach((screen, order) => {
-      if (index === order) {
-        _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendImpressionTelemetry(`${props.message_id}_${order}_${screen.id}_${screenInitials}`);
-      }
-    }); // Remember that a new screen has loaded for browser navigation
-
-    if (props.updateHistory && index > window.history.state) {
-      window.history.pushState(index, "");
-    } // Remember the previous screen index so we can animate the transition
+    (async () => {
+      // If we want to load index from history state, we don't want to send impression yet
+      if (!didMount) {
+        return;
+      } // On about:welcome first load, screensVisited should be empty
 
 
-    setPreviousOrder(index);
-  }, [index]); // eslint-disable-line react-hooks/exhaustive-deps
+      let screensVisited = didFilter.current ? screens.slice(0, index) : [];
+      let upcomingScreens = defaultScreens.filter(s => !screensVisited.find(v => v.id === s.id)) // Filter out Language Mismatch screen from upcoming
+      // screens if screens set from useLanguageSwitcher hook
+      // has filtered language screen
+      .filter(upcomingScreen => !(!screens.find(s => s.id === LANGUAGE_MISMATCH_SCREEN_ID) && upcomingScreen.id === LANGUAGE_MISMATCH_SCREEN_ID));
+      let filteredScreens = screensVisited.concat((await window.AWEvaluateScreenTargeting(upcomingScreens)) ?? upcomingScreens); // Use existing screen for the filtered screen to carry over any modification
+      // e.g. if AW_LANGUAGE_MISMATCH exists, use it from existing screens
+
+      setScreens(filteredScreens.map(filtered => screens.find(s => s.id === filtered.id) ?? filtered));
+      didFilter.current = true;
+      const screenInitials = filteredScreens.map(({
+        id
+      }) => {
+        var _id$split$;
+
+        return id === null || id === void 0 ? void 0 : (_id$split$ = id.split("_")[1]) === null || _id$split$ === void 0 ? void 0 : _id$split$[0];
+      }).join(""); // Send impression ping when respective screen first renders
+
+      filteredScreens.forEach((screen, order) => {
+        if (index === order) {
+          var _window$AWAddScreenIm, _window;
+
+          _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendImpressionTelemetry(`${props.message_id}_${order}_${screen.id}_${screenInitials}`);
+          (_window$AWAddScreenIm = (_window = window).AWAddScreenImpression) === null || _window$AWAddScreenIm === void 0 ? void 0 : _window$AWAddScreenIm.call(_window, screen);
+        }
+      }); // Remember that a new screen has loaded for browser navigation
+
+      if (props.updateHistory && index > window.history.state) {
+        window.history.pushState(index, "");
+      } // Remember the previous screen index so we can animate the transition
+
+
+      setPreviousOrder(index);
+    })();
+  }, [index, didMount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [flowParams, setFlowParams] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
   const {
@@ -264,6 +291,11 @@ const MultiStageAboutWelcome = props => {
   };
 
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    // When about:welcome loads (on refresh or pressing back button
+    // from about:home), ensure history state usEffect runs before
+    // useEffect hook that send impression telemetry
+    setDidMount(true);
+
     if (props.updateHistory) {
       // Switch to the screen tracked in state (null for initial state)
       // or last screen index if a user navigates by pressing back
@@ -319,7 +351,9 @@ const MultiStageAboutWelcome = props => {
     langPackInstallPhase,
     languageFilteredScreens
   } = (0,_LanguageSwitcher__WEBPACK_IMPORTED_MODULE_4__.useLanguageSwitcher)(props.appAndSystemLocaleInfo, screens, index, setScreenIndex);
-  screens = languageFilteredScreens;
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    setScreens(languageFilteredScreens);
+  }, [languageFilteredScreens]);
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: `outer-wrapper onboardingContainer proton transition-${transition}`,
     style: props.backdrop ? {
@@ -448,7 +482,7 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
       };
     }
 
-    _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction({
+    return _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction({
       type,
       data
     });
@@ -459,6 +493,7 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
       props
     } = this;
     const value = event.currentTarget.value ?? event.currentTarget.getAttribute("value");
+    const source = event.source || value;
     let targetContent = props.content[value] || props.content.tiles || props.content.languageSwitcher;
 
     if (!(targetContent && targetContent.action)) {
@@ -466,12 +501,12 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
     } // Send telemetry before waiting on actions
 
 
-    _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, value, event.name); // Send additional telemetry if a messaging surface like feature callout is
+    _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, source, event.name); // Send additional telemetry if a messaging surface like feature callout is
     // dismissed via the dismiss button. Other causes of dismissal will be
     // handled separately by the messaging surface's own code.
 
     if (value === "dismiss_button" && !event.name) {
-      _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendDismissTelemetry(props.messageId, value);
+      _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendDismissTelemetry(props.messageId, source);
     }
 
     let {
@@ -481,24 +516,48 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
     if (action.collectSelect) {
       // Populate MULTI_ACTION data actions property with selected checkbox actions from tiles data
       action.data = {
-        actions: this.props.activeMultiSelect.map(id => {
-          var _props$content, _props$content$tiles, _props$content$tiles$;
+        actions: []
+      };
 
-          return (_props$content = props.content) === null || _props$content === void 0 ? void 0 : (_props$content$tiles = _props$content.tiles) === null || _props$content$tiles === void 0 ? void 0 : (_props$content$tiles$ = _props$content$tiles.data.find(ckbx => ckbx.id === id)) === null || _props$content$tiles$ === void 0 ? void 0 : _props$content$tiles$.action;
-        })
-      }; // Send telemetry with selected checkbox ids
+      for (const checkbox of ((_props$content = props.content) === null || _props$content === void 0 ? void 0 : (_props$content$tiles = _props$content.tiles) === null || _props$content$tiles === void 0 ? void 0 : _props$content$tiles.data) ?? []) {
+        var _props$content, _props$content$tiles;
+
+        let checkboxAction;
+
+        if (this.props.activeMultiSelect.includes(checkbox.id)) {
+          checkboxAction = checkbox.checkedAction ?? checkbox.action;
+        } else {
+          checkboxAction = checkbox.uncheckedAction;
+        }
+
+        if (checkboxAction) {
+          action.data.actions.push(checkboxAction);
+        }
+      } // Send telemetry with selected checkbox ids
+
 
       _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, props.activeMultiSelect, "SELECT_CHECKBOX");
     }
 
+    let actionResult;
+
     if (["OPEN_URL", "SHOW_FIREFOX_ACCOUNTS"].includes(action.type)) {
-      this.handleOpenURL(action, props.flowParams, props.UTMTerm);
+      actionResult = await this.handleOpenURL(action, props.flowParams, props.UTMTerm);
     } else if (action.type) {
-      var _action$data;
+      actionResult = await _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(action);
 
-      _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(action); // Wait until migration closes to complete the action
+      if (action.type === "FXA_SIGNIN_FLOW") {
+        _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, actionResult ? "sign_in" : "sign_in_cancel", "FXA_SIGNIN_FLOW");
+      } // Wait until migration closes to complete the action
 
-      if (action.type === "SHOW_MIGRATION_WIZARD" || action.type === "MULTI_ACTION" && action !== null && action !== void 0 && (_action$data = action.data) !== null && _action$data !== void 0 && _action$data.actions.find(subAction => subAction.type === "SHOW_MIGRATION_WIZARD")) {
+
+      const hasMigrate = a => {
+        var _a$data, _a$data$actions;
+
+        return a.type === "SHOW_MIGRATION_WIZARD" || a.type === "MULTI_ACTION" && ((_a$data = a.data) === null || _a$data === void 0 ? void 0 : (_a$data$actions = _a$data.actions) === null || _a$data$actions === void 0 ? void 0 : _a$data$actions.some(hasMigrate));
+      };
+
+      if (hasMigrate(action)) {
         await window.AWWaitForMigrationClose();
         _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, "migrate_close");
       }
@@ -515,13 +574,18 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
 
     if (action.persistActiveTheme) {
       this.props.setInitialTheme(this.props.activeTheme);
-    }
+    } // `navigate` and `dismiss` can be true/false/undefined, or they can be a
+    // string "actionResult" in which case we should use the actionResult
+    // (boolean resolved by handleUserAction)
 
-    if (action.navigate) {
+
+    const shouldDoBehavior = behavior => behavior === "actionResult" ? actionResult : behavior;
+
+    if (shouldDoBehavior(action.navigate)) {
       props.navigate();
     }
 
-    if (action.dismiss) {
+    if (shouldDoBehavior(action.dismiss)) {
       window.AWFinish();
     }
   }
@@ -636,6 +700,10 @@ const Localized = ({
       "data-l10n-name": "zap",
       ref: zapRef
     }, text.zap));
+  }
+
+  if (text.aria_label) {
+    props["aria-label"] = text.aria_label;
   } // Apply certain configurable styles.
 
 
@@ -670,9 +738,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _HeroImage__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(13);
 /* harmony import */ var _OnboardingVideo__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(14);
 /* harmony import */ var _AdditionalCTA__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(15);
+/* harmony import */ var _EmbeddedMigrationWizard__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(16);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -730,7 +800,7 @@ const MultiStageProtonScreen = props => {
   });
 };
 const ProtonScreenActionButtons = props => {
-  var _content$checkbox, _content$primary_butt, _content$primary_butt2;
+  var _content$checkbox, _content$additional_b, _content$primary_butt, _content$primary_butt2;
 
   const {
     content,
@@ -744,7 +814,8 @@ const ProtonScreenActionButtons = props => {
   }
 
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: `action-buttons ${content.additional_button ? "additional-cta-container" : ""}`
+    className: `action-buttons ${content.additional_button ? "additional-cta-container" : ""}`,
+    flow: (_content$additional_b = content.additional_button) === null || _content$additional_b === void 0 ? void 0 : _content$additional_b.flow
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: (_content$primary_butt = content.primary_button) === null || _content$primary_butt === void 0 ? void 0 : _content$primary_butt.label
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
@@ -841,6 +912,8 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       activeMultiSelect: this.props.activeMultiSelect,
       setActiveMultiSelect: this.props.setActiveMultiSelect,
       handleAction: this.props.handleAction
+    }) : null, content.tiles && content.tiles.type === "migration-wizard" ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_EmbeddedMigrationWizard__WEBPACK_IMPORTED_MODULE_12__.EmbeddedMigrationWizard, {
+      handleAction: this.props.handleAction
     }) : null);
   }
 
@@ -914,11 +987,12 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
         background: content.background,
         "--mr-secondary-background-position-y": content.split_narrow_bkg_position
       } : {}
-    }, content.image_alt_text ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+      text: content.image_alt_text
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       className: "sr-only image-alt",
-      role: "img",
-      "data-l10n-id": content.image_alt_text.string_id
-    }) : null, content.hero_image ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HeroImage__WEBPACK_IMPORTED_MODULE_9__.HeroImage, {
+      role: "img"
+    })), content.hero_image ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_HeroImage__WEBPACK_IMPORTED_MODULE_9__.HeroImage, {
       url: content.hero_image.url
     }) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       className: "message-text"
@@ -936,7 +1010,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
   }
 
   render() {
-    var _this$props$appAndSys, _this$props$messageId;
+    var _content$tiles, _this$props$appAndSys, _this$props$messageId;
 
     const {
       autoAdvance,
@@ -955,6 +1029,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
     // by checking if screen order is even or odd.
 
     const screenClassName = isCenterPosition ? this.getScreenClassName(isFirstScreen, isLastScreen, includeNoodles, content === null || content === void 0 ? void 0 : content.video_container) : "";
+    const isEmbeddedMigration = ((_content$tiles = content.tiles) === null || _content$tiles === void 0 ? void 0 : _content$tiles.type) === "migration-wizard";
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("main", {
       className: `screen ${this.props.id || ""}
           ${screenClassName} ${textColorClass}`,
@@ -966,7 +1041,8 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
         this.mainContentHeader = input;
       }
     }, isCenterPosition ? null : this.renderSecondarySection(content), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-      className: "section-main"
+      className: `section-main ${isEmbeddedMigration ? "embedded-migration" : ""}`,
+      role: "document"
     }, content.secondary_button_top ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_6__.SecondaryCTA, {
       content: content,
       handleAction: this.props.handleAction,
@@ -987,11 +1063,11 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       className: "main-content-inner"
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       className: `welcome-text ${content.title_style || ""}`
-    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+    }, content.title ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
       text: content.title
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h1", {
       id: "mainContentHeader"
-    })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+    })) : null, content.subtitle ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
       text: content.subtitle
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h2", {
       "data-l10n-args": JSON.stringify({
@@ -999,7 +1075,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
         ...((_this$props$appAndSys = this.props.appAndSystemLocaleInfo) === null || _this$props$appAndSys === void 0 ? void 0 : _this$props$appAndSys.displayNames)
       }),
       "aria-flowto": (_this$props$messageId = this.props.messageId) !== null && _this$props$messageId !== void 0 && _this$props$messageId.includes("FEATURE_TOUR") ? "steps" : ""
-    })), content.cta_paragraph ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_CTAParagraph__WEBPACK_IMPORTED_MODULE_8__.CTAParagraph, {
+    })) : null, content.cta_paragraph ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_CTAParagraph__WEBPACK_IMPORTED_MODULE_8__.CTAParagraph, {
       content: content.cta_paragraph,
       handleAction: this.props.handleAction
     }) : null), content.video_container ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_OnboardingVideo__WEBPACK_IMPORTED_MODULE_10__.OnboardingVideo, {
@@ -1298,7 +1374,7 @@ const MultiSelect = props => {
 
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       key: id + label,
-      className: "checkbox-container"
+      className: "checkbox-container multi-select-item"
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
       type: "checkbox",
       id: id,
@@ -1792,6 +1868,59 @@ const AdditionalCTA = ({
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "EmbeddedMigrationWizard": () => (/* binding */ EmbeddedMigrationWizard)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+const EmbeddedMigrationWizard = ({
+  handleAction
+}) => {
+  const ref = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)();
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const handleBeginMigration = () => {
+      handleAction({
+        currentTarget: {
+          value: "migrate_start"
+        },
+        source: "primary_button"
+      });
+    };
+
+    const handleClose = () => {
+      handleAction({
+        currentTarget: {
+          value: "migrate_close"
+        }
+      });
+    };
+
+    const {
+      current
+    } = ref;
+    current === null || current === void 0 ? void 0 : current.addEventListener("MigrationWizard:BeginMigration", handleBeginMigration);
+    current === null || current === void 0 ? void 0 : current.addEventListener("MigrationWizard:Close", handleClose);
+    return () => {
+      current === null || current === void 0 ? void 0 : current.removeEventListener("MigrationWizard:BeginMigration", handleBeginMigration);
+      current === null || current === void 0 ? void 0 : current.removeEventListener("MigrationWizard:Close", handleClose);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("migration-wizard", {
+    "auto-request-state": "",
+    ref: ref
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("panel-list", null));
+};
+
+/***/ }),
+/* 17 */
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "BASE_PARAMS": () => (/* binding */ BASE_PARAMS),
 /* harmony export */   "addUtmParams": () => (/* binding */ addUtmParams)
 /* harmony export */ });
@@ -1829,7 +1958,7 @@ function addUtmParams(url, utmTerm) {
 }
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -1840,7 +1969,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3);
 /* harmony import */ var _MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6);
-/* harmony import */ var _asrouter_templates_FirstRun_addUtmParams__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(16);
+/* harmony import */ var _asrouter_templates_FirstRun_addUtmParams__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(17);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -2035,7 +2164,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
 /* harmony import */ var _components_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(4);
-/* harmony import */ var _components_ReturnToAMO__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(17);
+/* harmony import */ var _components_ReturnToAMO__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(18);
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -2119,7 +2248,7 @@ class AboutWelcome extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
 
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_3__.MultiStageAboutWelcome, {
       message_id: props.messageId,
-      screens: props.screens,
+      defaultScreens: props.screens,
       updateHistory: !props.disableHistoryUpdates,
       metricsFlowUri: this.state.metricsFlowUri,
       utm_term: props.UTMTerm,
@@ -2178,7 +2307,7 @@ async function mount() {
   react_dom__WEBPACK_IMPORTED_MODULE_1___default().render( /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(AboutWelcome, _extends({
     messageId: messageId,
     UTMTerm: UTMTerm
-  }, aboutWelcomeProps)), document.getElementById("root"));
+  }, aboutWelcomeProps)), document.getElementById("multi-stage-message-root"));
 }
 
 performance.mark("mount");

@@ -9,7 +9,7 @@ import { DiscoveryStreamFeed } from "lib/DiscoveryStreamFeed.jsm";
 import { RecommendationProvider } from "lib/RecommendationProvider.jsm";
 import { reducers } from "common/Reducers.sys.mjs";
 
-import { PersistentCache } from "lib/PersistentCache.jsm";
+import { PersistentCache } from "lib/PersistentCache.sys.mjs";
 import { PersonalityProvider } from "lib/PersonalityProvider/PersonalityProvider.jsm";
 
 const CONFIG_PREF_NAME = "discoverystream.config";
@@ -281,6 +281,7 @@ describe("DiscoveryStreamFeed", () => {
       assert.equal(feed._impressionId, FAKE_UUID);
     });
     it("should create impression id if none exists", async () => {
+      sandbox.stub(global.Services.prefs, "getCharPref").returns("");
       sandbox.stub(global.Services.prefs, "setCharPref").returns();
 
       const result = feed.getOrCreateImpressionId();
@@ -580,10 +581,10 @@ describe("DiscoveryStreamFeed", () => {
 
       const { layout } = feed.store.getState().DiscoveryStream;
       assert.deepEqual(layout[0].components[2].placement.ad_types, [1230]);
-      assert.deepEqual(layout[0].components[2].placement.zone_ids, [
-        4560,
-        7890,
-      ]);
+      assert.deepEqual(
+        layout[0].components[2].placement.zone_ids,
+        [4560, 7890]
+      );
     });
     it("should create a layout with spoc topsite position data", async () => {
       feed.config.hardcoded_layout = true;
@@ -602,10 +603,10 @@ describe("DiscoveryStreamFeed", () => {
 
       const { layout } = feed.store.getState().DiscoveryStream;
       assert.deepEqual(layout[0].components[0].placement.ad_types, [1230]);
-      assert.deepEqual(layout[0].components[0].placement.zone_ids, [
-        4560,
-        7890,
-      ]);
+      assert.deepEqual(
+        layout[0].components[0].placement.zone_ids,
+        [4560, 7890]
+      );
     });
     it("should create a layout with proper spoc url with a site id", async () => {
       feed.config.hardcoded_layout = true;
@@ -1921,15 +1922,15 @@ describe("DiscoveryStreamFeed", () => {
 
   describe("#recordBlockFlightId", () => {
     it("should call writeDataPref with new flight id added", () => {
-      sandbox.stub(feed, "readDataPref").returns({ "1234": 1 });
+      sandbox.stub(feed, "readDataPref").returns({ 1234: 1 });
       sandbox.stub(feed, "writeDataPref").returns();
 
       feed.recordBlockFlightId("5678");
 
       assert.calledOnce(feed.readDataPref);
       assert.calledWith(feed.writeDataPref, "discoverystream.flight.blocks", {
-        "1234": 1,
-        "5678": 1,
+        1234: 1,
+        5678: 1,
       });
     });
   });
@@ -3494,6 +3495,87 @@ describe("DiscoveryStreamFeed", () => {
         .returns();
       const result = await feed.scoreItem(item, true);
       assert.equal(result.score, 1);
+    });
+  });
+  describe("new proxy feed", () => {
+    beforeEach(() => {
+      feed.store = createStore(combineReducers(reducers), {
+        Prefs: {
+          values: {
+            pocketConfig: { regionBffConfig: "DE" },
+          },
+        },
+      });
+      sandbox.stub(global.Region, "home").get(() => "DE");
+      globals.set("NimbusFeatures", {
+        saveToPocket: {
+          getVariable: sandbox.stub(),
+        },
+      });
+      global.NimbusFeatures.saveToPocket.getVariable
+        .withArgs("bffApi")
+        .returns("bffApi");
+      global.NimbusFeatures.saveToPocket.getVariable
+        .withArgs("oAuthConsumerKeyBff")
+        .returns("oAuthConsumerKeyBff");
+    });
+    it("should return true with isBff", async () => {
+      assert.isUndefined(feed._isBff);
+      assert.isTrue(feed.isBff);
+      assert.isTrue(feed._isBff);
+    });
+    it("should update to new feed url", async () => {
+      await feed.loadLayout(feed.store.dispatch);
+      const { layout } = feed.store.getState().DiscoveryStream;
+      assert.equal(
+        layout[0].components[2].feed.url,
+        "https://bffApi/desktop/v1/recommendations?locale=$locale&region=$region&count=30"
+      );
+    });
+    it("should fetch proper data from getComponentFeed", async () => {
+      const fakeCache = {};
+      sandbox.stub(feed.cache, "get").returns(Promise.resolve(fakeCache));
+      sandbox.stub(feed, "rotate").callsFake(val => val);
+      sandbox
+        .stub(feed, "scoreItems")
+        .callsFake(val => ({ data: val, filtered: [] }));
+      sandbox.stub(feed, "fetchFromEndpoint").resolves({
+        data: [
+          {
+            tileId: 1234,
+            url: "url",
+            title: "title",
+            excerpt: "excerpt",
+            publisher: "publisher",
+            imageUrl: "imageUrl",
+          },
+        ],
+      });
+
+      const feedData = await feed.getComponentFeed("url");
+      assert.deepEqual(feedData, {
+        lastUpdated: 0,
+        data: {
+          settings: {},
+          recommendations: [
+            {
+              id: 1234,
+              url: "url",
+              title: "title",
+              excerpt: "excerpt",
+              publisher: "publisher",
+              raw_image_src: "imageUrl",
+            },
+          ],
+          status: "success",
+        },
+      });
+      assert.equal(feed.fetchFromEndpoint.firstCall.args[0], "url");
+      assert.equal(feed.fetchFromEndpoint.firstCall.args[1].method, "GET");
+      assert.equal(
+        feed.fetchFromEndpoint.firstCall.args[1].headers.get("consumer_key"),
+        "oAuthConsumerKeyBff"
+      );
     });
   });
 });

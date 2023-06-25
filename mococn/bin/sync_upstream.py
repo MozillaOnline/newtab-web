@@ -43,8 +43,8 @@ def main(repo, tag):
         ("browser/branding/official/locales/en-US/brand.ftl", "gecko-dev/l10n/en-US/brand.ftl"),
         ("browser/components/search/content/contentSearchHandoffUI.js", "gecko-dev/contentSearchHandoffUI.js"),
         ("browser/components/search/content/contentSearchUI.js", "gecko-dev/contentSearchUI.js"),
-        ("browser/locales/en-US/browser/branding/brandings.ftl", "gecko-dev/l10n/en-US/brandings.ftl"),
         ("browser/locales/en-US/browser/newtab/newtab.ftl", "gecko-dev/l10n/en-US/newtab.ftl"),
+        ("toolkit/locales/en-US/toolkit/branding/brandings.ftl", "gecko-dev/l10n/en-US/brandings.ftl"),
     ]:
         url = f"https://hg.mozilla.org/releases/{repo}/raw-file/{tag}/{remote_file}"
         save_url_locally(url, local_file)
@@ -54,8 +54,8 @@ def main(repo, tag):
     zh_cn_rev = response.json().get("zh-CN", {}).get("revision", "tip")
     for remote_file, local_file in [
         ("browser/branding/official/brand.ftl", "gecko-dev/l10n/zh-CN/brand.ftl"),
-        ("browser/browser/branding/brandings.ftl", "gecko-dev/l10n/zh-CN/brandings.ftl"),
         ("browser/browser/newtab/newtab.ftl", "gecko-dev/l10n/zh-CN/newtab.ftl"),
+        ("toolkit/toolkit/branding/brandings.ftl", "gecko-dev/l10n/zh-CN/brandings.ftl"),
     ]:
         url = f"https://hg.mozilla.org/l10n-central/zh-CN/raw-file/{zh_cn_rev}/{remote_file}"
         save_url_locally(url, local_file)

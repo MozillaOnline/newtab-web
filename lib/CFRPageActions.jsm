@@ -10,12 +10,9 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-});
-
-XPCOMUtils.defineLazyModuleGetters(lazy, {
-  RemoteL10n: "resource://activity-stream/lib/RemoteL10n.jsm",
-  CustomizableUI: "resource:///modules/CustomizableUI.jsm",
+  RemoteL10n: "resource://activity-stream/lib/RemoteL10n.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -285,9 +282,13 @@ class PageAction {
   }
 
   _sendTelemetry(ping) {
+    const data = { action: "cfr_user_event", source: "CFR", ...ping };
+    if (lazy.PrivateBrowsingUtils.isWindowPrivate(this.window)) {
+      data.is_private = true;
+    }
     this._dispatchCFRAction({
       type: "DOORHANGER_TELEMETRY",
-      data: { action: "cfr_user_event", source: "CFR", ...ping },
+      data,
     });
   }
 
@@ -354,10 +355,7 @@ class PageAction {
     return subAttribute ? mainString.attributes[subAttribute] : mainString;
   }
 
-  async _setAddonAuthorAndRating(document, content) {
-    const author = this.window.document.getElementById(
-      "cfr-notification-author"
-    );
+  async _setAddonRating(document, content) {
     const footerFilledStars = this.window.document.getElementById(
       "cfr-notification-footer-filled-stars"
     );
@@ -367,22 +365,19 @@ class PageAction {
     const footerUsers = this.window.document.getElementById(
       "cfr-notification-footer-users"
     );
-    const footerSpacer = this.window.document.getElementById(
-      "cfr-notification-footer-spacer"
-    );
-
-    author.textContent = await this.getStrings({
-      string_id: "cfr-doorhanger-extension-author",
-      args: { name: content.addon.author },
-    });
 
     const { rating } = content.addon;
     if (rating) {
       const MAX_RATING = 5;
-      const STARS_WIDTH = 17 * MAX_RATING;
+      const STARS_WIDTH = 16 * MAX_RATING;
       const calcWidth = stars => `${(stars / MAX_RATING) * STARS_WIDTH}px`;
-      footerFilledStars.style.width = calcWidth(rating);
-      footerEmptyStars.style.width = calcWidth(MAX_RATING - rating);
+      const filledWidth =
+        rating <= MAX_RATING ? calcWidth(rating) : calcWidth(MAX_RATING);
+      const emptyWidth =
+        rating <= MAX_RATING ? calcWidth(MAX_RATING - rating) : calcWidth(0);
+
+      footerFilledStars.style.width = filledWidth;
+      footerEmptyStars.style.width = emptyWidth;
 
       const ratingString = await this.getStrings(
         {
@@ -402,23 +397,13 @@ class PageAction {
 
     const { users } = content.addon;
     if (users) {
-      footerUsers.setAttribute(
-        "value",
-        await this.getStrings({
-          string_id: "cfr-doorhanger-extension-total-users",
-          args: { total: users },
-        })
-      );
+      footerUsers.setAttribute("value", users);
       footerUsers.hidden = false;
     } else {
       // Prevent whitespace around empty label from affecting other spacing
       footerUsers.hidden = true;
       footerUsers.removeAttribute("value");
     }
-
-    // Spacer pushes the link to the opposite end when there's other content
-
-    footerSpacer.hidden = !rating && !users;
   }
 
   _createElementAndAppend({ type, id }, parent) {
@@ -523,6 +508,7 @@ class PageAction {
       {
         hideClose: true,
         persistWhileVisible: true,
+        recordTelemetryInPrivateBrowsing: content.show_in_private_browsing,
       }
     );
     Services.prefs.setIntPref(
@@ -559,7 +545,11 @@ class PageAction {
     const { primary, secondary } = content.buttons;
     let primaryActionCallback;
     let persistent = !!content.persistent_doorhanger;
-    let options = { persistent, persistWhileVisible: persistent };
+    let options = {
+      persistent,
+      persistWhileVisible: persistent,
+      recordTelemetryInPrivateBrowsing: content.show_in_private_browsing,
+    };
     let panelTitle;
 
     headerLabel.value = await this.getStrings(content.heading_text);
@@ -633,18 +623,25 @@ class PageAction {
         };
         break;
       default:
+        const authorText = await this.getStrings({
+          string_id: "cfr-doorhanger-extension-author",
+          args: { name: content.addon.author },
+        });
         panelTitle = await this.getStrings(content.addon.title);
-        await this._setAddonAuthorAndRating(this.window.document, content);
+        await this._setAddonRating(this.window.document, content);
         if (footerText.firstChild) {
           footerText.firstChild.remove();
         }
+        if (footerText.lastChild) {
+          footerText.lastChild.remove();
+        }
+
         // Main body content of the dropdown
         footerText.appendChild(
           lazy.RemoteL10n.createElement(this.window.document, "span", {
             content: content.text,
           })
         );
-        options = { popupIconURL: content.addon.icon, ...options };
 
         footerLink.value = await this.getStrings({
           string_id: "cfr-doorhanger-extension-learn-more-link",
@@ -657,11 +654,18 @@ class PageAction {
             event: "LEARN_MORE",
           });
 
+        footerText.appendChild(footerLink);
+        options = {
+          popupIconURL: content.addon.icon,
+          popupIconClass: content.icon_class,
+          name: authorText,
+          ...options,
+        };
+
         primaryActionCallback = async () => {
-          // eslint-disable-next-line no-use-before-define
-          primary.action.data.url = await CFRPageActions._fetchLatestAddonVersion(
-            content.addon.id
-          );
+          primary.action.data.url =
+            // eslint-disable-next-line no-use-before-define
+            await CFRPageActions._fetchLatestAddonVersion(content.addon.id);
           this._blockMessage(id);
           this.dispatchUserAction(primary.action);
           this.hideAddressBarNotifier();
@@ -958,8 +962,8 @@ const CFRPageActions = {
    * Add a recommendation specific to the given browser and host.
    * @param browser                 The browser for the recommendation
    * @param host                    The host for the recommendation
-   * @param recommendation  The recommendation to show
-   * @param dispatchCFRAction      A function to dispatch resulting actions to
+   * @param recommendation          The recommendation to show
+   * @param dispatchCFRAction       A function to dispatch resulting actions to
    * @return                        Did adding the recommendation succeed?
    */
   async addRecommendation(browser, host, recommendation, dispatchCFRAction) {
@@ -967,9 +971,6 @@ const CFRPageActions = {
       return false;
     }
     const win = browser.ownerGlobal;
-    if (lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
-      return false;
-    }
     if (
       browser !== win.gBrowser.selectedBrowser ||
       // We can have recommendations without URL restrictions
@@ -982,6 +983,12 @@ const CFRPageActions = {
       return false;
     }
     const { id, content } = recommendation;
+    if (
+      !content.show_in_private_browsing &&
+      lazy.PrivateBrowsingUtils.isWindowPrivate(win)
+    ) {
+      return false;
+    }
     RecommendationMap.set(browser, {
       id,
       host,
