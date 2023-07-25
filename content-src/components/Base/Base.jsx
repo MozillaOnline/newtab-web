@@ -108,6 +108,10 @@ export class BaseContent extends React.PureComponent {
     this.onWindowScroll = debounce(this.onWindowScroll.bind(this), 5);
     this.setPref = this.setPref.bind(this);
     this.state = { fixedSearch: false };
+    // Since Fx 114, see https://bugzil.la/1812690
+    if (props.App.customizeMenuVisible === undefined) {
+      this.state.customizeMenuVisible = false;
+    }
 
     this.state.mococnShowLogo = false;
     this.onIntersectionChange = this.onIntersectionChange.bind(this);
@@ -166,13 +170,20 @@ export class BaseContent extends React.PureComponent {
   }
 
   openCustomizationMenu() {
-    this.props.dispatch({ type: at.SHOW_PERSONALIZE });
+    if (this.props.App.customizeMenuVisible !== undefined) {
+      this.props.dispatch({ type: at.SHOW_PERSONALIZE });
+    } else {
+      this.setState({ customizeMenuVisible: true });
+    }
     this.props.dispatch(ac.UserEvent({ event: "SHOW_PERSONALIZE" }));
   }
 
   closeCustomizationMenu() {
-    if (this.props.App.customizeMenuVisible) {
+    if (this.props.App.customizeMenuVisible === true) {
       this.props.dispatch({ type: at.HIDE_PERSONALIZE });
+      this.props.dispatch(ac.UserEvent({ event: "HIDE_PERSONALIZE" }));
+    } else if (this.state.customizeMenuVisible) {
+      this.setState({ customizeMenuVisible: false });
       this.props.dispatch(ac.UserEvent({ event: "HIDE_PERSONALIZE" }));
     }
   }
@@ -250,6 +261,8 @@ export class BaseContent extends React.PureComponent {
       !pocketEnabled &&
       filteredSections.filter(section => section.enabled).length === 0;
     const searchHandoffEnabled = prefs["improvesearch.handoffToAwesomebar"];
+    const showCustomizationMenu = customizeMenuVisible === undefined ?
+      this.state.customizeMenuVisible : customizeMenuVisible;
     const enabledSections = {
       topSitesEnabled: prefs["feeds.topsites"],
       pocketEnabled: prefs["feeds.section.topstories"],
@@ -296,7 +309,7 @@ export class BaseContent extends React.PureComponent {
           enabledSections={enabledSections}
           pocketRegion={pocketRegion}
           mayHaveSponsoredTopSites={mayHaveSponsoredTopSites}
-          showing={customizeMenuVisible}
+          showing={showCustomizationMenu}
         />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions*/}
         <div className={outerClassName} onClick={this.closeCustomizationMenu}>
