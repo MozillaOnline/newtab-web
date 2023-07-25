@@ -8,6 +8,7 @@
   const prefersDarkQuery = window.matchMedia("(prefers-color-scheme: dark)");
   const rgbaBlack = { r: 0, g: 0, b: 0, a: 1 };
   const rgbaWhite = { r: 255, g: 255, b: 255, a: 1 };
+  const supportsColorMix = CSS.supports("color: color-mix(in srgb, rebeccapurple, transparent)");
 
   function _isTextColorDark(r, g, b) {
     return 0.2125 * r + 0.7154 * g + 0.0721 * b <= 110;
@@ -90,7 +91,7 @@
       {
         lwtProperty: "ntp_text",
         processColor(rgbaChannels) {
-          if (!rgbaChannels) {
+          if (supportsColorMix || !rgbaChannels) {
             return null;
           }
 
@@ -105,7 +106,7 @@
       {
         lwtProperty: "ntp_background",
         processColor(rgbaChannels, element) {
-          if (!rgbaChannels) {
+          if (supportsColorMix || !rgbaChannels) {
             return null;
           }
 
@@ -125,7 +126,7 @@
       {
         lwtProperty: "ntp_background",
         processColor(rgbaChannels, element) {
-          if (!rgbaChannels) {
+          if (supportsColorMix || !rgbaChannels) {
             return null;
           }
 
@@ -145,7 +146,7 @@
       {
         lwtProperty: "ntp_background",
         processColor(rgbaChannels, element) {
-          if (!rgbaChannels) {
+          if (supportsColorMix || !rgbaChannels) {
             return null;
           }
 
@@ -162,7 +163,7 @@
       {
         lwtProperty: "ntp_background",
         processColor(rgbaChannels) {
-          if (!rgbaChannels) {
+          if (supportsColorMix || !rgbaChannels) {
             return null;
           }
 
